@@ -1,26 +1,39 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Cinzel, Cormorant_Garamond, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const cormorantGaramond = Cormorant_Garamond({
+  variable: '--font-heading',
   subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  style: ['normal', 'italic'],
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const cinzel = Cinzel({
+  variable: '--font-display',
   subsets: ['latin'],
+  weight: ['500', '600', '700'],
+});
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: '--font-body',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
-  title: 'Nadar Kalyanam',
-  description: 'Nadar Kalyanam matrimonial platform.',
+  title: 'Nadar Kalyanam - Relationships Rooted in Values | Matrimony',
+  description:
+    'Nadar Kalyanam brings together like-minded individuals and families with shared values, culture, and aspirations. Find your trusted life partner.',
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full bg-background text-foreground">{children}</body>
+    <html
+      lang="en"
+      className={`${cormorantGaramond.variable} ${cinzel.variable} ${plusJakartaSans.variable}`}
+    >
+      <body>{children}</body>
     </html>
   );
 }
