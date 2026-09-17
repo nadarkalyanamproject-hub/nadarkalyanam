@@ -1,0 +1,21 @@
+{
+  "name": "nadar-kalyanam",
+  "private": true,
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "db:generate": "pnpm --filter @nadar-kalyanam/api prisma:generate",
+    "db:migrate": "pnpm --filter @nadar-kalyanam/api prisma:migrate"
+  },
+  "devDependencies": {
+    "turbo": "2.10.13",
+    "typescript": "^5.9.0"
+  }
+}

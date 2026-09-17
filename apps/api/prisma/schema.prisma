@@ -1,0 +1,312 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- Auth & accounts (FR-1) ---------------------------------------------
+
+enum AccountStatus {
+  ACTIVE
+  PENDING_DELETION
+  SUSPENDED
+  DELETED
+}
+
+model User {
+  id            String        @id @default(uuid())
+  phoneNumber   String        @unique
+  status        AccountStatus @default(ACTIVE)
+  deletionRequestedAt DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  profile       Profile?
+  sessions      Session[]
+  sentInterests     Interest[] @relation("InterestSender")
+  receivedInterests Interest[] @relation("InterestTarget")
+  blocksInitiated   Block[]    @relation("BlockInitiator")
+  blocksReceived    Block[]    @relation("BlockTarget")
+  verificationRequests VerificationRequest[]
+  orders        Order[]
+
+  @@map("users")
+}
+
+model Session {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String
+  deviceLabel   String?
+  revokedAt     DateTime?
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// --- Profile management (FR-2) ------------------------------------------
+
+enum ProfileVisibility {
+  PUBLIC
+  MEMBERS_ONLY
+  HIDDEN
+}
+
+model Profile {
+  id                String            @id @default(uuid())
+  userId            String            @unique
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName          String
+  gender            String
+  dateOfBirth       DateTime
+  visibility        ProfileVisibility @default(MEMBERS_ONLY)
+  completionScore   Int               @default(0)
+  isVerified        Boolean           @default(false)
+  details           Json              @default("{}")
+  fieldVisibility   Json              @default("{}")
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  photos            ProfilePhoto[]
+  shortlistedBy     Shortlist[]       @relation("ShortlistedProfile")
+
+  @@map("profiles")
+}
+
+// FR-2.6 requires at most one is_primary=true row per profile, enforced via a
+// partial unique index (`CREATE UNIQUE INDEX ... WHERE is_primary`) — Prisma's
+// schema DSL has no partial-index syntax, so that constraint is added by hand
+// in the generated migration SQL, not expressed here.
+model ProfilePhoto {
+  id          String   @id @default(uuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  objectKey   String
+  isPrimary   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  isModerated Boolean  @default(false)
+  isApproved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([profileId])
+  @@map("profile_photos")
+}
+
+model Shortlist {
+  id         String   @id @default(uuid())
+  memberId   String
+  profileId  String
+  profile    Profile  @relation("ShortlistedProfile", fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([memberId, profileId])
+  @@map("shortlists")
+}
+
+// --- Interests & messaging (FR-4, FR-5) ----------------------------------
+
+enum InterestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  WITHDRAWN
+}
+
+model Interest {
+  id         String         @id @default(uuid())
+  senderId   String
+  sender     User           @relation("InterestSender", fields: [senderId], references: [id], onDelete: Cascade)
+  targetId   String
+  target     User           @relation("InterestTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  status     InterestStatus @default(PENDING)
+  createdAt  DateTime       @default(now())
+  respondedAt DateTime?
+
+  conversation Conversation?
+
+  @@unique([senderId, targetId])
+  @@map("interests")
+}
+
+model Conversation {
+  id          String    @id @default(uuid())
+  interestId  String    @unique
+  interest    Interest  @relation(fields: [interestId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  messages    Message[]
+
+  @@map("conversations")
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+model Message {
+  id             String        @id @default(uuid())
+  conversationId String
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  body           String
+  status         MessageStatus @default(SENT)
+  createdAt      DateTime      @default(now())
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+// --- Trust & safety (FR-9) ------------------------------------------------
+
+model Block {
+  id           String   @id @default(uuid())
+  initiatorId  String
+  initiator    User     @relation("BlockInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  targetId     String
+  target       User     @relation("BlockTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@unique([initiatorId, targetId])
+  @@map("blocks")
+}
+
+enum ReportStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+model Report {
+  id           String       @id @default(uuid())
+  reporterId   String
+  targetType   String
+  targetId     String
+  reason       String
+  status       ReportStatus @default(OPEN)
+  createdAt    DateTime     @default(now())
+  resolvedAt   DateTime?
+
+  @@map("reports")
+}
+
+// --- Membership & payments (FR-7) -----------------------------------------
+
+model MembershipPlan {
+  id          String   @id @default(uuid())
+  name        String
+  priceInPaise Int
+  entitlements Json    @default("{}")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  orders      Order[]
+
+  @@map("membership_plans")
+}
+
+enum OrderStatus {
+  CREATED
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+model Order {
+  id             String      @id @default(uuid())
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId         String
+  plan           MembershipPlan @relation(fields: [planId], references: [id])
+  amountInPaise  Int
+  status         OrderStatus @default(CREATED)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  payments       Payment[]
+
+  @@map("orders")
+}
+
+model Payment {
+  id                 String   @id @default(uuid())
+  orderId            String
+  order              Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  providerEventId    String   @unique
+  providerReference  String?
+  status             OrderStatus
+  rawPayload         Json
+  createdAt          DateTime @default(now())
+
+  @@map("payments")
+}
+
+// --- Identity verification (FR-8) -----------------------------------------
+
+enum VerificationStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  EXPIRED
+}
+
+model VerificationRequest {
+  id                String              @id @default(uuid())
+  userId            String
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  providerReference String
+  status            VerificationStatus  @default(PENDING)
+  createdAt         DateTime            @default(now())
+  decidedAt         DateTime?
+  expiresAt         DateTime?
+
+  @@index([userId])
+  @@map("verification_requests")
+}
+
+// --- Admin & RBAC (FR-11) --------------------------------------------------
+
+enum AdminRole {
+  SUPER_ADMIN
+  OPERATIONS_ADMIN
+  MODERATOR
+  VERIFICATION_AGENT
+  FINANCE_ADMIN
+  CONTENT_ADMIN
+}
+
+model AdminUser {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  role         AdminRole
+  isActive     Boolean   @default(true)
+  mfaEnabled   Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+
+  auditLogs    AuditLog[]
+
+  @@map("admin_users")
+}
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  adminId     String
+  admin       AdminUser @relation(fields: [adminId], references: [id])
+  action      String
+  targetType  String
+  targetId    String
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now())
+
+  @@index([adminId, createdAt])
+  @@map("audit_logs")
+}

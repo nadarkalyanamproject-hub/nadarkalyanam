@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: nadar-kalyanam-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nadar
+      POSTGRES_PASSWORD: nadar_dev_password
+      POSTGRES_DB: nadar_kalyanam
+    ports:
+      - "5439:5432"
+    volumes:
+      - nadar_kalyanam_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nadar -d nadar_kalyanam"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: nadar-kalyanam-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - nadar_kalyanam_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  nadar_kalyanam_postgres_data:
+  nadar_kalyanam_redis_data:
