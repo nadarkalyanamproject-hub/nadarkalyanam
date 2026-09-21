@@ -6,6 +6,7 @@ describe('validateEnv', () => {
     const env = validateEnv({
       DATABASE_URL: 'postgresql://user:pass@localhost:5439/db',
       REDIS_URL: 'redis://localhost:6380',
+      JWT_ACCESS_TOKEN_SECRET: 'test-secret',
     });
 
     expect(env.PORT).toBe(4000);
@@ -14,5 +15,14 @@ describe('validateEnv', () => {
 
   it('throws when a required field is missing', () => {
     expect(() => validateEnv({})).toThrow(/DATABASE_URL/);
+  });
+
+  it('throws when JWT_ACCESS_TOKEN_SECRET is missing', () => {
+    expect(() =>
+      validateEnv({
+        DATABASE_URL: 'postgresql://user:pass@localhost:5439/db',
+        REDIS_URL: 'redis://localhost:6380',
+      }),
+    ).toThrow(/JWT_ACCESS_TOKEN_SECRET/);
   });
 });

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Cinzel, Cormorant_Garamond, Plus_Jakarta_Sans } from 'next/font/google';
+import { RegistrationProvider } from './providers/registration-provider';
 import './globals.css';
 
 const cormorantGaramond = Cormorant_Garamond({
@@ -33,7 +34,9 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       lang="en"
       className={`${cormorantGaramond.variable} ${cinzel.variable} ${plusJakartaSans.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <RegistrationProvider>{children}</RegistrationProvider>
+      </body>
     </html>
   );
 }

@@ -16,3 +16,21 @@ export const authTokensSchema = z.object({
   refreshToken: z.string(),
 });
 export type AuthTokens = z.infer<typeof authTokensSchema>;
+
+export const sendOtpResponseSchema = z.object({
+  expiresInSeconds: z.number(),
+  devOtp: z.string().optional(),
+});
+export type SendOtpResponse = z.infer<typeof sendOtpResponseSchema>;
+
+export const authUserSchema = z.object({
+  id: z.string(),
+  phoneNumber: z.string(),
+  hasProfile: z.boolean(),
+});
+export type AuthUser = z.infer<typeof authUserSchema>;
+
+export const verifyOtpResponseSchema = authTokensSchema.extend({
+  user: authUserSchema,
+});
+export type VerifyOtpResponse = z.infer<typeof verifyOtpResponseSchema>;

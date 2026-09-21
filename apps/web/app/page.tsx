@@ -1,12 +1,18 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import { useRegistration } from './providers/registration-provider';
+import { isValidLocalPhone, toE164 } from '../lib/phone';
 import './landing.css';
 
 const PROFILE_OPTIONS = ['Myself', 'Son', 'Daughter', 'Brother', 'Sister', 'Relative', 'Friend'];
 const LANG_OPTIONS = ['English', 'தமிழ் (Tamil)'];
 
 export default function Home() {
+  const router = useRouter();
+  const { setPhoneNumber } = useRegistration();
+
   const [langOpen, setLangOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState('English');
 
@@ -76,16 +82,11 @@ export default function Home() {
       setPhoneError(false);
     }
 
-    if (!isValid) return;
+    if (!isValid || !isValidLocalPhone(mobileNumber)) return;
 
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      showToast('Welcome to Nadar Kalyanam!', `Profile for ${fullName.trim()} initiated successfully.`);
-      setFullName('');
-      setMobileNumber('');
-      setProfileFor('');
-    }, 1000);
+    setPhoneNumber(toE164(mobileNumber), fullName.trim());
+    router.push('/register');
   }
 
   function handleLoginSubmit(e: FormEvent) {

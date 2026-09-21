@@ -7,6 +7,7 @@ export const envSchema = z.object({
   REDIS_URL: z.string().min(1, 'REDIS_URL is required'),
   JWT_ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900),
   JWT_REFRESH_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(2592000),
+  JWT_ACCESS_TOKEN_SECRET: z.string().min(1, 'JWT_ACCESS_TOKEN_SECRET is required'),
 });
 
 export type Env = z.infer<typeof envSchema>;

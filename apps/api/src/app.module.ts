@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 import { validateEnv } from './modules/config/env.schema.js';
+import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { PrismaModule } from './modules/prisma/prisma.module.js';
+import { ProfilesModule } from './modules/profiles/profiles.module.js';
 import { RedisModule } from './modules/redis/redis.module.js';
 
 @Module({
@@ -24,6 +26,8 @@ import { RedisModule } from './modules/redis/redis.module.js';
     PrismaModule,
     RedisModule,
     HealthModule,
+    AuthModule,
+    ProfilesModule,
   ],
 })
 export class AppModule {}
