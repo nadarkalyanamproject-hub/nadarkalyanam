@@ -1,88 +1,117 @@
+'use client';
+
 const STEPS = [
-  'Basic Details',
-  'Personal & Religious Details',
-  'Location & Professional Details',
-  'Additional Details',
+  { id: 1, name: 'Basic Details' },
+  { id: 2, name: 'Personal & Religious' },
+  { id: 3, name: 'Location & Professional' },
+  { id: 4, name: 'Additional Details' },
 ];
 
-const RING_SIZE = 64;
-const RADIUS = 27;
-const STROKE_WIDTH = 5;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+function getStepStatusText(stepId: number, currentStep: number): string {
+  if (stepId < currentStep) return 'Completed';
+  if (stepId === currentStep) return 'Current Step';
+  if (stepId === currentStep + 1 && stepId === 4) return 'Final Step';
+  if (stepId === currentStep + 1) return 'Next Step';
+  if (stepId === 4) return 'Final Step';
+  return 'Upcoming';
+}
 
-export function OnboardingStepper({ step, activePercent }: { step: number; activePercent: number }) {
-  // The track spans center-to-center of the first and last circles: with 4
-  // equal-width columns, each circle's center sits at (2n-1)/8 of the row
-  // width, so the track is inset 1/8 (12.5%) from each edge. The filled
-  // portion grows from the start up through the active step's own center —
-  // i.e. up to (step/4 - 1/8) of the row, or equivalently (step-1)/4 of the
-  // track's own length.
-  const filledWidthPercent = Math.max(0, Math.min(100, ((step - 1) / STEPS.length) * 100));
+export function OnboardingStepper({
+  step,
+  activePercent = 0,
+}: {
+  step: number;
+  activePercent?: number;
+}) {
+  const percent = Math.max(0, Math.min(100, Math.round(activePercent)));
 
   return (
-    <ol className="relative flex">
-      <div className="absolute top-8 left-[12.5%] right-[12.5%] h-px bg-border" />
-      <div
-        className="absolute top-8 left-[12.5%] h-px bg-primary"
-        style={{ width: `${filledWidthPercent}%` }}
-      />
-      {STEPS.map((label, index) => {
-        const stepNumber = index + 1;
-        const isActive = stepNumber === step;
-        const isDone = stepNumber < step;
-        const percent = isActive ? Math.max(0, Math.min(100, Math.round(activePercent))) : 0;
-        const offset = CIRCUMFERENCE - (percent / 100) * CIRCUMFERENCE;
+    <div className="relative w-full select-none">
+      {/* Top Header showing Step counter and % Completed */}
+      <div className="mb-2.5 flex items-center justify-between px-1">
+        <span className="text-[11px] font-bold tracking-wider uppercase text-[#8E1B24]">
+          Step {step} of {STEPS.length}
+        </span>
+        <span className="text-xs font-bold text-[#8E1B24]">
+          {percent}% Completed
+        </span>
+      </div>
 
-        return (
-          <li key={label} className="relative z-10 flex flex-1 flex-col items-center gap-1.5 text-center">
-            <div className="relative flex h-16 w-16 items-center justify-center">
-              {isActive ? (
-                <>
-                  <svg viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`} className="h-16 w-16 -rotate-90">
-                    <circle
-                      cx={RING_SIZE / 2}
-                      cy={RING_SIZE / 2}
-                      r={RADIUS}
-                      fill="none"
-                      strokeWidth={STROKE_WIDTH}
-                      className="stroke-border"
-                    />
-                    <circle
-                      cx={RING_SIZE / 2}
-                      cy={RING_SIZE / 2}
-                      r={RADIUS}
-                      fill="none"
-                      strokeWidth={STROKE_WIDTH}
-                      strokeLinecap="round"
-                      strokeDasharray={CIRCUMFERENCE}
-                      strokeDashoffset={offset}
-                      className="stroke-primary"
-                    />
-                  </svg>
-                  <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-primary">
-                    {percent}%
+      {/* Progress Track & Nodes Container */}
+      <div className="relative w-full py-1">
+        {/* Background Track Line connecting center of Node 1 to center of Node 4 */}
+        <div className="absolute top-[14px] left-[12.5%] right-[12.5%] h-1.5 -translate-y-1/2 rounded-full bg-[#EAE3D9]" />
+
+        {/* Filled Gradient Progress Bar moving with exact progress percentage */}
+        <div
+          className="absolute top-[14px] left-[12.5%] h-1.5 -translate-y-1/2 rounded-full bg-gradient-to-r from-[#8E1B24] via-[#B8323C] to-[#E67E22] transition-all duration-500 ease-out"
+          style={{
+            width: `calc(${percent}% * 0.75)`,
+          }}
+        />
+
+        {/* 4 Step Nodes & Labels */}
+        <div className="relative z-10 grid grid-cols-4">
+          {STEPS.map((s) => {
+            const isDone = s.id < step;
+            const isCurrent = s.id === step;
+            const statusText = getStepStatusText(s.id, step);
+
+            return (
+              <div key={s.id} className="flex flex-col items-center text-center">
+                {/* Node Circle */}
+                <div className="flex h-7 w-7 items-center justify-center">
+                  {isDone ? (
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#8E1B24] text-white shadow-sm">
+                      <svg
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        className="h-3.5 w-3.5"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                  ) : isCurrent ? (
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#F6C358] bg-white shadow-sm">
+                      <span className="h-3.5 w-3.5 rounded-full bg-[#8E1B24]" />
+                    </div>
+                  ) : (
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[#DCD3C7] bg-[#FDFBF7] text-xs font-semibold text-[#6E5E5E]">
+                      {s.id}
+                    </div>
+                  )}
+                </div>
+
+                {/* Step Title & Status */}
+                <div className="mt-2 flex flex-col items-center">
+                  <span
+                    className={`text-xs md:text-sm tracking-tight transition-colors ${
+                      isCurrent
+                        ? 'font-bold text-[#8E1B24]'
+                        : isDone
+                          ? 'font-bold text-[#1C1313]'
+                          : 'font-semibold text-[#3D2D2D]'
+                    }`}
+                  >
+                    {s.name}
                   </span>
-                </>
-              ) : isDone ? (
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-                  {stepNumber}
-                </span>
-              ) : (
-                <span className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-sm font-semibold text-muted-foreground">
-                  {stepNumber}
-                </span>
-              )}
-            </div>
-
-            <span className={`text-xs font-semibold ${stepNumber <= step ? 'text-primary' : 'text-muted-foreground'}`}>
-              {label}
-            </span>
-            <span className="text-[11px] text-muted-foreground">
-              Step {stepNumber} of {STEPS.length}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
+                  <span
+                    className={`mt-0.5 text-[11px] font-medium ${
+                      isCurrent ? 'font-semibold text-[#8E1B24]' : 'text-[#7A6B6B]'
+                    }`}
+                  >
+                    {isCurrent ? `${statusText} (${percent}%)` : statusText}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }

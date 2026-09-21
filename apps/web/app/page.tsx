@@ -4,14 +4,57 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRegistration } from './providers/registration-provider';
 import { isValidLocalPhone, toE164 } from '../lib/phone';
+import { ApiError, requestOtp } from '../lib/api-client';
 import './landing.css';
 
 const PROFILE_OPTIONS = ['Myself', 'Son', 'Daughter', 'Brother', 'Sister', 'Relative', 'Friend'];
 const LANG_OPTIONS = ['English', 'தமிழ் (Tamil)'];
 
+function getNamePlaceholder(profileFor: string): string {
+  switch (profileFor.toLowerCase()) {
+    case 'son':
+      return "Enter your son's name";
+    case 'daughter':
+      return "Enter your daughter's name";
+    case 'brother':
+      return "Enter your brother's name";
+    case 'sister':
+      return "Enter your sister's name";
+    case 'relative':
+      return "Enter your relative's name";
+    case 'friend':
+      return "Enter your friend's name";
+    case 'myself':
+      return 'Enter your full name';
+    default:
+      return 'Full name';
+  }
+}
+
+function getNameErrorMsg(profileFor: string): string {
+  switch (profileFor.toLowerCase()) {
+    case 'son':
+      return "Please enter your son's name";
+    case 'daughter':
+      return "Please enter your daughter's name";
+    case 'brother':
+      return "Please enter your brother's name";
+    case 'sister':
+      return "Please enter your sister's name";
+    case 'relative':
+      return "Please enter your relative's name";
+    case 'friend':
+      return "Please enter your friend's name";
+    case 'myself':
+      return 'Please enter your full name';
+    default:
+      return 'Please enter full name';
+  }
+}
+
 export default function Home() {
   const router = useRouter();
-  const { setPhoneNumber } = useRegistration();
+  const { setPhoneNumber, setDevOtp } = useRegistration();
 
   const [langOpen, setLangOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState('English');
@@ -57,7 +100,7 @@ export default function Home() {
     return () => document.removeEventListener('click', onDocumentClick);
   }, []);
 
-  function handleRegisterSubmit(e: FormEvent) {
+  async function handleRegisterSubmit(e: FormEvent) {
     e.preventDefault();
     let isValid = true;
 
@@ -84,9 +127,18 @@ export default function Home() {
 
     if (!isValid || !isValidLocalPhone(mobileNumber)) return;
 
+    const phoneNumber = toE164(mobileNumber);
     setSubmitting(true);
-    setPhoneNumber(toE164(mobileNumber), fullName.trim());
-    router.push('/register');
+    try {
+      const { devOtp } = await requestOtp({ phoneNumber });
+      setPhoneNumber(phoneNumber, fullName.trim());
+      setDevOtp(devOtp);
+      router.push('/register/verify');
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : 'Could not send OTP. Please try again.';
+      showToast('Error', message, true);
+      setSubmitting(false);
+    }
   }
 
   function handleLoginSubmit(e: FormEvent) {
@@ -236,11 +288,7 @@ export default function Home() {
               </svg>
             </div>
             <div className="logo-text-group">
-              <span className="brand-title">
-                Nadar
-                <br />
-                Kalyanam
-              </span>
+              <span className="brand-title">Nadar Kalyanam</span>
               <span className="brand-subtitle">Relationships Rooted in Values</span>
             </div>
           </a>
@@ -331,6 +379,7 @@ export default function Home() {
 
               <form className="reg-form" onSubmit={handleRegisterSubmit} noValidate>
                 <div className={`form-group custom-select-group${profileForError ? ' has-error' : ''}`}>
+                  {profileFor && <span className="floating-label">Profile created for</span>}
                   <div
                     className={`custom-select-trigger${profileForOpen ? ' active' : ''}`}
                     ref={profileForRef}
@@ -400,24 +449,22 @@ export default function Home() {
 
                 <div className={`form-group${fullNameError ? ' has-error' : ''}`}>
                   <div className="input-wrapper">
-                    <div className="input-leading">
-                      <svg
-                        className="field-icon"
-                        viewBox="0 0 24 24"
-                        width="18"
-                        height="18"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                      >
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                    </div>
+                    <svg
+                      className="field-icon"
+                      viewBox="0 0 24 24"
+                      width="18"
+                      height="18"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    >
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
                     <input
                       type="text"
                       className="form-input"
-                      placeholder="Full name"
+                      placeholder={getNamePlaceholder(profileFor)}
                       autoComplete="name"
                       required
                       value={fullName}
@@ -427,7 +474,7 @@ export default function Home() {
                       }}
                     />
                   </div>
-                  <span className="error-msg">Please enter your full name</span>
+                  <span className="error-msg">{getNameErrorMsg(profileFor)}</span>
                 </div>
 
                 <div className={`form-group${phoneError ? ' has-error' : ''}`}>
@@ -495,7 +542,7 @@ export default function Home() {
                 </div>
 
                 <button className="btn-submit" type="submit" disabled={submitting}>
-                  <span>{submitting ? 'Creating Profile...' : 'Register'}</span>
+                  <span>{submitting ? 'Sending OTP...' : 'Register'}</span>
                   {!submitting && (
                     <svg
                       className="btn-arrow"
