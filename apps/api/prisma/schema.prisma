@@ -30,6 +30,7 @@ model User {
   receivedInterests Interest[] @relation("InterestTarget")
   blocksInitiated   Block[]    @relation("BlockInitiator")
   blocksReceived    Block[]    @relation("BlockTarget")
+  conversationParticipations ConversationParticipant[]
   verificationRequests VerificationRequest[]
   orders        Order[]
 
@@ -130,7 +131,13 @@ model Interest {
 
   conversation Conversation?
 
-  @@unique([senderId, targetId])
+  // Uniqueness on (senderId, targetId) is conditional, not absolute: a
+  // WITHDRAWN interest must NOT block sending a new one, but a DECLINED (or
+  // still PENDING/ACCEPTED) one must. Prisma's schema DSL has no partial-index
+  // syntax, so — same as the one-primary-photo-per-profile constraint — this
+  // is a partial unique index added by hand in the migration SQL:
+  // `WHERE status IN ('PENDING', 'ACCEPTED', 'DECLINED')` (i.e. excludes only
+  // WITHDRAWN rows from the uniqueness check).
   @@map("interests")
 }
 
@@ -140,9 +147,29 @@ model Conversation {
   interest    Interest  @relation(fields: [interestId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
 
+  participants ConversationParticipant[]
   messages    Message[]
 
   @@map("conversations")
+}
+
+// Created in the same transaction as its Conversation when an Interest is
+// accepted — see InterestsService.accept(). A future message send/read
+// endpoint MUST verify the caller has a ConversationParticipant row for the
+// target conversation before allowing access (membership check), per the
+// flow's "Message Authorization Checked on Every Operation" step — not
+// implemented yet, no message endpoints exist in this phase.
+model ConversationParticipant {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
 }
 
 enum MessageStatus {

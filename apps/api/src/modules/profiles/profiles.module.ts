@@ -8,5 +8,6 @@ import { ProfilesService } from './profiles.service.js';
   imports: [AuthModule, PhotosModule],
   controllers: [ProfilesController],
   providers: [ProfilesService],
+  exports: [ProfilesService],
 })
 export class ProfilesModule {}

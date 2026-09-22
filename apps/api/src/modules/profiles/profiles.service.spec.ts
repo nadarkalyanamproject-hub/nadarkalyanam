@@ -1,4 +1,4 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { createProfileSchema, type CreateProfileRequest } from '@nadar-kalyanam/schemas';
 import { describe, expect, it, vi } from 'vitest';
 import { ProfilesService } from './profiles.service.js';
@@ -70,6 +70,15 @@ function buildService() {
       findUnique: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockResolvedValue({ id: 'profile-1', completionScore: 40 }),
       update: vi.fn().mockResolvedValue({ ...storedProfile, completionScore: 40 }),
+      findMany: vi.fn().mockResolvedValue([]),
+      count: vi.fn().mockResolvedValue(0),
+    },
+    block: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
+    interest: {
+      findMany: vi.fn().mockResolvedValue([]),
     },
   };
   const service = new ProfilesService(prisma as never);
@@ -281,5 +290,144 @@ describe('ProfilesService.updateProfile', () => {
       NotFoundException,
     );
     expect(prisma.profile.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('ProfilesService.listOtherProfiles', () => {
+  it('excludes the caller, blocked users in either direction, and hidden profiles via one query', async () => {
+    const { service, prisma } = buildService();
+    prisma.block.findMany.mockResolvedValueOnce([
+      { initiatorId: 'caller-1', targetId: 'blocked-by-me' },
+      { initiatorId: 'blocked-me', targetId: 'caller-1' },
+    ]);
+    prisma.profile.findMany.mockResolvedValueOnce([storedProfile]);
+    prisma.profile.count.mockResolvedValueOnce(1);
+
+    const result = await service.listOtherProfiles('caller-1', 0, 20);
+
+    expect(prisma.profile.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: { notIn: ['caller-1', 'blocked-by-me', 'blocked-me'] },
+        visibility: { not: 'HIDDEN' },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: 0,
+      take: 20,
+    });
+    expect(result.profiles).toEqual([storedProfile]);
+    expect(result.total).toBe(1);
+  });
+});
+
+describe('ProfilesService.getOtherProfile', () => {
+  it('returns the profile when visible, not the caller\'s own, and not blocked', async () => {
+    const { service, prisma } = buildService();
+    prisma.profile.findUnique.mockResolvedValueOnce({ ...storedProfile, visibility: 'PUBLIC' });
+
+    const result = await service.getOtherProfile('caller-1', 'profile-1');
+
+    expect(result).toMatchObject({ id: 'profile-1' });
+  });
+
+  it('404s for a hidden profile rather than revealing why it is excluded', async () => {
+    const { service, prisma } = buildService();
+    prisma.profile.findUnique.mockResolvedValueOnce({ ...storedProfile, visibility: 'HIDDEN' });
+
+    await expect(service.getOtherProfile('caller-1', 'profile-1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('404s for the caller\'s own profile id', async () => {
+    const { service, prisma } = buildService();
+    prisma.profile.findUnique.mockResolvedValueOnce({ ...storedProfile, userId: 'caller-1' });
+
+    await expect(service.getOtherProfile('caller-1', 'profile-1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('404s when the target user has blocked the caller, or vice versa', async () => {
+    const { service, prisma } = buildService();
+    prisma.profile.findUnique.mockResolvedValueOnce({ ...storedProfile, visibility: 'PUBLIC' });
+    prisma.block.findFirst.mockResolvedValueOnce({ id: 'block-1' });
+
+    await expect(service.getOtherProfile('caller-1', 'profile-1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('404s for a profile id that does not exist', async () => {
+    const { service, prisma } = buildService();
+    prisma.profile.findUnique.mockResolvedValueOnce(null);
+
+    await expect(service.getOtherProfile('caller-1', 'no-such-profile')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+});
+
+describe('ProfilesService.getSentInterestTargetUserIds', () => {
+  it('queries scoped to the caller as sender, and returns only the matching target ids', async () => {
+    const { service, prisma } = buildService();
+    prisma.interest.findMany.mockResolvedValueOnce([{ targetId: 'user-b' }, { targetId: 'user-c' }]);
+
+    const result = await service.getSentInterestTargetUserIds('caller-1', ['user-b', 'user-c', 'user-d']);
+
+    expect(prisma.interest.findMany).toHaveBeenCalledWith({
+      where: {
+        senderId: 'caller-1',
+        targetId: { in: ['user-b', 'user-c', 'user-d'] },
+        status: { in: ['PENDING', 'ACCEPTED'] },
+      },
+      select: { targetId: true },
+    });
+    expect(result).toEqual(new Set(['user-b', 'user-c']));
+    // user-d was queried for but never returned by the mock (no interest
+    // sent to them) -- confirms the result isn't just "everyone asked about".
+    expect(result.has('user-d')).toBe(false);
+  });
+
+  it('never returns another caller\'s sent-interest state — only rows where senderId matches this caller are ever queried', async () => {
+    const { service, prisma } = buildService();
+    // Simulate the real DB behavior: this mock only "has" rows for the
+    // caller actually passed in the where clause it was called with.
+    prisma.interest.findMany.mockImplementation(({ where }: { where: { senderId: string } }) =>
+      Promise.resolve(where.senderId === 'caller-1' ? [{ targetId: 'user-b' }] : []),
+    );
+
+    const forCaller1 = await service.getSentInterestTargetUserIds('caller-1', ['user-b']);
+    const forCaller2 = await service.getSentInterestTargetUserIds('caller-2', ['user-b']);
+
+    expect(forCaller1.has('user-b')).toBe(true);
+    expect(forCaller2.has('user-b')).toBe(false);
+  });
+
+  it('returns an empty set without querying when there are no target ids', async () => {
+    const { service, prisma } = buildService();
+
+    const result = await service.getSentInterestTargetUserIds('caller-1', []);
+
+    expect(result.size).toBe(0);
+    expect(prisma.interest.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('ProfilesService.getOwnProfileOrThrow', () => {
+  it('returns the caller\'s profile when it exists', async () => {
+    const { service, prisma } = buildService();
+    prisma.profile.findUnique.mockResolvedValueOnce(storedProfile);
+
+    const result = await service.getOwnProfileOrThrow('user-1');
+    expect(result).toEqual(storedProfile);
+  });
+
+  it('throws when the caller has no profile yet', async () => {
+    const { service, prisma } = buildService();
+    prisma.profile.findUnique.mockResolvedValueOnce(null);
+
+    await expect(service.getOwnProfileOrThrow('user-without-profile')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 });

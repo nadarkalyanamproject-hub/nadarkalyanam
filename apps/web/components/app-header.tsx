@@ -60,7 +60,7 @@ function BellIcon(props: IconProps) {
   );
 }
 
-function UserIcon(props: IconProps) {
+export function UserIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" {...props}>
       <circle cx="12" cy="8" r="3.5" />
@@ -92,9 +92,9 @@ const NAV_ITEMS: Array<{
   icon: (props: IconProps) => ReactElement;
 }> = [
   { key: 'home', label: 'Home', href: '/', icon: HomeIcon },
-  { key: 'matches', label: 'Matches', icon: HeartIcon },
-  { key: 'interests', label: 'Interests', icon: StarIcon },
-  { key: 'messages', label: 'Messages', icon: ChatIcon },
+  { key: 'matches', label: 'Matches', href: '/browse', icon: HeartIcon },
+  { key: 'interests', label: 'Interests', href: '/interests', icon: StarIcon },
+  { key: 'messages', label: 'Messages', href: '/messages', icon: ChatIcon },
   { key: 'search', label: 'Search', icon: SearchIcon },
   { key: 'notifications', label: 'Notifications', icon: BellIcon },
 ];

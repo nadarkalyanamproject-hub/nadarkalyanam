@@ -1,9 +1,16 @@
 import type {
+  ConversationListResponse,
   CreateProfileRequest,
   CreateProfileResponse,
+  ListInterestsResponse,
+  MessageListResponse,
+  MessageResponse,
   PhotoResponse,
+  ProfileListResponse,
   ProfileResponse,
+  PublicProfileDetail,
   RequestUploadUrlResponse,
+  SendInterestRequest,
   SendOtpRequest,
   SendOtpResponse,
   VerifyOtpRequest,
@@ -149,5 +156,79 @@ export function deletePhoto(accessToken: string, photoId: string): Promise<void>
   return request<void>(`/profiles/me/photos/${photoId}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function listProfiles(
+  accessToken: string,
+  params?: { offset?: number; limit?: number },
+): Promise<ProfileListResponse> {
+  const query = new URLSearchParams();
+  if (params?.offset) query.set('offset', String(params.offset));
+  if (params?.limit) query.set('limit', String(params.limit));
+  const qs = query.toString();
+  return request<ProfileListResponse>(`/profiles${qs ? `?${qs}` : ''}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function getProfile(accessToken: string, profileId: string): Promise<PublicProfileDetail> {
+  return request<PublicProfileDetail>(`/profiles/${profileId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function sendInterest(
+  accessToken: string,
+  payload: SendInterestRequest,
+): Promise<{ id: string; status: string }> {
+  return request<{ id: string; status: string }>('/interests', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listInterests(accessToken: string): Promise<ListInterestsResponse> {
+  return request<ListInterestsResponse>('/interests', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function acceptInterest(accessToken: string, interestId: string): Promise<{ id: string; status: string }> {
+  return request(`/interests/${interestId}/accept`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function declineInterest(accessToken: string, interestId: string): Promise<{ id: string; status: string }> {
+  return request(`/interests/${interestId}/decline`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function listConversations(accessToken: string): Promise<ConversationListResponse> {
+  return request<ConversationListResponse>('/conversations', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function listMessages(accessToken: string, conversationId: string): Promise<MessageListResponse> {
+  return request<MessageListResponse>(`/conversations/${conversationId}/messages`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function sendMessage(
+  accessToken: string,
+  conversationId: string,
+  body: string,
+): Promise<MessageResponse> {
+  return request<MessageResponse>(`/conversations/${conversationId}/messages`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ body }),
   });
 }
