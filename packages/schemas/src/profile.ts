@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { photoResponseSchema } from './photo.js';
 
 export const genderEnum = z.enum(['MALE', 'FEMALE', 'OTHER']);
 export type Gender = z.infer<typeof genderEnum>;
@@ -82,3 +83,42 @@ export const createProfileResponseSchema = z.object({
   completionScore: z.number(),
 });
 export type CreateProfileResponse = z.infer<typeof createProfileResponseSchema>;
+
+// --- Read: GET /profiles/me ----------------------------------------------------
+
+export const profileDetailsSchema = z.object({
+  motherTongue: z.string(),
+  email: z.string(),
+  height: z.string(),
+  physicalStatus: physicalStatusEnum,
+  maritalStatus: maritalStatusEnum,
+  religion: z.string(),
+  casteCommunity: z.string(),
+  dosham: doshamEnum.optional(),
+  location: z.object({
+    city: z.string(),
+    state: z.string(),
+    country: z.string(),
+  }),
+  education: z.object({
+    educationLevel: z.string(),
+    educationDetail: z.string(),
+    profession: z.string(),
+    employedIn: z.string(),
+    annualIncomeRange: z.string(),
+    annualIncomeCurrency: z.string(),
+  }),
+  additional: additionalDetailsSchema,
+});
+export type ProfileDetails = z.infer<typeof profileDetailsSchema>;
+
+export const profileResponseSchema = z.object({
+  id: z.string(),
+  fullName: z.string(),
+  gender: genderEnum,
+  dateOfBirth: z.string(),
+  completionScore: z.number(),
+  details: profileDetailsSchema,
+  photos: z.array(photoResponseSchema),
+});
+export type ProfileResponse = z.infer<typeof profileResponseSchema>;

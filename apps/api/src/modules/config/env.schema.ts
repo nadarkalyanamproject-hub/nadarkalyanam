@@ -8,6 +8,10 @@ export const envSchema = z.object({
   JWT_ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900),
   JWT_REFRESH_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(2592000),
   JWT_ACCESS_TOKEN_SECRET: z.string().min(1, 'JWT_ACCESS_TOKEN_SECRET is required'),
+  MINIO_ENDPOINT: z.string().min(1, 'MINIO_ENDPOINT is required'),
+  MINIO_ACCESS_KEY: z.string().min(1, 'MINIO_ACCESS_KEY is required'),
+  MINIO_SECRET_KEY: z.string().min(1, 'MINIO_SECRET_KEY is required'),
+  MINIO_BUCKET_NAME: z.string().min(1, 'MINIO_BUCKET_NAME is required'),
 });
 
 export type Env = z.infer<typeof envSchema>;

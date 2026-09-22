@@ -31,6 +31,61 @@ services:
       timeout: 5s
       retries: 10
 
+  # S3-compatible object storage for profile photos. Docker Hub's `minio/minio`
+  # namespace was unreachable from this environment (pull access denied), so
+  # this uses MinIO's quay.io mirror instead — confirmed pullable.
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: nadar-kalyanam-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9003"
+    environment:
+      MINIO_ROOT_USER: nadar_minio
+      MINIO_ROOT_PASSWORD: nadar_minio_password
+    ports:
+      - "9002:9000" # S3 API
+      - "9003:9003" # Web console
+    volumes:
+      - nadar_kalyanam_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot init: MinIO does not auto-create buckets on startup, so this
+  # creates the bucket and makes objects in it publicly readable (profile
+  # photos are displayed via plain GET URLs, not gated behind auth in this
+  # phase). It also restricts CORS to the web app's origin so the browser
+  # can PUT directly to a pre-signed URL from http://localhost:3002.
+  #
+  # Note: MinIO's per-bucket S3 CORS API (`mc cors set`, the AWS-compatible
+  # PutBucketCors) is NOT implemented by this server version — confirmed by
+  # running it, it fails with "functionality that is not implemented".
+  # MinIO's actual supported mechanism is the server-wide `api
+  # cors_allow_origin` config value (default "*", i.e. CORS-open by
+  # default), which requires a service restart to take effect. That's what
+  # this does instead.
+  #
+  # Runs once per `docker compose up` and exits; safe to re-run (`mb -p`
+  # ignores an already-existing bucket, and re-applying the same config/
+  # policy is a no-op).
+  minio-init:
+    image: quay.io/minio/mc:latest
+    container_name: nadar-kalyanam-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 nadar_minio nadar_minio_password &&
+      mc mb --ignore-existing local/nadar-kalyanam-photos &&
+      mc anonymous set download local/nadar-kalyanam-photos &&
+      mc admin config set local api cors_allow_origin=http://localhost:3002 &&
+      mc admin service restart local --json
+      "
+
 volumes:
   nadar_kalyanam_postgres_data:
   nadar_kalyanam_redis_data:
+  nadar_kalyanam_minio_data:

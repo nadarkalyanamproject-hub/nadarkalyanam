@@ -1,15 +1,17 @@
 import { createHash } from 'node:crypto';
-import { UnauthorizedException } from '@nestjs/common';
+import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from './auth.service.js';
 
 function buildService(overrides?: {
   redisGet?: () => Promise<string | null>;
   nodeEnv?: string;
+  findUniqueResult?: unknown;
 }) {
   const prisma = {
     user: {
       upsert: vi.fn().mockResolvedValue({ id: 'user-1', phoneNumber: '+919876543210', profile: null }),
+      findUnique: vi.fn().mockResolvedValue(overrides?.findUniqueResult ?? null),
     },
     session: {
       create: vi.fn().mockResolvedValue({ id: 'session-1' }),
@@ -96,5 +98,58 @@ describe('AuthService', () => {
     expect(first.user.id).toBe(second.user.id);
     expect(first.accessToken).toBeTruthy();
     expect(first.refreshToken).toBeTruthy();
+  });
+
+  it('verifyOtp with intent "login" succeeds for a known phone number exactly like the register flow', async () => {
+    const otp = '123456';
+    const hashedOtp = createHash('sha256').update(otp).digest('hex');
+    const existingUser = { id: 'user-1', phoneNumber: '+919876543210', profile: { id: 'profile-1' } };
+    const { service, prisma } = buildService({
+      redisGet: async () => hashedOtp,
+      findUniqueResult: existingUser,
+    });
+
+    const result = await service.verifyOtp('+919876543210', otp, 'login');
+
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { phoneNumber: '+919876543210' },
+      include: { profile: { select: { id: true } } },
+    });
+    expect(prisma.user.upsert).not.toHaveBeenCalled();
+    expect(result.user.id).toBe('user-1');
+    expect(result.user.hasProfile).toBe(true);
+    expect(result.accessToken).toBeTruthy();
+    expect(result.refreshToken).toBeTruthy();
+  });
+
+  it('verifyOtp with intent "login" rejects an unregistered phone number and never creates a User row', async () => {
+    const otp = '123456';
+    const hashedOtp = createHash('sha256').update(otp).digest('hex');
+    const { service, prisma } = buildService({
+      redisGet: async () => hashedOtp,
+      findUniqueResult: null,
+    });
+
+    await expect(service.verifyOtp('+910000000000', otp, 'login')).rejects.toMatchObject({
+      status: 404,
+      response: expect.objectContaining({ errorCode: 'ACCOUNT_NOT_FOUND' }),
+    });
+    await expect(service.verifyOtp('+910000000000', otp, 'login')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(prisma.user.upsert).not.toHaveBeenCalled();
+    expect(prisma.session.create).not.toHaveBeenCalled();
+  });
+
+  it('verifyOtp with intent omitted (or "register") still upserts a new user, unchanged from today', async () => {
+    const otp = '123456';
+    const hashedOtp = createHash('sha256').update(otp).digest('hex');
+    const { service, prisma } = buildService({ redisGet: async () => hashedOtp });
+
+    await service.verifyOtp('+919876543210', otp);
+    await service.verifyOtp('+919876543210', otp, 'register');
+
+    expect(prisma.user.upsert).toHaveBeenCalledTimes(2);
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
   });
 });

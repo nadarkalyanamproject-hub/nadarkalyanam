@@ -1,11 +1,15 @@
 import type {
   CreateProfileRequest,
   CreateProfileResponse,
+  PhotoResponse,
+  ProfileResponse,
+  RequestUploadUrlResponse,
   SendOtpRequest,
   SendOtpResponse,
   VerifyOtpRequest,
   VerifyOtpResponse,
 } from '@nadar-kalyanam/schemas';
+import { notifyUnauthorized } from './auth-events';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
@@ -13,6 +17,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public readonly status: number,
+    public readonly code?: string,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -21,6 +26,7 @@ export class ApiError extends Error {
 
 interface NestErrorBody {
   message?: string | { path: string; message: string }[];
+  errorCode?: string;
 }
 
 function extractErrorMessage(body: NestErrorBody | null): string {
@@ -30,16 +36,27 @@ function extractErrorMessage(body: NestErrorBody | null): string {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
-  });
+  const headers = { 'Content-Type': 'application/json', ...init?.headers };
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as NestErrorBody | null;
-    throw new ApiError(extractErrorMessage(body), response.status);
+    // Centralized here so every authenticated call gets this for free: a
+    // 401 on a request that carried a bearer token means that token is
+    // invalid/expired, so clear it and send the user back to the homepage
+    // rather than leaving them on a page that will just keep failing the
+    // same way. Gated on the Authorization header so this never fires for
+    // /auth/otp/verify's unrelated 401 (wrong/expired OTP code, no token
+    // involved at all).
+    if (response.status === 401 && 'Authorization' in headers) {
+      notifyUnauthorized();
+    }
+    throw new ApiError(extractErrorMessage(body), response.status, body?.errorCode);
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
   return response.json() as Promise<T>;
 }
 
@@ -65,5 +82,72 @@ export function createProfile(
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
     body: JSON.stringify(payload),
+  });
+}
+
+export function getMyProfile(accessToken: string): Promise<ProfileResponse> {
+  return request<ProfileResponse>('/profiles/me', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function updateProfile(
+  accessToken: string,
+  payload: CreateProfileRequest,
+): Promise<ProfileResponse> {
+  return request<ProfileResponse>('/profiles/me', {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function requestPhotoUploadUrl(
+  accessToken: string,
+  contentType: string,
+): Promise<RequestUploadUrlResponse> {
+  return request<RequestUploadUrlResponse>('/profiles/me/photos/upload-url', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ contentType }),
+  });
+}
+
+// Uploads directly to MinIO using the pre-signed URL — NOT through this
+// app's API, and deliberately not routed through `request()` above (no
+// Authorization header, no JSON content-type, no API base URL: the
+// signature in the URL's query string is the auth, and the body is the raw
+// file bytes). The Content-Type here must exactly match what was used to
+// request the pre-signed URL, or MinIO rejects the signature.
+export async function uploadPhotoToStorage(uploadUrl: string, file: File): Promise<void> {
+  const response = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type },
+    body: file,
+  });
+  if (!response.ok) {
+    throw new ApiError('Could not upload the photo to storage. Please try again.', response.status);
+  }
+}
+
+export function confirmPhotoUpload(accessToken: string, objectKey: string): Promise<PhotoResponse> {
+  return request<PhotoResponse>('/profiles/me/photos/confirm', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ objectKey }),
+  });
+}
+
+export function setPrimaryPhoto(accessToken: string, photoId: string): Promise<PhotoResponse> {
+  return request<PhotoResponse>(`/profiles/me/photos/${photoId}/primary`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function deletePhoto(accessToken: string, photoId: string): Promise<void> {
+  return request<void>(`/profiles/me/photos/${photoId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
 }

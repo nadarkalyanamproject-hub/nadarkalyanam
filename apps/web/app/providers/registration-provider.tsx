@@ -1,6 +1,8 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { claimAuthRedirect, onUnauthorized, releaseAuthRedirectClaim } from '../../lib/auth-events';
 import { REGISTRATION_STORAGE_KEY, type RegistrationDraft } from '../../lib/registration-types';
 
 interface RegistrationContextValue {
@@ -20,11 +22,13 @@ interface RegistrationContextValue {
   ) => void;
   markProfileCreated: () => void;
   clearWizardDraft: () => void;
+  clearAuth: () => void;
 }
 
 const RegistrationContext = createContext<RegistrationContextValue | null>(null);
 
 export function RegistrationProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [data, setData] = useState<RegistrationDraft>({});
   const [hydrated, setHydrated] = useState(false);
   const hasHydrated = useRef(false);
@@ -92,9 +96,44 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  // Resets the whole draft, not just the auth fields — a stale/invalid
+  // token means this session is done, and any in-progress onboarding wizard
+  // data tied to it shouldn't carry over into whatever session comes next.
+  const clearAuth = useCallback(() => {
+    setData({});
+  }, []);
+
+  useEffect(() => {
+    return onUnauthorized(() => {
+      claimAuthRedirect();
+      clearAuth();
+      router.push('/');
+    });
+  }, [clearAuth, router]);
+
+  // RegistrationProvider wraps the whole app, so it's the outermost
+  // component reading `data` — React flushes passive effects bottom-up
+  // within one commit, so every descendant guard effect that needed to see
+  // an active claim for this render has already run by the time this one
+  // does. Safe to release here so a claim never leaks into some unrelated
+  // later change.
+  useEffect(() => {
+    releaseAuthRedirectClaim();
+  }, [data]);
+
   return (
     <RegistrationContext.Provider
-      value={{ data, hydrated, setPhoneNumber, setDevOtp, setAuth, saveStep, markProfileCreated, clearWizardDraft }}
+      value={{
+        data,
+        hydrated,
+        setPhoneNumber,
+        setDevOtp,
+        setAuth,
+        saveStep,
+        markProfileCreated,
+        clearWizardDraft,
+        clearAuth,
+      }}
     >
       {children}
     </RegistrationContext.Provider>

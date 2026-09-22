@@ -8,6 +8,10 @@ export type SendOtpRequest = z.infer<typeof sendOtpRequestSchema>;
 export const verifyOtpRequestSchema = z.object({
   phoneNumber: z.string().regex(/^\+[1-9]\d{7,14}$/),
   otp: z.string().length(6),
+  // Omitted defaults to 'register': upsert-or-create the user, same as
+  // always. 'login' instead requires an existing user and rejects unknown
+  // numbers — see AuthService.verifyOtp.
+  intent: z.enum(['register', 'login']).optional(),
 });
 export type VerifyOtpRequest = z.infer<typeof verifyOtpRequestSchema>;
 

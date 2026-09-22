@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto';
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { VerifyOtpResponse } from '@nadar-kalyanam/schemas';
@@ -44,7 +44,11 @@ export class AuthService {
     };
   }
 
-  async verifyOtp(phoneNumber: string, otp: string): Promise<VerifyOtpResponse> {
+  async verifyOtp(
+    phoneNumber: string,
+    otp: string,
+    intent: 'register' | 'login' = 'register',
+  ): Promise<VerifyOtpResponse> {
     const key = `${OTP_REDIS_PREFIX}${phoneNumber}`;
     const storedHash = await this.redis.get(key);
     if (!storedHash || storedHash !== hashValue(otp)) {
@@ -52,14 +56,18 @@ export class AuthService {
     }
     await this.redis.del(key);
 
-    // Upsert keyed by the unique phoneNumber column: a repeat verification for
-    // the same number always resolves to the same user row, never a duplicate.
-    const user = await this.prisma.user.upsert({
-      where: { phoneNumber },
-      update: {},
-      create: { phoneNumber },
-      include: { profile: { select: { id: true } } },
-    });
+    const user =
+      intent === 'login'
+        ? await this.findUserForLogin(phoneNumber)
+        : // Upsert keyed by the unique phoneNumber column: a repeat verification
+          // for the same number always resolves to the same user row, never a
+          // duplicate.
+          await this.prisma.user.upsert({
+            where: { phoneNumber },
+            update: {},
+            create: { phoneNumber },
+            include: { profile: { select: { id: true } } },
+          });
 
     const accessToken = await this.jwtService.signAsync({ sub: user.id });
 
@@ -84,5 +92,19 @@ export class AuthService {
         hasProfile: Boolean(user.profile),
       },
     };
+  }
+
+  private async findUserForLogin(phoneNumber: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { phoneNumber },
+      include: { profile: { select: { id: true } } },
+    });
+    if (!user) {
+      throw new NotFoundException({
+        message: 'No account found with this number. Please register instead.',
+        errorCode: 'ACCOUNT_NOT_FOUND',
+      });
+    }
+    return user;
   }
 }

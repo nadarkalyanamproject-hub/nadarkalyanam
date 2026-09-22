@@ -1,17 +1,22 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, type FormEvent } from 'react';
-import { additionalDetailsSchema, type AdditionalDetails } from '@nadar-kalyanam/schemas';
-import { Button, Field, FormError, Select, Textarea } from '@nadar-kalyanam/ui';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { additionalDetailsSchema } from '@nadar-kalyanam/schemas';
+import { Button, FormError } from '@nadar-kalyanam/ui';
 import { OnboardingShell } from '../../../components/onboarding-shell';
+import {
+  AdditionalDetailsFields,
+  type AdditionalDetailsFormState,
+} from '../../../components/profile-form-fields/additional-details-fields';
 import { ApiError, createProfile } from '../../../lib/api-client';
+import { consumeAuthRedirectClaim } from '../../../lib/auth-events';
 import { getOverallCompletionPercent } from '../../../lib/onboarding-progress';
 import { toFieldErrors } from '../../../lib/zod-errors';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { useRegistration } from '../../providers/registration-provider';
 
-type FormState = Record<keyof AdditionalDetails, string>;
+type FormState = AdditionalDetailsFormState;
 
 const EMPTY_FORM: FormState = {
   familyType: '',
@@ -30,8 +35,23 @@ export default function AdditionalDetailsPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>();
   const [submitting, setSubmitting] = useState(false);
+  // A successful submit already knows exactly where to go (/onboarding/success)
+  // and navigates there itself. Without this, clearWizardDraft() below
+  // re-renders this same page with basicDetails/personal/location now
+  // undefined, and the guard effect right below fires too, racing the
+  // explicit router.push and sending everyone back to step 1 instead.
+  const skipWizardGuardRef = useRef(false);
 
   useEffect(() => {
+    if (skipWizardGuardRef.current) return;
+    // Same draft fields get wiped by a 401 (clearAuth resets the whole
+    // draft, not just the auth fields) — createProfile below is an
+    // authenticated call that could itself 401. That already has its own
+    // navigation in flight via the shared claim; this guard must not also
+    // redirect for that change. (AppHeader no longer renders during the
+    // wizard, so logout can't fire from here — but the claim check still
+    // guards the 401 path, which doesn't depend on AppHeader being mounted.)
+    if (consumeAuthRedirectClaim()) return;
     if (!ready) return;
     if (!data.basicDetails) router.replace('/onboarding/basic-details');
     else if (!data.personal) router.replace('/onboarding/personal-religious-details');
@@ -43,7 +63,7 @@ export default function AdditionalDetailsPage() {
   const activePercent = getOverallCompletionPercent(data, 4, form);
 
   function update<K extends keyof FormState>(key: K, value: string) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev: FormState) => ({ ...prev, [key]: value }));
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -66,6 +86,7 @@ export default function AdditionalDetailsPage() {
         location: data.location!,
         additional: result.data,
       });
+      skipWizardGuardRef.current = true;
       markProfileCreated();
       clearWizardDraft();
       router.push('/onboarding/success');
@@ -83,33 +104,7 @@ export default function AdditionalDetailsPage() {
       subtitle="Your family status and a bit about you"
     >
       <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-        <Field label="Family status" htmlFor="familyType" error={errors.familyType}>
-          <Select
-            id="familyType"
-            invalid={Boolean(errors.familyType)}
-            value={form.familyType}
-            onChange={(e) => update('familyType', e.target.value)}
-          >
-            <option value="">Select</option>
-            <option value="Middle Class">Middle Class</option>
-            <option value="Upper Middle Class">Upper Middle Class</option>
-            <option value="Rich / Affluent (Elite)">Rich / Affluent (Elite)</option>
-          </Select>
-        </Field>
-
-        <Field
-          label="About you"
-          htmlFor="about"
-          error={errors.about}
-          hint="At least 50 characters"
-        >
-          <Textarea
-            id="about"
-            invalid={Boolean(errors.about)}
-            value={form.about}
-            onChange={(e) => update('about', e.target.value)}
-          />
-        </Field>
+        <AdditionalDetailsFields form={form} errors={errors} onChange={update} />
 
         {formError ? <FormError>{formError}</FormError> : null}
 

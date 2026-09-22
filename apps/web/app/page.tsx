@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRegistration } from './providers/registration-provider';
+import { ApiError, requestOtp, verifyOtp } from '../lib/api-client';
 import { isValidLocalPhone, toE164 } from '../lib/phone';
-import { ApiError, requestOtp } from '../lib/api-client';
 import './landing.css';
 
 const PROFILE_OPTIONS = ['Myself', 'Son', 'Daughter', 'Brother', 'Sister', 'Relative', 'Friend'];
@@ -54,7 +54,7 @@ function getNameErrorMsg(profileFor: string): string {
 
 export default function Home() {
   const router = useRouter();
-  const { setPhoneNumber, setDevOtp } = useRegistration();
+  const { data, hydrated, setPhoneNumber, setAuth } = useRegistration();
 
   const [langOpen, setLangOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState('English');
@@ -69,15 +69,36 @@ export default function Home() {
   const [mobileNumber, setMobileNumber] = useState('');
   const [phoneError, setPhoneError] = useState(false);
 
+  const [registerStep, setRegisterStep] = useState<'form' | 'otp'>('form');
+  const [registerOtp, setRegisterOtp] = useState('');
+  const [registerOtpError, setRegisterOtpError] = useState<string | undefined>();
+  const [registerDevOtp, setRegisterDevOtp] = useState<string | undefined>();
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const [loginStep, setLoginStep] = useState<'phone' | 'otp'>('phone');
+  const [loginPhone, setLoginPhone] = useState('');
+  const [loginPhoneError, setLoginPhoneError] = useState(false);
+  const [loginOtp, setLoginOtp] = useState('');
+  const [loginOtpError, setLoginOtpError] = useState<string | undefined>();
+  const [loginDevOtp, setLoginDevOtp] = useState<string | undefined>();
+  const [loginSubmitting, setLoginSubmitting] = useState(false);
 
   const [toast, setToast] = useState({ visible: false, title: '', msg: '', isError: false });
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const langSelectorRef = useRef<HTMLDivElement>(null);
   const profileForRef = useRef<HTMLDivElement>(null);
+  // A login or register success already knows exactly where to go (based on
+  // hasProfile) and navigates there itself. Without this, setAuth() below
+  // re-renders this same page with a now-truthy accessToken, and the
+  // generic already-authenticated redirect effect fires too, racing
+  // whichever flow's own router.push and sending everyone to /profile
+  // regardless of hasProfile. Shared by both flows — it only needs to be
+  // true at the moment setAuth() fires, regardless of which one set it.
+  const skipHomeRedirectRef = useRef(false);
 
   function showToast(title: string, msg: string, isError = false) {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -99,6 +120,13 @@ export default function Home() {
     document.addEventListener('click', onDocumentClick);
     return () => document.removeEventListener('click', onDocumentClick);
   }, []);
+
+  useEffect(() => {
+    if (skipHomeRedirectRef.current) return;
+    if (hydrated && data.accessToken) {
+      router.replace('/profile');
+    }
+  }, [hydrated, data.accessToken, router]);
 
   async function handleRegisterSubmit(e: FormEvent) {
     e.preventDefault();
@@ -132,20 +160,136 @@ export default function Home() {
     try {
       const { devOtp } = await requestOtp({ phoneNumber });
       setPhoneNumber(phoneNumber, fullName.trim());
-      setDevOtp(devOtp);
-      router.push('/register/verify');
+      setRegisterDevOtp(devOtp);
+      setRegisterStep('otp');
     } catch (error) {
-      const message = error instanceof ApiError ? error.message : 'Could not send OTP. Please try again.';
-      showToast('Error', message, true);
+      showToast(
+        'Could not send OTP',
+        error instanceof ApiError ? error.message : 'Please try again.',
+        true,
+      );
+    } finally {
       setSubmitting(false);
     }
   }
 
-  function handleLoginSubmit(e: FormEvent) {
-    e.preventDefault();
-    setAuthModalOpen(false);
-    showToast('Logged In', 'Welcome back to Nadar Kalyanam!');
+  function resetRegisterForm() {
+    setRegisterStep('form');
+    setRegisterOtp('');
+    setRegisterOtpError(undefined);
+    setRegisterDevOtp(undefined);
+    setSubmitting(false);
   }
+
+  async function handleRegisterOtpSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!/^\d{6}$/.test(registerOtp)) {
+      setRegisterOtpError('Enter the 6-digit code');
+      return;
+    }
+    setRegisterOtpError(undefined);
+
+    setSubmitting(true);
+    try {
+      const result = await verifyOtp({
+        phoneNumber: toE164(mobileNumber),
+        otp: registerOtp,
+        intent: 'register',
+      });
+      skipHomeRedirectRef.current = true;
+      setAuth({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        userId: result.user.id,
+        hasProfile: result.user.hasProfile,
+      });
+      resetRegisterForm();
+      router.push(result.user.hasProfile ? '/profile' : '/onboarding/basic-details');
+    } catch (error) {
+      setSubmitting(false);
+      setRegisterOtpError(
+        error instanceof ApiError ? error.message : 'Could not verify OTP. Please try again.',
+      );
+    }
+  }
+
+  function closeAuthModal() {
+    setAuthModalOpen(false);
+    setLoginStep('phone');
+    setLoginPhone('');
+    setLoginPhoneError(false);
+    setLoginOtp('');
+    setLoginOtpError(undefined);
+    setLoginDevOtp(undefined);
+    setLoginSubmitting(false);
+  }
+
+  async function handleLoginPhoneSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!isValidLocalPhone(loginPhone)) {
+      setLoginPhoneError(true);
+      return;
+    }
+    setLoginPhoneError(false);
+
+    setLoginSubmitting(true);
+    try {
+      const { devOtp } = await requestOtp({ phoneNumber: toE164(loginPhone) });
+      setLoginDevOtp(devOtp);
+      setLoginStep('otp');
+    } catch (error) {
+      setLoginPhoneError(true);
+      showToast(
+        'Could not send OTP',
+        error instanceof ApiError ? error.message : 'Please try again.',
+        true,
+      );
+    } finally {
+      setLoginSubmitting(false);
+    }
+  }
+
+  async function handleLoginOtpSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!/^\d{6}$/.test(loginOtp)) {
+      setLoginOtpError('Enter the 6-digit code');
+      return;
+    }
+    setLoginOtpError(undefined);
+
+    setLoginSubmitting(true);
+    try {
+      const result = await verifyOtp({
+        phoneNumber: toE164(loginPhone),
+        otp: loginOtp,
+        intent: 'login',
+      });
+      skipHomeRedirectRef.current = true;
+      setAuth({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        userId: result.user.id,
+        hasProfile: result.user.hasProfile,
+      });
+      // Navigation starts immediately — the toast is a fire-and-forget
+      // notice, not a gate on the redirect. Same hasProfile branch
+      // /register/verify uses, so a login for a User with no Profile yet
+      // resumes onboarding instead of hitting a 404ing /profile.
+      closeAuthModal();
+      showToast('Logged In', 'Welcome back to Nadar Kalyanam!');
+      router.push(result.user.hasProfile ? '/profile' : '/onboarding/basic-details');
+    } catch (error) {
+      setLoginSubmitting(false);
+      setLoginOtpError(
+        error instanceof ApiError ? error.message : 'Could not verify OTP. Please try again.',
+      );
+    }
+  }
+
+  // Already-authenticated visitors never see the public homepage — the
+  // effect above sends them to /profile; this just avoids flashing the
+  // Register/Login UI during that one tick.
+  if (!hydrated || data.accessToken) return null;
 
   return (
     <div className="nk-landing">
@@ -373,28 +517,89 @@ export default function Home() {
                     </g>
                   </svg>
                 </div>
-                <h2 className="card-title">Begin Your Journey</h2>
-                <p className="card-subtitle">Create your profile and find a match with shared values.</p>
+                <h2 className="card-title">
+                  {registerStep === 'form' ? 'Begin Your Journey' : 'Verify Your Number'}
+                </h2>
+                <p className="card-subtitle">
+                  {registerStep === 'form'
+                    ? 'Create your profile and find a match with shared values.'
+                    : `Enter the 6-digit code sent to +91 ${mobileNumber}`}
+                </p>
               </div>
 
-              <form className="reg-form" onSubmit={handleRegisterSubmit} noValidate>
-                <div className={`form-group custom-select-group${profileForError ? ' has-error' : ''}`}>
-                  {profileFor && <span className="floating-label">Profile created for</span>}
-                  <div
-                    className={`custom-select-trigger${profileForOpen ? ' active' : ''}`}
-                    ref={profileForRef}
-                    tabIndex={0}
-                    role="combobox"
-                    aria-haspopup="listbox"
-                    aria-expanded={profileForOpen}
-                    aria-controls="profileOptions"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setLangOpen(false);
-                      setProfileForOpen((v) => !v);
-                    }}
-                  >
-                    <div className="input-leading">
+              {registerStep === 'form' ? (
+                <form className="reg-form" onSubmit={(e) => void handleRegisterSubmit(e)} noValidate>
+                  <div className={`form-group custom-select-group${profileForError ? ' has-error' : ''}`}>
+                    {profileFor && <span className="floating-label">Profile created for</span>}
+                    <div
+                      className={`custom-select-trigger${profileForOpen ? ' active' : ''}`}
+                      ref={profileForRef}
+                      tabIndex={0}
+                      role="combobox"
+                      aria-haspopup="listbox"
+                      aria-expanded={profileForOpen}
+                      aria-controls="profileOptions"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLangOpen(false);
+                        setProfileForOpen((v) => !v);
+                      }}
+                    >
+                      <div className="input-leading">
+                        <svg
+                          className="field-icon"
+                          viewBox="0 0 24 24"
+                          width="18"
+                          height="18"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                        >
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        <span className={`selected-value${profileFor ? ' chosen' : ''}`}>
+                          {profileFor || 'Profile created for'}
+                        </span>
+                      </div>
+                      <svg
+                        className="chevron-icon"
+                        viewBox="0 0 24 24"
+                        width="16"
+                        height="16"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </div>
+                    <ul
+                      id="profileOptions"
+                      className={`custom-select-options${profileForOpen ? ' show' : ''}`}
+                      role="listbox"
+                    >
+                      {PROFILE_OPTIONS.map((option) => (
+                        <li
+                          key={option}
+                          role="option"
+                          aria-selected={profileFor === option}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setProfileFor(option);
+                            setProfileForError(false);
+                            setProfileForOpen(false);
+                          }}
+                        >
+                          {option}
+                        </li>
+                      ))}
+                    </ul>
+                    <span className="error-msg">Please select who this profile is for</span>
+                  </div>
+
+                  <div className={`form-group${fullNameError ? ' has-error' : ''}`}>
+                    <div className="input-wrapper">
                       <svg
                         className="field-icon"
                         viewBox="0 0 24 24"
@@ -407,172 +612,160 @@ export default function Home() {
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                         <circle cx="12" cy="7" r="4" />
                       </svg>
-                      <span className={`selected-value${profileFor ? ' chosen' : ''}`}>
-                        {profileFor || 'Profile created for'}
-                      </span>
-                    </div>
-                    <svg
-                      className="chevron-icon"
-                      viewBox="0 0 24 24"
-                      width="16"
-                      height="16"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <polyline points="6 9 12 15 18 9" />
-                    </svg>
-                  </div>
-                  <ul
-                    id="profileOptions"
-                    className={`custom-select-options${profileForOpen ? ' show' : ''}`}
-                    role="listbox"
-                  >
-                    {PROFILE_OPTIONS.map((option) => (
-                      <li
-                        key={option}
-                        role="option"
-                        aria-selected={profileFor === option}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setProfileFor(option);
-                          setProfileForError(false);
-                          setProfileForOpen(false);
-                        }}
-                      >
-                        {option}
-                      </li>
-                    ))}
-                  </ul>
-                  <span className="error-msg">Please select who this profile is for</span>
-                </div>
-
-                <div className={`form-group${fullNameError ? ' has-error' : ''}`}>
-                  <div className="input-wrapper">
-                    <svg
-                      className="field-icon"
-                      viewBox="0 0 24 24"
-                      width="18"
-                      height="18"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                    >
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                    </svg>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder={getNamePlaceholder(profileFor)}
-                      autoComplete="name"
-                      required
-                      value={fullName}
-                      onChange={(e) => {
-                        setFullName(e.target.value);
-                        if (e.target.value.trim().length > 1) setFullNameError(false);
-                      }}
-                    />
-                  </div>
-                  <span className="error-msg">{getNameErrorMsg(profileFor)}</span>
-                </div>
-
-                <div className={`form-group${phoneError ? ' has-error' : ''}`}>
-                  <div className="input-wrapper phone-wrapper">
-                    <div className="country-picker" tabIndex={0}>
-                      <span className="flag-icon" aria-hidden="true">
-                        <svg
-                          viewBox="0 0 640 480"
-                          width="22"
-                          height="16"
-                          style={{ borderRadius: 2, boxShadow: '0 0 1px rgba(0,0,0,0.4)' }}
-                        >
-                          <path fill="#f93" d="M0 0h640v160H0z" />
-                          <path fill="#fff" d="M0 160h640v160H0z" />
-                          <path fill="#128807" d="M0 320h640v160H0z" />
-                          <circle cx="320" cy="240" r="60" fill="#000088" />
-                          <circle cx="320" cy="240" r="50" fill="#fff" />
-                          <circle cx="320" cy="240" r="14" fill="#000088" />
-                        </svg>
-                      </span>
-                      <span className="dial-code">+91</span>
-                      <svg
-                        className="chevron-icon-sm"
-                        viewBox="0 0 24 24"
-                        width="12"
-                        height="12"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
-                    </div>
-
-                    <div className="phone-divider" />
-
-                    <div className="phone-input-box">
-                      <svg
-                        className="field-icon phone-icon"
-                        viewBox="0 0 24 24"
-                        width="17"
-                        height="17"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                      >
-                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                      </svg>
                       <input
-                        type="tel"
-                        className="form-input phone-field"
-                        placeholder="Enter mobile number"
-                        maxLength={10}
-                        autoComplete="tel"
-                        value={mobileNumber}
+                        type="text"
+                        className="form-input"
+                        placeholder={getNamePlaceholder(profileFor)}
+                        autoComplete="name"
+                        required
+                        value={fullName}
                         onChange={(e) => {
-                          const digits = e.target.value.replace(/\D/g, '');
-                          setMobileNumber(digits);
-                          if (digits.length === 10) setPhoneError(false);
+                          setFullName(e.target.value);
+                          if (e.target.value.trim().length > 1) setFullNameError(false);
                         }}
                       />
                     </div>
+                    <span className="error-msg">{getNameErrorMsg(profileFor)}</span>
                   </div>
-                  <span className="error-msg">Please enter a valid 10-digit mobile number</span>
-                </div>
 
-                <button className="btn-submit" type="submit" disabled={submitting}>
-                  <span>{submitting ? 'Sending OTP...' : 'Register'}</span>
-                  {!submitting && (
-                    <svg
-                      className="btn-arrow"
-                      viewBox="0 0 24 24"
-                      width="18"
-                      height="18"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                      <polyline points="12 5 19 12 12 19" />
-                    </svg>
-                  )}
-                </button>
+                  <div className={`form-group${phoneError ? ' has-error' : ''}`}>
+                    <div className="input-wrapper phone-wrapper">
+                      <div className="country-picker" tabIndex={0}>
+                        <span className="flag-icon" aria-hidden="true">
+                          <svg
+                            viewBox="0 0 640 480"
+                            width="22"
+                            height="16"
+                            style={{ borderRadius: 2, boxShadow: '0 0 1px rgba(0,0,0,0.4)' }}
+                          >
+                            <path fill="#f93" d="M0 0h640v160H0z" />
+                            <path fill="#fff" d="M0 160h640v160H0z" />
+                            <path fill="#128807" d="M0 320h640v160H0z" />
+                            <circle cx="320" cy="240" r="60" fill="#000088" />
+                            <circle cx="320" cy="240" r="50" fill="#fff" />
+                            <circle cx="320" cy="240" r="14" fill="#000088" />
+                          </svg>
+                        </span>
+                        <span className="dial-code">+91</span>
+                        <svg
+                          className="chevron-icon-sm"
+                          viewBox="0 0 24 24"
+                          width="12"
+                          height="12"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </div>
 
-                <p className="terms-text">
-                  * By registering, you agree to our{' '}
-                  <a href="#terms" className="legal-link">
-                    Terms &amp; Conditions
-                  </a>{' '}
-                  and{' '}
-                  <a href="#privacy" className="legal-link">
-                    Privacy Policy
-                  </a>
-                  .
-                </p>
-              </form>
+                      <div className="phone-divider" />
+
+                      <div className="phone-input-box">
+                        <svg
+                          className="field-icon phone-icon"
+                          viewBox="0 0 24 24"
+                          width="17"
+                          height="17"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                        >
+                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                        </svg>
+                        <input
+                          type="tel"
+                          className="form-input phone-field"
+                          placeholder="Enter mobile number"
+                          maxLength={10}
+                          autoComplete="tel"
+                          value={mobileNumber}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, '');
+                            setMobileNumber(digits);
+                            if (digits.length === 10) setPhoneError(false);
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <span className="error-msg">Please enter a valid 10-digit mobile number</span>
+                  </div>
+
+                  <button className="btn-submit" type="submit" disabled={submitting}>
+                    <span>{submitting ? 'Sending OTP...' : 'Register'}</span>
+                    {!submitting && (
+                      <svg
+                        className="btn-arrow"
+                        viewBox="0 0 24 24"
+                        width="18"
+                        height="18"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
+                      </svg>
+                    )}
+                  </button>
+
+                  <p className="terms-text">
+                    * By registering, you agree to our{' '}
+                    <a href="#terms" className="legal-link">
+                      Terms &amp; Conditions
+                    </a>{' '}
+                    and{' '}
+                    <a href="#privacy" className="legal-link">
+                      Privacy Policy
+                    </a>
+                    .
+                  </p>
+                </form>
+              ) : (
+                <form className="reg-form" onSubmit={(e) => void handleRegisterOtpSubmit(e)} noValidate>
+                  <div className={`form-group${registerOtpError ? ' has-error' : ''}`}>
+                    <div className="input-wrapper">
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Enter OTP"
+                        inputMode="numeric"
+                        maxLength={6}
+                        autoComplete="one-time-code"
+                        required
+                        value={registerOtp}
+                        onChange={(e) => {
+                          setRegisterOtp(e.target.value.replace(/\D/g, ''));
+                          setRegisterOtpError(undefined);
+                        }}
+                      />
+                    </div>
+                    <span className="error-msg">{registerOtpError}</span>
+                  </div>
+
+                  {registerDevOtp ? (
+                    <p className="card-subtitle">
+                      Dev mode: your OTP is <strong>{registerDevOtp}</strong>
+                    </p>
+                  ) : null}
+
+                  <button className="btn-submit" type="submit" disabled={submitting}>
+                    <span>{submitting ? 'Verifying...' : 'Verify & Register'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    disabled={submitting}
+                    onClick={resetRegisterForm}
+                  >
+                    Change number
+                  </button>
+                </form>
+              )}
             </div>
           </section>
         </div>
@@ -683,29 +876,74 @@ export default function Home() {
       {/* Login / Auth Modal */}
       <div className={`modal-overlay${authModalOpen ? ' active' : ''}`} aria-hidden={!authModalOpen}>
         <div className="modal-card">
-          <button
-            className="modal-close-btn"
-            aria-label="Close modal"
-            type="button"
-            onClick={() => setAuthModalOpen(false)}
-          >
+          <button className="modal-close-btn" aria-label="Close modal" type="button" onClick={closeAuthModal}>
             &times;
           </button>
           <div className="modal-header">
             <h3 className="modal-title">Welcome Back</h3>
-            <p className="modal-sub">Login to your Nadar Kalyanam account</p>
+            <p className="modal-sub">
+              {loginStep === 'phone'
+                ? 'Login to your Nadar Kalyanam account'
+                : `Enter the 6-digit code sent to +91 ${loginPhone}`}
+            </p>
           </div>
-          <form className="modal-form" onSubmit={handleLoginSubmit}>
-            <div className="form-group">
-              <input type="text" className="form-input" placeholder="Mobile Number or Email" required />
-            </div>
-            <div className="form-group">
-              <input type="password" className="form-input" placeholder="Password" required />
-            </div>
-            <button className="btn-submit" type="submit">
-              Login
-            </button>
-          </form>
+          {loginStep === 'phone' ? (
+            <form className="modal-form" onSubmit={(e) => void handleLoginPhoneSubmit(e)}>
+              <div className={`form-group${loginPhoneError ? ' has-error' : ''}`}>
+                <div className="input-wrapper">
+                  <input
+                    type="tel"
+                    className="form-input"
+                    placeholder="Mobile number"
+                    inputMode="numeric"
+                    maxLength={10}
+                    autoComplete="tel"
+                    required
+                    value={loginPhone}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '');
+                      setLoginPhone(digits);
+                      if (digits.length === 10) setLoginPhoneError(false);
+                    }}
+                  />
+                </div>
+                <span className="error-msg">Please enter a valid 10-digit mobile number</span>
+              </div>
+              <button className="btn-submit" type="submit" disabled={loginSubmitting}>
+                {loginSubmitting ? 'Sending OTP...' : 'Send OTP'}
+              </button>
+            </form>
+          ) : (
+            <form className="modal-form" onSubmit={(e) => void handleLoginOtpSubmit(e)}>
+              <div className={`form-group${loginOtpError ? ' has-error' : ''}`}>
+                <div className="input-wrapper">
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Enter OTP"
+                    inputMode="numeric"
+                    maxLength={6}
+                    autoComplete="one-time-code"
+                    required
+                    value={loginOtp}
+                    onChange={(e) => {
+                      setLoginOtp(e.target.value.replace(/\D/g, ''));
+                      setLoginOtpError(undefined);
+                    }}
+                  />
+                </div>
+                <span className="error-msg">{loginOtpError}</span>
+              </div>
+              {loginDevOtp ? (
+                <p className="modal-sub">
+                  Dev mode: your OTP is <strong>{loginDevOtp}</strong>
+                </p>
+              ) : null}
+              <button className="btn-submit" type="submit" disabled={loginSubmitting}>
+                {loginSubmitting ? 'Verifying...' : 'Verify & Login'}
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </div>

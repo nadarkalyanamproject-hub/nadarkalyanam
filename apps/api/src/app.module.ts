@@ -4,9 +4,11 @@ import { LoggerModule } from 'nestjs-pino';
 import { validateEnv } from './modules/config/env.schema.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { PhotosModule } from './modules/photos/photos.module.js';
 import { PrismaModule } from './modules/prisma/prisma.module.js';
 import { ProfilesModule } from './modules/profiles/profiles.module.js';
 import { RedisModule } from './modules/redis/redis.module.js';
+import { StorageModule } from './modules/storage/storage.module.js';
 
 @Module({
   imports: [
@@ -25,9 +27,11 @@ import { RedisModule } from './modules/redis/redis.module.js';
     }),
     PrismaModule,
     RedisModule,
+    StorageModule,
     HealthModule,
     AuthModule,
     ProfilesModule,
+    PhotosModule,
   ],
 })
 export class AppModule {}
