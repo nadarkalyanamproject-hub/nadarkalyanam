@@ -28,7 +28,11 @@ export const metadata: Metadata = {
     'Nadar Kalyanam brings together like-minded individuals and families with shared values, culture, and aspirations. Find your trusted life partner.',
 };
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html
       lang="en"

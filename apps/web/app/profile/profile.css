@@ -1,0 +1,224 @@
+/* ==========================================================================
+   NADAR KALYANAM - MY PROFILE PREMIUM STYLESHEET
+   Brand Style: Premium Indian Matrimonial Platform with subtle Tamil motifs
+   Palette:
+     Warm Ivory Background: #FFF8E8
+     Deep Maroon: #7A0710
+     Primary Red: #94151C
+     Gold Accent: #D6A33A
+     Soft Gold: #F2D58A
+     Dark Text: #2B211C
+     Muted Text: #776B62
+     Border: #E8DCC8
+   ========================================================================== */
+
+:root {
+  --nk-ivory-bg: #FFF8E8;
+  --nk-ivory-card: #FFFDF9;
+  --nk-maroon-deep: #7A0710;
+  --nk-red-primary: #94151C;
+  --nk-red-soft: rgba(122, 7, 16, 0.06);
+  --nk-gold: #D6A33A;
+  --nk-gold-soft: #F2D58A;
+  --nk-gold-light: #FCF7E9;
+  --nk-text-dark: #2B211C;
+  --nk-text-muted: #776B62;
+  --nk-text-subtle: #968A82;
+  --nk-border: #E8DCC8;
+  --nk-border-light: #F3EBDD;
+}
+
+.profile-page-root {
+  background-color: var(--nk-ivory-bg);
+  min-height: 100vh;
+  color: var(--nk-text-dark);
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Card Styling: 14-18px rounded, 1px subtle cream border, soft shadow */
+.nk-card {
+  background: #FFFFFF;
+  border: 1px solid var(--nk-border);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(122, 7, 16, 0.03), 0 1px 2px rgba(43, 33, 28, 0.02);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+.nk-card-hover:hover {
+  border-color: #DFCDB4;
+  box-shadow: 0 6px 18px rgba(122, 7, 16, 0.05), 0 2px 4px rgba(43, 33, 28, 0.03);
+}
+
+/* Headings: Clean, modern, high-legibility Plus Jakarta Sans */
+.font-heading {
+  font-family: var(--font-body), "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.font-display {
+  font-family: var(--font-body), "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* Progress bar */
+.nk-progress-track {
+  background-color: #EFE4D2;
+  border-radius: 9999px;
+  overflow: hidden;
+  height: 6px;
+}
+
+.nk-progress-bar {
+  background: linear-gradient(90deg, #7A0710 0%, #94151C 65%, #D6A33A 100%);
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Verification Badge */
+.nk-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(122, 7, 16, 0.06);
+  border: 1px solid rgba(122, 7, 16, 0.15);
+  color: var(--nk-maroon-deep);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+.nk-verified-badge-gold {
+  background: #FFF9ED;
+  border: 1px solid rgba(214, 163, 58, 0.4);
+  color: #8C6110;
+}
+
+/* Photo slot empty state */
+.nk-photo-empty-slot {
+  border: 1.5px dashed var(--nk-border);
+  border-radius: 12px;
+  background: #FDFAF5;
+  transition: all 0.2s ease;
+}
+
+.nk-photo-empty-slot:hover {
+  border-color: var(--nk-gold);
+  background: #FFFDF9;
+  transform: translateY(-1px);
+}
+
+/* Accordion sections */
+.nk-accordion-item {
+  background: #FFFFFF;
+  border: 1px solid var(--nk-border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.nk-accordion-item:hover {
+  border-color: #D9C8B0;
+}
+
+.nk-accordion-item.is-open {
+  border-color: #D6A33A;
+  box-shadow: 0 4px 14px rgba(122, 7, 16, 0.04);
+}
+
+.nk-accordion-header {
+  padding: 16px 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  background: #FFFFFF;
+  transition: background-color 0.15s ease;
+}
+
+.nk-accordion-header:hover {
+  background-color: #FAF6EF;
+}
+
+/* Subtle Tamil/Indian Floral Ornament */
+.nk-ornament-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--nk-gold);
+  opacity: 0.7;
+  margin: 8px 0;
+}
+
+.nk-ornament-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--nk-border) 50%, transparent 100%);
+}
+
+/* Buttons */
+.nk-btn-primary {
+  background: linear-gradient(135deg, var(--nk-red-primary) 0%, var(--nk-maroon-deep) 100%);
+  color: #FFFFFF;
+  border: 1px solid var(--nk-maroon-deep);
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(122, 7, 16, 0.2);
+}
+
+.nk-btn-primary:hover {
+  background: linear-gradient(135deg, #A81C24 0%, var(--nk-red-primary) 100%);
+  box-shadow: 0 4px 10px rgba(122, 7, 16, 0.28);
+  transform: translateY(-1px);
+}
+
+.nk-btn-gold {
+  background: linear-gradient(135deg, #E2B24C 0%, #D6A33A 100%);
+  color: #382404;
+  border: 1px solid #C4912B;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.nk-btn-gold:hover {
+  background: linear-gradient(135deg, #F0C363 0%, #DFAB42 100%);
+  transform: translateY(-1px);
+}
+
+.nk-btn-outline {
+  background: transparent;
+  color: var(--nk-maroon-deep);
+  border: 1.5px solid var(--nk-border);
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.nk-btn-outline:hover {
+  background: #FFF9ED;
+  border-color: var(--nk-gold);
+  color: var(--nk-maroon-deep);
+}
+
+/* Custom subtle scrollbar */
+.nk-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.nk-scrollbar::-webkit-scrollbar-track {
+  background: #F8F3EA;
+}
+.nk-scrollbar::-webkit-scrollbar-thumb {
+  background: #D9C8B0;
+  border-radius: 4px;
+}
+.nk-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--nk-gold);
+}
