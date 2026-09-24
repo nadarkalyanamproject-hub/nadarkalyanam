@@ -23,10 +23,15 @@ function userRoom(userId: string): string {
 // Figure 8 (Real-Time Chat sequence): a distinct connection-handling process
 // from the REST API (per the component diagram), but it calls into
 // MessagesService rather than duplicating its authorization/persistence
-// logic. CORS is left permissive here as a scaffolding default — lock it
-// down to the real web/mobile origins before this goes anywhere near
-// production.
-@WebSocketGateway({ cors: { origin: '*' } })
+// logic.
+//
+// CORS reuses the same CORS_ORIGIN env var (and default) as the REST API's
+// app.enableCors() call in main.ts — there is only one place this ever needs
+// updating. It's read directly from process.env rather than injected
+// ConfigService because @WebSocketGateway()'s options are evaluated at
+// module-load time, before Nest's DI container exists (same constraint
+// app.module.ts already works around for NODE_ENV in its pino config).
+@WebSocketGateway({ cors: { origin: process.env.CORS_ORIGIN ?? 'http://localhost:3002' } })
 export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   private readonly server!: Server;

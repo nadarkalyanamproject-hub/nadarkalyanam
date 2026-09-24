@@ -6,4 +6,7 @@ export const RTC_PROVIDER_ADAPTER = Symbol('RTC_PROVIDER_ADAPTER');
 export interface RtcProviderAdapter {
   createRoom(): Promise<{ roomId: string }>;
   issueToken(roomId: string, participantUserId: string): Promise<{ token: string }>;
+  // Set (to `true`) only by the stub implementation — see
+  // common/not-yet-available.exception.ts.
+  readonly isStub?: boolean;
 }

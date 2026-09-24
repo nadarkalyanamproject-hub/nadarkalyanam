@@ -1,5 +1,8 @@
 import { BadRequestException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { MembershipPlanResponse, OrderResponse } from '@nadar-kalyanam/schemas';
+import { assertProviderConfigured } from '../../common/not-yet-available.exception.js';
+import type { Env } from '../config/env.schema.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PAYMENT_GATEWAY_ADAPTER, type PaymentGatewayAdapter } from './adapters/payment-gateway.adapter.js';
@@ -22,6 +25,7 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(PAYMENT_GATEWAY_ADAPTER) private readonly gateway: PaymentGatewayAdapter,
+    private readonly configService: ConfigService<Env, true>,
   ) {}
 
   async listPlans(): Promise<{ items: MembershipPlanResponse[] }> {
@@ -40,6 +44,8 @@ export class PaymentsService {
   // FR-7.2: the client never supplies the amount — it is looked up
   // server-side from the plan row.
   async createOrder(userId: string, planId: string): Promise<OrderResponse> {
+    assertProviderConfigured(this.configService, this.gateway, 'Membership payments');
+
     const plan = await this.prisma.membershipPlan.findUnique({ where: { id: planId } });
     if (!plan || !plan.isActive) {
       throw new NotFoundException('Membership plan not found');

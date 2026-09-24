@@ -9,6 +9,8 @@ import type {
 // operations are a hard stop until one is.
 @Injectable()
 export class StubIdentityProviderAdapter implements IdentityProviderAdapter {
+  readonly isStub = true as const;
+
   initiate(): Promise<IdentityInitiateResult> {
     throw new NotImplementedException('No identity verification provider is configured yet');
   }

@@ -18,11 +18,10 @@ export const envSchema = z.object({
   MINIO_BUCKET_NAME: z.string().min(1, 'MINIO_BUCKET_NAME is required'),
   // Generic HMAC secret used to verify the payment webhook signature (FR-7.3).
   // Provider-agnostic until a real payment gateway is contracted — see
-  // PaymentGatewayAdapter.
-  // TODO(Step 3 of main-hardening): this insecure dev-string default must be
-  // removed before this branch is production-safe — tracked separately, not
-  // part of this cherry-pick.
-  PAYMENT_WEBHOOK_SECRET: z.string().min(1).default('dev-payment-webhook-secret'),
+  // PaymentGatewayAdapter. No default (matches JWT_ACCESS_TOKEN_SECRET):
+  // production must not be able to boot with a guessable dev-string secret
+  // for something that authenticates inbound webhook calls.
+  PAYMENT_WEBHOOK_SECRET: z.string().min(1, 'PAYMENT_WEBHOOK_SECRET is required'),
   // MinIO (and some S3-compatible providers) require path-style requests
   // (http://host/bucket/key). Real AWS S3 expects virtual-hosted-style
   // (https://bucket.host/key) — set this to false when pointing at AWS S3

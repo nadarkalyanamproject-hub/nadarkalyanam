@@ -5,6 +5,8 @@ import type { RtcProviderAdapter } from './rtc-provider.adapter.js';
 // hard stop until one is.
 @Injectable()
 export class StubRtcProviderAdapter implements RtcProviderAdapter {
+  readonly isStub = true as const;
+
   createRoom(): Promise<{ roomId: string }> {
     throw new NotImplementedException('No RTC/SFU provider is configured yet');
   }

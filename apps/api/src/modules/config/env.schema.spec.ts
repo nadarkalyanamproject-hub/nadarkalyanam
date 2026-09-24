@@ -6,6 +6,7 @@ const validMinioEnv = {
   MINIO_ACCESS_KEY: 'nadar_minio',
   MINIO_SECRET_KEY: 'nadar_minio_password',
   MINIO_BUCKET_NAME: 'nadar-kalyanam-photos',
+  PAYMENT_WEBHOOK_SECRET: 'test-webhook-secret',
 };
 
 describe('validateEnv', () => {
@@ -33,6 +34,20 @@ describe('validateEnv', () => {
         ...validMinioEnv,
       }),
     ).toThrow(/JWT_ACCESS_TOKEN_SECRET/);
+  });
+
+  it('throws when PAYMENT_WEBHOOK_SECRET is missing, with no insecure default', () => {
+    expect(() =>
+      validateEnv({
+        DATABASE_URL: 'postgresql://user:pass@localhost:5439/db',
+        REDIS_URL: 'redis://localhost:6380',
+        JWT_ACCESS_TOKEN_SECRET: 'test-secret',
+        MINIO_ENDPOINT: 'http://localhost:9002',
+        MINIO_ACCESS_KEY: 'nadar_minio',
+        MINIO_SECRET_KEY: 'nadar_minio_password',
+        MINIO_BUCKET_NAME: 'nadar-kalyanam-photos',
+      }),
+    ).toThrow(/PAYMENT_WEBHOOK_SECRET/);
   });
 
   it('throws when a MINIO_* field is missing', () => {

@@ -1,6 +1,9 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { CallSessionResponse } from '@nadar-kalyanam/schemas';
 import { isBlockedEitherDirection } from '../../common/blocks.util.js';
+import { assertProviderConfigured } from '../../common/not-yet-available.exception.js';
+import type { Env } from '../config/env.schema.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RTC_PROVIDER_ADAPTER, type RtcProviderAdapter } from './adapters/rtc-provider.adapter.js';
 
@@ -9,6 +12,7 @@ export class CallsService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(RTC_PROVIDER_ADAPTER) private readonly rtc: RtcProviderAdapter,
+    private readonly configService: ConfigService<Env, true>,
   ) {}
 
   // FR-6.1/6.4: calling requires a mutually accepted interest and no block
@@ -16,6 +20,8 @@ export class CallsService {
   // ("calling permitted by the approved calling entitlement policy") is left
   // unenforced — SRS §8.4 lists it as APPROVAL REQUIRED, still open.
   async initiate(callerId: string, targetUserId: string): Promise<CallSessionResponse> {
+    assertProviderConfigured(this.configService, this.rtc, 'Voice/video calling');
+
     if (callerId === targetUserId) {
       throw new ForbiddenException('You cannot call yourself');
     }

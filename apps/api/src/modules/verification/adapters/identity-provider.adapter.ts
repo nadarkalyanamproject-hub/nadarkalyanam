@@ -16,4 +16,7 @@ export interface IdentityConfirmResult {
 export interface IdentityProviderAdapter {
   initiate(userId: string): Promise<IdentityInitiateResult>;
   confirmStatus(providerReference: string): Promise<IdentityConfirmResult>;
+  // Set (to `true`) only by the stub implementation — see
+  // common/not-yet-available.exception.ts.
+  readonly isStub?: boolean;
 }

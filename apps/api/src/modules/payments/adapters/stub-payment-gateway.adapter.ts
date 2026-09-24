@@ -10,6 +10,8 @@ import type { PaymentGatewayAdapter, ProviderOrder } from './payment-gateway.ada
 // implemented and tested against today, ahead of the real integration.
 @Injectable()
 export class StubPaymentGatewayAdapter implements PaymentGatewayAdapter {
+  readonly isStub = true as const;
+
   constructor(private readonly configService: ConfigService<Env, true>) {}
 
   createProviderOrder(): Promise<ProviderOrder> {
