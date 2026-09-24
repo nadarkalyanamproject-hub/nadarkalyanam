@@ -35,7 +35,70 @@ async function main() {
     }
   }
 
-  console.log('Seeded roles and permissions.');
+  const MEMBERSHIP_PLANS = [
+    {
+      id: 'plan-gold-3m',
+      name: 'Gold - 3 months',
+      priceInPaise: 149900,
+      durationDays: 90,
+      entitlements: {
+        phoneNumbers: 50,
+        unlimitedMessages: true,
+        unlimitedHoroscopes: true,
+        verifiedProfilesWithPhotos: true,
+      },
+    },
+    {
+      id: 'plan-gold-plus-3m',
+      name: 'Gold + - 3 months',
+      priceInPaise: 229900,
+      durationDays: 90,
+      entitlements: {
+        phoneNumbers: 'Unlimited*',
+        unlimitedMessages: true,
+        unlimitedHoroscopes: true,
+        verifiedProfilesWithPhotos: true,
+        priorityListing: true,
+      },
+    },
+    {
+      id: 'plan-gold-premium-12m',
+      name: 'Gold Premium - 12 months',
+      priceInPaise: 599900,
+      durationDays: 365,
+      entitlements: {
+        phoneNumbers: 'Unlimited*',
+        unlimitedMessages: true,
+        unlimitedHoroscopes: true,
+        verifiedProfilesWithPhotos: true,
+        dedicatedManager: true,
+        prioritySpotlight: true,
+      },
+    },
+  ];
+
+  for (const plan of MEMBERSHIP_PLANS) {
+    await prisma.membershipPlan.upsert({
+      where: { id: plan.id },
+      update: {
+        name: plan.name,
+        priceInPaise: plan.priceInPaise,
+        durationDays: plan.durationDays,
+        entitlements: plan.entitlements,
+        isActive: true,
+      },
+      create: {
+        id: plan.id,
+        name: plan.name,
+        priceInPaise: plan.priceInPaise,
+        durationDays: plan.durationDays,
+        entitlements: plan.entitlements,
+        isActive: true,
+      },
+    });
+  }
+
+  console.log('Seeded roles, permissions, and membership plans.');
 }
 
 main()
