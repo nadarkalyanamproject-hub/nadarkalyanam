@@ -95,8 +95,8 @@ export default function InterestsPage() {
   return (
     <>
       <AppHeader />
-      <main className="min-h-screen bg-secondary px-4 py-12">
-        <div className="mx-auto flex max-w-2xl flex-col gap-6">
+      <main className="min-h-screen bg-secondary px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
+        <div className="w-full flex flex-col gap-6">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Interests</h1>
             <p className="mt-1 text-sm text-muted-foreground">

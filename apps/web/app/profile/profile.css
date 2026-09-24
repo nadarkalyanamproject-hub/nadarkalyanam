@@ -26,6 +26,13 @@
   --nk-text-subtle: #968A82;
   --nk-border: #E8DCC8;
   --nk-border-light: #F3EBDD;
+  --nk-yellow-primary: #F59E0B;
+  --nk-yellow-bright: #FFC107;
+  --nk-yellow-light: #FFD54F;
+  --nk-yellow-border: #FFE082;
+  --nk-yellow-soft: #FFF9E6;
+  --nk-yellow-pill: #FEF3C7;
+  --nk-yellow-text: #92400E;
 }
 
 .profile-page-root {

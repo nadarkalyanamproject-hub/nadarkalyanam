@@ -59,8 +59,8 @@ export function ProfileHeader({
             {summary}
           </span>
 
-          <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#7A0710]">
-            <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4 text-[#D6A33A]">
+          <div className="inline-flex items-center gap-1.5 rounded-md border border-[#FDE68A] bg-[#FEF3C7] px-2.5 py-1 text-xs font-semibold text-[#92400E]">
+            <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5 text-[#F59E0B]">
               <path
                 fillRule="evenodd"
                 d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm11.78-1.72a.75.75 0 0 0-1.06-1.06L7 8.94 5.28 7.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.06 0l4.25-4.25Z"
@@ -73,20 +73,20 @@ export function ProfileHeader({
       </div>
 
       {/* Right side: Compact, professional profile completion */}
-      <div className="w-full max-w-xs rounded-xl border border-[#E8DCC8] bg-[#FFFFFF] p-4 shadow-sm md:w-72">
+      <div className="w-full max-w-xs rounded-xl border border-[#FFE082] bg-gradient-to-br from-[#FFFFFF] to-[#FFFDF5] p-4 shadow-sm md:w-72">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wider text-[#776B62]">
             Profile Completion
           </span>
-          <span className="text-sm font-bold text-[#7A0710]">
+          <span className="text-sm font-bold text-[#92400E]">
             {completionPercent}%
           </span>
         </div>
 
         {/* Small horizontal progress bar */}
-        <div className="h-2 w-full overflow-hidden rounded-full bg-[#F2E8DC]">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-[#F3EBDD]">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#7A0710] via-[#94151C] to-[#D6A33A] transition-all duration-700 ease-out"
+            className="h-full rounded-full bg-gradient-to-r from-[#7A0710] via-[#D97706] to-[#F59E0B] transition-all duration-700 ease-out"
             style={{ width: `${Math.min(100, Math.max(10, completionPercent))}%` }}
           />
         </div>

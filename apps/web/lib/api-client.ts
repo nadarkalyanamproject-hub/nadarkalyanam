@@ -1,18 +1,28 @@
 import type {
   ConversationListResponse,
+  CreateOrderRequest,
   CreateProfileRequest,
   CreateProfileResponse,
+  InitiateVerificationResponse,
   ListInterestsResponse,
+  ListMatchesResponse,
+  ListNotificationsResponse,
+  MembershipPlanResponse,
   MessageListResponse,
   MessageResponse,
+  NotificationResponse,
+  OrderResponse,
   PhotoResponse,
   ProfileListResponse,
   ProfileResponse,
   PublicProfileDetail,
+  ReportRequest,
   RequestUploadUrlResponse,
+  SearchProfilesResponse,
   SendInterestRequest,
   SendOtpRequest,
   SendOtpResponse,
+  VerificationStatusResponse,
   VerifyOtpRequest,
   VerifyOtpResponse,
 } from '@nadar-kalyanam/schemas';
@@ -230,5 +240,79 @@ export function sendMessage(
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
     body: JSON.stringify({ body }),
+  });
+}
+
+export function searchProfiles(
+  accessToken: string,
+  params: {
+    ageMin?: number;
+    ageMax?: number;
+    city?: string;
+    educationLevel?: string;
+    profession?: string;
+    maritalStatus?: string;
+    cursor?: string;
+  },
+): Promise<SearchProfilesResponse> {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value) query.set(key, String(value));
+  }
+  const qs = query.toString();
+  return request<SearchProfilesResponse>(`/search/profiles${qs ? `?${qs}` : ''}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function listMatches(accessToken: string): Promise<ListMatchesResponse> {
+  return request<ListMatchesResponse>('/matches', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function listNotifications(accessToken: string): Promise<ListNotificationsResponse> {
+  return request<ListNotificationsResponse>('/notifications', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function markNotificationRead(accessToken: string, id: string): Promise<NotificationResponse> {
+  return request<NotificationResponse>(`/notifications/${id}/read`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function listMembershipPlans(): Promise<{ items: MembershipPlanResponse[] }> {
+  return request('/membership-plans');
+}
+
+export function createOrder(accessToken: string, payload: CreateOrderRequest): Promise<OrderResponse> {
+  return request<OrderResponse>('/orders', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function initiateVerification(accessToken: string): Promise<InitiateVerificationResponse> {
+  return request<InitiateVerificationResponse>('/verification/initiate', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function getVerificationStatus(accessToken: string): Promise<VerificationStatusResponse> {
+  return request<VerificationStatusResponse>('/verification/status', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function reportProfile(accessToken: string, payload: ReportRequest): Promise<{ id: string }> {
+  return request<{ id: string }>('/reports', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(payload),
   });
 }

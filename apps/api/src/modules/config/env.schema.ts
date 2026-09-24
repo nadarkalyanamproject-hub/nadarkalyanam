@@ -12,6 +12,10 @@ export const envSchema = z.object({
   MINIO_ACCESS_KEY: z.string().min(1, 'MINIO_ACCESS_KEY is required'),
   MINIO_SECRET_KEY: z.string().min(1, 'MINIO_SECRET_KEY is required'),
   MINIO_BUCKET_NAME: z.string().min(1, 'MINIO_BUCKET_NAME is required'),
+  // Generic HMAC secret used to verify the payment webhook signature (FR-7.3).
+  // Provider-agnostic until a real payment gateway is contracted — see
+  // PaymentGatewayAdapter.
+  PAYMENT_WEBHOOK_SECRET: z.string().min(1).default('dev-payment-webhook-secret'),
 });
 
 export type Env = z.infer<typeof envSchema>;

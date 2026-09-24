@@ -260,7 +260,7 @@ export default function ProfilePage() {
     <div className="profile-page-root min-h-screen bg-[#FFF8E8] text-[#2B211C]">
       <AppHeader />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+      <main className="w-full px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
         {/* Profile Header */}
         <ProfileHeader profile={profile} completionPercent={completionPercent} />
 
@@ -282,7 +282,7 @@ export default function ProfilePage() {
         {profile && (
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
             {/* LEFT COLUMN: Photo Gallery, Verification, Completion Checklist */}
-            <div className="space-y-6 lg:col-span-4 xl:col-span-4">
+            <div className="space-y-6 lg:col-span-5 xl:col-span-4 2xl:col-span-3">
               {/* Photo Gallery Card */}
               <PhotoGalleryCard profile={profile} onChanged={() => void refetch()} />
 
@@ -290,7 +290,6 @@ export default function ProfilePage() {
               <TrustVerificationCard
                 mobileVerified={true}
                 emailVerified={Boolean(profile.details?.email)}
-                identityVerified={false}
               />
 
               {/* Profile Completion Checklist Card */}
@@ -302,7 +301,7 @@ export default function ProfilePage() {
             </div>
 
             {/* RIGHT COLUMN: Expandable Profile Sections */}
-            <div className="space-y-5 lg:col-span-8 xl:col-span-8">
+            <div className="space-y-5 lg:col-span-7 xl:col-span-8 2xl:col-span-9">
               {/* 1. Basic Details */}
               <AccordionSection
                 id="basic"

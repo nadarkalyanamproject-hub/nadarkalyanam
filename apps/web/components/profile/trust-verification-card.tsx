@@ -1,21 +1,60 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { ApiError, getVerificationStatus, initiateVerification } from '../../lib/api-client';
+import { useRegistration } from '../../app/providers/registration-provider';
 
 export function TrustVerificationCard({
   mobileVerified = true,
   emailVerified = true,
-  identityVerified = false,
 }: {
   mobileVerified?: boolean;
   emailVerified?: boolean;
-  identityVerified?: boolean;
 }) {
-  const [identityPending, setIdentityPending] = useState(!identityVerified);
+  const { data } = useRegistration();
+  const [status, setStatus] = useState<'PENDING' | 'SUCCEEDED' | 'FAILED' | 'EXPIRED' | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!data.accessToken) return;
+    getVerificationStatus(data.accessToken)
+      .then((result) => setStatus(result.status))
+      .catch(() => {
+        // A failed status check just leaves the "Verify Now" prompt showing
+        // — not worth its own error state on a card this secondary.
+      });
+  }, [data.accessToken]);
+
+  const identityVerified = status === 'SUCCEEDED';
+  const identityPending = !identityVerified;
 
   function handleVerifyIdentity() {
+    setSubmitError(null);
     setShowModal(true);
+  }
+
+  async function handleSubmitVerification() {
+    if (!data.accessToken) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await initiateVerification(data.accessToken);
+      // No real identity provider is configured yet (see
+      // StubIdentityProviderAdapter) — initiate() only succeeds once one is,
+      // so reaching here would mean a real redirect flow exists. Left as a
+      // no-op close for now rather than pretending it verified.
+      setShowModal(false);
+    } catch (err) {
+      setSubmitError(
+        err instanceof ApiError
+          ? err.message
+          : 'Identity verification is not available yet. Please try again later.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -91,7 +130,7 @@ export function TrustVerificationCard({
 
         {/* Identity Verification */}
         {identityPending ? (
-          <div className="rounded-xl border border-[#F2D58A] bg-[#FFFBF0] p-3.5">
+          <div className="rounded-xl border border-[#FDE68A] bg-[#FFFBEB] p-3.5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-semibold text-[#7A0710]">Identity Verification</p>
@@ -104,7 +143,7 @@ export function TrustVerificationCard({
             <button
               type="button"
               onClick={handleVerifyIdentity}
-              className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#7A0710] hover:text-[#94151C] transition-colors"
+              className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#92400E] hover:text-[#78350F] transition-colors"
             >
               <span>Verify Now</span>
               <span>→</span>
@@ -156,16 +195,19 @@ export function TrustVerificationCard({
             <div className="my-4 rounded-xl bg-[#FFF9ED] border border-[#E8DCC8] p-3 text-xs text-[#7A0710]">
               🔒 Your document details are encrypted and never displayed publicly to other members.
             </div>
+            {submitError && (
+              <p className="mb-3 text-xs text-[#94151C]" role="alert">
+                {submitError}
+              </p>
+            )}
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => {
-                  setIdentityPending(false);
-                  setShowModal(false);
-                }}
-                className="flex-1 rounded-lg bg-[#7A0710] py-2.5 text-xs font-semibold text-white shadow hover:bg-[#94151C] transition-colors"
+                disabled={submitting}
+                onClick={() => void handleSubmitVerification()}
+                className="flex-1 rounded-lg bg-[#7A0710] py-2.5 text-xs font-semibold text-white shadow hover:bg-[#94151C] transition-colors disabled:opacity-60"
               >
-                Submit ID Verification
+                {submitting ? 'Submitting…' : 'Submit ID Verification'}
               </button>
               <button
                 type="button"

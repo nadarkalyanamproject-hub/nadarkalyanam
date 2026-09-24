@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { AuthenticatedHome } from '../components/home/authenticated-home';
 import { useRegistration } from './providers/registration-provider';
 import { ApiError, requestOtp, verifyOtp } from '../lib/api-client';
 import { isValidLocalPhone, toE164 } from '../lib/phone';
+import { OTPVerification } from '@/components/ui/otp-verify';
 import './landing.css';
 
 const PROFILE_OPTIONS = ['Myself', 'Son', 'Daughter', 'Brother', 'Sister', 'Relative', 'Friend'];
@@ -93,12 +95,12 @@ export default function Home() {
   const profileForRef = useRef<HTMLDivElement>(null);
   // A login or register success already knows exactly where to go (based on
   // hasProfile) and navigates there itself. Without this, setAuth() below
-  // re-renders this same page with a now-truthy accessToken, and the
-  // generic already-authenticated redirect effect fires too, racing
-  // whichever flow's own router.push and sending everyone to /profile
-  // regardless of hasProfile. Shared by both flows — it only needs to be
-  // true at the moment setAuth() fires, regardless of which one set it.
-  const skipHomeRedirectRef = useRef(false);
+  // re-renders this same page with a now-truthy accessToken and this page
+  // would flash the authenticated dashboard for a tick before that
+  // navigation completes. Shared by both flows — it only needs to become
+  // true in the same batch as setAuth() fires, regardless of which one set
+  // it; state (not a ref) because it's read during render, below.
+  const [skipHomeRedirect, setSkipHomeRedirect] = useState(false);
 
   function showToast(title: string, msg: string, isError = false) {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -120,13 +122,6 @@ export default function Home() {
     document.addEventListener('click', onDocumentClick);
     return () => document.removeEventListener('click', onDocumentClick);
   }, []);
-
-  useEffect(() => {
-    if (skipHomeRedirectRef.current) return;
-    if (hydrated && data.accessToken) {
-      router.replace('/profile');
-    }
-  }, [hydrated, data.accessToken, router]);
 
   async function handleRegisterSubmit(e: FormEvent) {
     e.preventDefault();
@@ -181,22 +176,16 @@ export default function Home() {
     setSubmitting(false);
   }
 
-  async function handleRegisterOtpSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!/^\d{6}$/.test(registerOtp)) {
-      setRegisterOtpError('Enter the 6-digit code');
-      return;
-    }
+  async function handleRegisterOtp(otpCode: string) {
     setRegisterOtpError(undefined);
-
     setSubmitting(true);
     try {
       const result = await verifyOtp({
         phoneNumber: toE164(mobileNumber),
-        otp: registerOtp,
+        otp: otpCode,
         intent: 'register',
       });
-      skipHomeRedirectRef.current = true;
+      setSkipHomeRedirect(true);
       setAuth({
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
@@ -210,6 +199,16 @@ export default function Home() {
       setRegisterOtpError(
         error instanceof ApiError ? error.message : 'Could not verify OTP. Please try again.',
       );
+    }
+  }
+
+  async function handleResendRegisterOtp() {
+    try {
+      const { devOtp } = await requestOtp({ phoneNumber: toE164(mobileNumber) });
+      setRegisterDevOtp(devOtp);
+      showToast('OTP Resent', `A new verification code has been sent to +91 ${mobileNumber}`);
+    } catch (error) {
+      showToast('Could not resend OTP', error instanceof ApiError ? error.message : 'Please try again', true);
     }
   }
 
@@ -249,32 +248,22 @@ export default function Home() {
     }
   }
 
-  async function handleLoginOtpSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!/^\d{6}$/.test(loginOtp)) {
-      setLoginOtpError('Enter the 6-digit code');
-      return;
-    }
+  async function handleLoginOtp(otpCode: string) {
     setLoginOtpError(undefined);
-
     setLoginSubmitting(true);
     try {
       const result = await verifyOtp({
         phoneNumber: toE164(loginPhone),
-        otp: loginOtp,
+        otp: otpCode,
         intent: 'login',
       });
-      skipHomeRedirectRef.current = true;
+      setSkipHomeRedirect(true);
       setAuth({
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
         userId: result.user.id,
         hasProfile: result.user.hasProfile,
       });
-      // Navigation starts immediately — the toast is a fire-and-forget
-      // notice, not a gate on the redirect. Same hasProfile branch
-      // /register/verify uses, so a login for a User with no Profile yet
-      // resumes onboarding instead of hitting a 404ing /profile.
       closeAuthModal();
       showToast('Logged In', 'Welcome back to Nadar Kalyanam!');
       router.push(result.user.hasProfile ? '/profile' : '/onboarding/basic-details');
@@ -286,10 +275,25 @@ export default function Home() {
     }
   }
 
-  // Already-authenticated visitors never see the public homepage — the
-  // effect above sends them to /profile; this just avoids flashing the
-  // Register/Login UI during that one tick.
-  if (!hydrated || data.accessToken) return null;
+  async function handleResendLoginOtp() {
+    try {
+      const { devOtp } = await requestOtp({ phoneNumber: toE164(loginPhone) });
+      setLoginDevOtp(devOtp);
+      showToast('OTP Resent', `A new verification code has been sent to +91 ${loginPhone}`);
+    } catch (error) {
+      showToast('Could not resend OTP', error instanceof ApiError ? error.message : 'Please try again', true);
+    }
+  }
+
+  if (!hydrated) return null;
+
+  // A login/register success already knows where to go (based on
+  // hasProfile) and navigates there itself via its own router.push —
+  // skipHomeRedirect avoids flashing the dashboard for the one tick
+  // between setAuth() and that navigation completing.
+  if (data.accessToken) {
+    return skipHomeRedirect ? null : <AuthenticatedHome />;
+  }
 
   return (
     <div className="nk-landing">
@@ -479,13 +483,9 @@ export default function Home() {
         <div className="hero-container">
           <section className="hero-left-content">
             <h1 className="hero-heading">
-              More Than
+              More Than Matches,
               <br />
-              Matches,
-              <br />
-              A Stronger
-              <br />
-              Tomorrow
+              A Stronger Tomorrow
             </h1>
             <div className="ornament-divider">
               <svg viewBox="0 0 24 24" width="22" height="22" className="flourish-icon">
@@ -725,46 +725,18 @@ export default function Home() {
                   </p>
                 </form>
               ) : (
-                <form className="reg-form" onSubmit={(e) => void handleRegisterOtpSubmit(e)} noValidate>
-                  <div className={`form-group${registerOtpError ? ' has-error' : ''}`}>
-                    <div className="input-wrapper">
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="Enter OTP"
-                        inputMode="numeric"
-                        maxLength={6}
-                        autoComplete="one-time-code"
-                        required
-                        value={registerOtp}
-                        onChange={(e) => {
-                          setRegisterOtp(e.target.value.replace(/\D/g, ''));
-                          setRegisterOtpError(undefined);
-                        }}
-                      />
-                    </div>
-                    <span className="error-msg">{registerOtpError}</span>
-                  </div>
-
-                  {registerDevOtp ? (
-                    <p className="card-subtitle">
-                      Dev mode: your OTP is <strong>{registerDevOtp}</strong>
-                    </p>
-                  ) : null}
-
-                  <button className="btn-submit" type="submit" disabled={submitting}>
-                    <span>{submitting ? 'Verifying...' : 'Verify & Register'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    disabled={submitting}
-                    onClick={resetRegisterForm}
-                  >
-                    Change number
-                  </button>
-                </form>
+                <OTPVerification
+                  variant="embedded"
+                  length={6}
+                  emailOrPhone={`+91 ${mobileNumber}`}
+                  devOtp={registerDevOtp}
+                  error={registerOtpError}
+                  isLoading={submitting}
+                  buttonLabel="Verify & Register"
+                  onVerify={handleRegisterOtp}
+                  onResend={handleResendRegisterOtp}
+                  onChangeNumber={resetRegisterForm}
+                />
               )}
             </div>
           </section>
@@ -914,35 +886,18 @@ export default function Home() {
               </button>
             </form>
           ) : (
-            <form className="modal-form" onSubmit={(e) => void handleLoginOtpSubmit(e)}>
-              <div className={`form-group${loginOtpError ? ' has-error' : ''}`}>
-                <div className="input-wrapper">
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Enter OTP"
-                    inputMode="numeric"
-                    maxLength={6}
-                    autoComplete="one-time-code"
-                    required
-                    value={loginOtp}
-                    onChange={(e) => {
-                      setLoginOtp(e.target.value.replace(/\D/g, ''));
-                      setLoginOtpError(undefined);
-                    }}
-                  />
-                </div>
-                <span className="error-msg">{loginOtpError}</span>
-              </div>
-              {loginDevOtp ? (
-                <p className="modal-sub">
-                  Dev mode: your OTP is <strong>{loginDevOtp}</strong>
-                </p>
-              ) : null}
-              <button className="btn-submit" type="submit" disabled={loginSubmitting}>
-                {loginSubmitting ? 'Verifying...' : 'Verify & Login'}
-              </button>
-            </form>
+            <OTPVerification
+              variant="embedded"
+              length={6}
+              emailOrPhone={`+91 ${loginPhone}`}
+              devOtp={loginDevOtp}
+              error={loginOtpError}
+              isLoading={loginSubmitting}
+              buttonLabel="Verify & Login"
+              onVerify={handleLoginOtp}
+              onResend={handleResendLoginOtp}
+              onChangeNumber={() => setLoginStep('phone')}
+            />
           )}
         </div>
       </div>

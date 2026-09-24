@@ -108,11 +108,11 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { key: 'home', label: 'Home', href: '/', icon: HomeIcon },
-  { key: 'matches', label: 'Matches', href: '/browse', icon: HeartIcon },
+  { key: 'matches', label: 'Matches', href: '/matches', icon: HeartIcon },
+  { key: 'search', label: 'Search', href: '/search', icon: SearchIcon },
   { key: 'interests', label: 'Interests', href: '/interests', icon: StarIcon },
   { key: 'messages', label: 'Messages', href: '/messages', icon: ChatIcon },
-  { key: 'search', label: 'Search', icon: SearchIcon },
-  { key: 'notifications', label: 'Notifications', icon: BellIcon },
+  { key: 'notifications', label: 'Notifications', href: '/notifications', icon: BellIcon },
   { key: 'profile', label: 'Profile', href: '/profile', icon: UserIcon },
 ];
 
@@ -135,7 +135,23 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#E8DCC8] bg-[#FFFDF9]/95 backdrop-blur-md transition-shadow">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      {/* Radiant Festive Yellow Top Announcement Bar */}
+      <div className="border-b border-[#F59E0B]/30 bg-[#FFD54F] px-4 py-1 text-[11px] font-semibold tracking-wider text-[#680A0E]">
+        <div className="mx-auto flex w-full items-center justify-between px-2 sm:px-4 lg:px-8 xl:px-12 2xl:px-16">
+          <div className="flex items-center gap-2">
+            <span>Tradition</span>
+            <span className="opacity-40">|</span>
+            <span>Trust</span>
+            <span className="opacity-40">|</span>
+            <span>Together in Values</span>
+          </div>
+          <div className="hidden sm:flex items-center gap-2 text-[10px] text-[#7A0710]/90 font-medium">
+            <span>⭐ Trusted Nadar Matrimonial Platform</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
         {/* Brand Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2.5 transition-transform hover:scale-[1.01]">
           <MandalaEmblem />
@@ -253,6 +269,14 @@ export function AppHeader() {
                         >
                           <UserIcon className="h-4 w-4 text-[#7A0710]" />
                           My Profile
+                        </Link>
+                        <Link
+                          href="/membership"
+                          onClick={() => setAvatarMenuOpen(false)}
+                          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[#2B211C] transition-colors hover:bg-[#F9F3E7] hover:text-[#7A0710]"
+                        >
+                          <StarIcon className="h-4 w-4 text-[#7A0710]" />
+                          Membership
                         </Link>
                         <Link
                           href="/"

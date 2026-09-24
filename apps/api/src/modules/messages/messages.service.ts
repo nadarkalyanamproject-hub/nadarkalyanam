@@ -111,6 +111,18 @@ export class MessagesService {
     return toMessageResponse(message);
   }
 
+  // Figure 8's "emit message_read" step: only the recipient can mark a
+  // message read, and only messages not already sent by them.
+  async markRead(callerUserId: string, conversationId: string): Promise<{ updatedCount: number }> {
+    await this.assertCanAccessConversation(callerUserId, conversationId);
+
+    const result = await this.prisma.message.updateMany({
+      where: { conversationId, senderId: { not: callerUserId }, status: { not: 'READ' } },
+      data: { status: 'READ' },
+    });
+    return { updatedCount: result.count };
+  }
+
   private async assertCanAccessConversation(callerUserId: string, conversationId: string): Promise<void> {
     const participants = await this.prisma.conversationParticipant.findMany({
       where: { conversationId },

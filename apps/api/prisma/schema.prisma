@@ -17,35 +17,54 @@ enum AccountStatus {
 }
 
 model User {
-  id            String        @id @default(uuid())
-  phoneNumber   String        @unique
-  status        AccountStatus @default(ACTIVE)
+  id                  String        @id @default(uuid())
+  phoneNumber         String        @unique
+  status              AccountStatus @default(ACTIVE)
   deletionRequestedAt DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
-  profile       Profile?
-  sessions      Session[]
-  sentInterests     Interest[] @relation("InterestSender")
-  receivedInterests Interest[] @relation("InterestTarget")
-  blocksInitiated   Block[]    @relation("BlockInitiator")
-  blocksReceived    Block[]    @relation("BlockTarget")
+  profile                    Profile?
+  sessions                   Session[]
+  sentInterests              Interest[]                @relation("InterestSender")
+  receivedInterests          Interest[]                @relation("InterestTarget")
+  blocksInitiated            Block[]                   @relation("BlockInitiator")
+  blocksReceived             Block[]                   @relation("BlockTarget")
   conversationParticipations ConversationParticipant[]
-  verificationRequests VerificationRequest[]
-  orders        Order[]
+  verificationRequests       VerificationRequest[]
+  orders                     Order[]
+  subscriptions              Subscription[]
+  devices                    Device[]
+  notifications              Notification[]
+  callsAsCaller              Call[]                    @relation("CallCaller")
+  callsAsCallee              Call[]                    @relation("CallCallee")
 
   @@map("users")
 }
 
+// Fig 1a (Identity & Profile Domain) — supports multi-device login and push
+// notification targeting; a user may register several devices over time.
+model Device {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pushToken String?
+  platform  String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("devices")
+}
+
 model Session {
-  id            String   @id @default(uuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String    @id @default(uuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   refreshTokenHash String
-  deviceLabel   String?
-  revokedAt     DateTime?
-  createdAt     DateTime @default(now())
-  expiresAt     DateTime
+  deviceLabel      String?
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  expiresAt        DateTime
 
   @@index([userId])
   @@map("sessions")
@@ -60,22 +79,22 @@ enum ProfileVisibility {
 }
 
 model Profile {
-  id                String            @id @default(uuid())
-  userId            String            @unique
-  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fullName          String
-  gender            String
-  dateOfBirth       DateTime
-  visibility        ProfileVisibility @default(MEMBERS_ONLY)
-  completionScore   Int               @default(0)
-  isVerified        Boolean           @default(false)
-  details           Json              @default("{}")
-  fieldVisibility   Json              @default("{}")
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id              String            @id @default(uuid())
+  userId          String            @unique
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName        String
+  gender          String
+  dateOfBirth     DateTime
+  visibility      ProfileVisibility @default(MEMBERS_ONLY)
+  completionScore Int               @default(0)
+  isVerified      Boolean           @default(false)
+  details         Json              @default("{}")
+  fieldVisibility Json              @default("{}")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
-  photos            ProfilePhoto[]
-  shortlistedBy     Shortlist[]       @relation("ShortlistedProfile")
+  photos        ProfilePhoto[]
+  shortlistedBy Shortlist[]    @relation("ShortlistedProfile")
 
   @@map("profiles")
 }
@@ -100,11 +119,11 @@ model ProfilePhoto {
 }
 
 model Shortlist {
-  id         String   @id @default(uuid())
-  memberId   String
-  profileId  String
-  profile    Profile  @relation("ShortlistedProfile", fields: [profileId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
+  id        String   @id @default(uuid())
+  memberId  String
+  profileId String
+  profile   Profile  @relation("ShortlistedProfile", fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 
   @@unique([memberId, profileId])
   @@map("shortlists")
@@ -120,13 +139,13 @@ enum InterestStatus {
 }
 
 model Interest {
-  id         String         @id @default(uuid())
-  senderId   String
-  sender     User           @relation("InterestSender", fields: [senderId], references: [id], onDelete: Cascade)
-  targetId   String
-  target     User           @relation("InterestTarget", fields: [targetId], references: [id], onDelete: Cascade)
-  status     InterestStatus @default(PENDING)
-  createdAt  DateTime       @default(now())
+  id          String         @id @default(uuid())
+  senderId    String
+  sender      User           @relation("InterestSender", fields: [senderId], references: [id], onDelete: Cascade)
+  targetId    String
+  target      User           @relation("InterestTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  status      InterestStatus @default(PENDING)
+  createdAt   DateTime       @default(now())
   respondedAt DateTime?
 
   conversation Conversation?
@@ -142,13 +161,13 @@ model Interest {
 }
 
 model Conversation {
-  id          String    @id @default(uuid())
-  interestId  String    @unique
-  interest    Interest  @relation(fields: [interestId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
+  id         String   @id @default(uuid())
+  interestId String   @unique
+  interest   Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
 
   participants ConversationParticipant[]
-  messages    Message[]
+  messages     Message[]
 
   @@map("conversations")
 }
@@ -194,12 +213,12 @@ model Message {
 // --- Trust & safety (FR-9) ------------------------------------------------
 
 model Block {
-  id           String   @id @default(uuid())
-  initiatorId  String
-  initiator    User     @relation("BlockInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
-  targetId     String
-  target       User     @relation("BlockTarget", fields: [targetId], references: [id], onDelete: Cascade)
-  createdAt    DateTime @default(now())
+  id          String   @id @default(uuid())
+  initiatorId String
+  initiator   User     @relation("BlockInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  targetId    String
+  target      User     @relation("BlockTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
 
   @@unique([initiatorId, targetId])
   @@map("blocks")
@@ -213,31 +232,101 @@ enum ReportStatus {
 }
 
 model Report {
-  id           String       @id @default(uuid())
-  reporterId   String
-  targetType   String
-  targetId     String
-  reason       String
-  status       ReportStatus @default(OPEN)
-  createdAt    DateTime     @default(now())
-  resolvedAt   DateTime?
+  id         String       @id @default(uuid())
+  reporterId String
+  targetType String
+  targetId   String
+  reason     String
+  status     ReportStatus @default(OPEN)
+  createdAt  DateTime     @default(now())
+  resolvedAt DateTime?
 
   @@map("reports")
+}
+
+// Fig 1c (Messaging & Trust/Safety Domain) — FR-10. User-scoped, one row per
+// delivered notification, independent of the channel(s) used to deliver it.
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  payload   Json     @default("{}")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// --- Voice & video calling (FR-6) ------------------------------------------
+
+enum CallStatus {
+  RINGING
+  ACCEPTED
+  REJECTED
+  ENDED
+  MISSED
+}
+
+// Call metadata only, per NFR/FR-6.2-6.3 — the backend never records or
+// relays call media, only participants/timing/outcome and the RTC room.
+model Call {
+  id              String     @id @default(uuid())
+  callerId        String
+  caller          User       @relation("CallCaller", fields: [callerId], references: [id], onDelete: Cascade)
+  calleeId        String
+  callee          User       @relation("CallCallee", fields: [calleeId], references: [id], onDelete: Cascade)
+  roomId          String     @unique
+  status          CallStatus @default(RINGING)
+  startedAt       DateTime   @default(now())
+  connectedAt     DateTime?
+  endedAt         DateTime?
+  durationSeconds Int?
+
+  @@index([callerId])
+  @@index([calleeId])
+  @@map("calls")
 }
 
 // --- Membership & payments (FR-7) -----------------------------------------
 
 model MembershipPlan {
-  id          String   @id @default(uuid())
-  name        String
+  id           String   @id @default(uuid())
+  name         String
   priceInPaise Int
-  entitlements Json    @default("{}")
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  durationDays Int
+  entitlements Json     @default("{}")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
 
-  orders      Order[]
+  orders        Order[]
+  subscriptions Subscription[]
 
   @@map("membership_plans")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+// Class diagram (Fig 3) keeps Subscription distinct from Order/Payment: an
+// order can exist before a payment settles it, and only a verified-successful
+// payment event activates (or renews) the entitlement here — see FR-7.5.
+model Subscription {
+  id        String             @id @default(uuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId    String
+  plan      MembershipPlan     @relation(fields: [planId], references: [id])
+  status    SubscriptionStatus @default(ACTIVE)
+  startedAt DateTime           @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+  @@map("subscriptions")
 }
 
 enum OrderStatus {
@@ -249,30 +338,30 @@ enum OrderStatus {
 }
 
 model Order {
-  id             String      @id @default(uuid())
-  userId         String
-  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planId         String
-  plan           MembershipPlan @relation(fields: [planId], references: [id])
-  amountInPaise  Int
-  status         OrderStatus @default(CREATED)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id            String         @id @default(uuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId        String
+  plan          MembershipPlan @relation(fields: [planId], references: [id])
+  amountInPaise Int
+  status        OrderStatus    @default(CREATED)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
-  payments       Payment[]
+  payments Payment[]
 
   @@map("orders")
 }
 
 model Payment {
-  id                 String   @id @default(uuid())
-  orderId            String
-  order              Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  providerEventId    String   @unique
-  providerReference  String?
-  status             OrderStatus
-  rawPayload         Json
-  createdAt          DateTime @default(now())
+  id                String      @id @default(uuid())
+  orderId           String
+  order             Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  providerEventId   String      @unique
+  providerReference String?
+  status            OrderStatus
+  rawPayload        Json
+  createdAt         DateTime    @default(now())
 
   @@map("payments")
 }
@@ -287,12 +376,12 @@ enum VerificationStatus {
 }
 
 model VerificationRequest {
-  id                String              @id @default(uuid())
+  id                String             @id @default(uuid())
   userId            String
-  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   providerReference String
-  status            VerificationStatus  @default(PENDING)
-  createdAt         DateTime            @default(now())
+  status            VerificationStatus @default(PENDING)
+  createdAt         DateTime           @default(now())
   decidedAt         DateTime?
   expiresAt         DateTime?
 
@@ -301,38 +390,66 @@ model VerificationRequest {
 }
 
 // --- Admin & RBAC (FR-11) --------------------------------------------------
+//
+// RBAC authority (SRS §2.3): capabilities are implemented through permissions,
+// not by hard-coding business behavior against role names — so Role and
+// Permission are their own tables (Fig 1d) rather than a fixed enum. The six
+// SRS role names (Super Admin, Operations Admin, Moderator, Verification
+// Agent, Finance Admin, Content Admin) are seeded as Role rows, not code.
 
-enum AdminRole {
-  SUPER_ADMIN
-  OPERATIONS_ADMIN
-  MODERATOR
-  VERIFICATION_AGENT
-  FINANCE_ADMIN
-  CONTENT_ADMIN
+model Role {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  adminUsers  AdminUser[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id   String @id @default(uuid())
+  code String @unique
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
 }
 
 model AdminUser {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  role         AdminRole
-  isActive     Boolean   @default(true)
-  mfaEnabled   Boolean   @default(false)
-  createdAt    DateTime  @default(now())
+  id         String   @id @default(uuid())
+  email      String   @unique
+  roleId     String
+  role       Role     @relation(fields: [roleId], references: [id])
+  isActive   Boolean  @default(true)
+  mfaEnabled Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
-  auditLogs    AuditLog[]
+  auditLogs AuditLog[]
 
   @@map("admin_users")
 }
 
 model AuditLog {
-  id          String    @id @default(uuid())
-  adminId     String
-  admin       AdminUser @relation(fields: [adminId], references: [id])
-  action      String
-  targetType  String
-  targetId    String
-  metadata    Json      @default("{}")
-  createdAt   DateTime  @default(now())
+  id         String    @id @default(uuid())
+  adminId    String
+  admin      AdminUser @relation(fields: [adminId], references: [id])
+  action     String
+  targetType String
+  targetId   String
+  metadata   Json      @default("{}")
+  createdAt  DateTime  @default(now())
 
   @@index([adminId, createdAt])
   @@map("audit_logs")

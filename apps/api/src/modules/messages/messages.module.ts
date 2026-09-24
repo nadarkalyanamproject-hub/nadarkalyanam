@@ -8,5 +8,6 @@ import { MessagesService } from './messages.service.js';
   imports: [AuthModule, PhotosModule],
   controllers: [MessagesController],
   providers: [MessagesService],
+  exports: [MessagesService],
 })
 export class MessagesModule {}

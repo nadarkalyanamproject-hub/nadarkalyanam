@@ -81,9 +81,9 @@ export default function ConversationThreadPage() {
   return (
     <>
       <AppHeader />
-      <main className="flex min-h-screen flex-col bg-secondary px-4 py-12">
-        <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col">
-          <Card className="flex h-[70vh] flex-col overflow-hidden rounded-2xl">
+      <main className="flex min-h-screen flex-col bg-secondary px-3 py-4 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
+        <div className="w-full flex flex-1 flex-col">
+          <Card className="flex h-[calc(100vh-140px)] sm:h-[75vh] flex-col overflow-hidden rounded-2xl shadow-sm">
             <div className="flex-1 overflow-y-auto p-4">
               {!messages && !error && (
                 <p className="mt-8 text-center text-sm text-muted-foreground">Loading messages…</p>

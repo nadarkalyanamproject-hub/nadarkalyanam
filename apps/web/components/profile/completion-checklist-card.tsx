@@ -38,9 +38,9 @@ export function CompletionChecklistCard({
       </div>
 
       <div className="mb-4">
-        <div className="h-2 w-full overflow-hidden rounded-full bg-[#F2E8DC]">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-[#F3EBDD]">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#7A0710] via-[#94151C] to-[#D6A33A] transition-all duration-500 ease-out"
+            className="h-full rounded-full bg-gradient-to-r from-[#7A0710] via-[#D97706] to-[#F59E0B] transition-all duration-500 ease-out"
             style={{ width: `${percentage}%` }}
           />
         </div>
@@ -60,7 +60,7 @@ export function CompletionChecklistCard({
                 </svg>
               </span>
             ) : (
-              <span className="h-4 w-4 shrink-0 rounded-full border-1.5 border-[#D6A33A] bg-[#FFF9ED]" />
+              <span className="h-4 w-4 shrink-0 rounded-full border-1.5 border-[#F59E0B] bg-[#FFF9E6]" />
             )}
             <span className={item.completed ? 'text-[#2B211C]' : 'text-[#776B62]'}>
               {item.label}
