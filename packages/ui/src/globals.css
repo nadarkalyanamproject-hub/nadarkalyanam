@@ -1,24 +1,25 @@
 @import 'tailwindcss';
 
+/* Premium-matrimony palette: maroon for headings/primary CTAs, gold used
+   sparingly (active nav, verified badge, buttons, small accents), warm
+   cream background, near-black warm text. Gold is deliberately NOT the
+   dominant color — see the "reduce the gold" note this was set from. */
 @theme {
-  --color-background: oklch(1 0 0);
-  --color-foreground: oklch(0.22 0.04 25);
-  --color-card: oklch(1 0 0);
-  --color-card-foreground: oklch(0.22 0.04 25);
-  --color-primary: oklch(0.32 0.14 22);
-  --color-primary-foreground: oklch(0.98 0.01 90);
-  --color-secondary: oklch(0.97 0.02 80);
-  --color-secondary-foreground: oklch(0.28 0.05 30);
-  /* Warm sunflower yellow — brighter and more saturated than the previous
-     muted gold, while staying in the same warm hue family as --color-primary
-     (maroon) so it still reads as one palette, not a mismatched accent. */
-  --color-accent: oklch(0.84 0.17 92);
-  --color-accent-foreground: oklch(0.25 0.05 40);
-  --color-muted: oklch(0.96 0.01 60);
-  --color-muted-foreground: oklch(0.5 0.02 40);
+  --color-background: #faf7f0;
+  --color-foreground: #241c1a;
+  --color-card: #ffffff;
+  --color-card-foreground: #241c1a;
+  --color-primary: #8b1118;
+  --color-primary-foreground: #fdf9f2;
+  --color-secondary: #faf7f0;
+  --color-secondary-foreground: #241c1a;
+  --color-accent: #d99a16;
+  --color-accent-foreground: #241c1a;
+  --color-muted: #f1ead9;
+  --color-muted-foreground: #6b5d52;
   --color-destructive: oklch(0.577 0.245 27.325);
   --color-destructive-foreground: oklch(0.985 0 0);
-  --color-border: oklch(0.9 0.02 50);
-  --color-input: oklch(0.9 0.02 50);
-  --color-ring: oklch(0.6 0.1 30);
+  --color-border: #e8dfcb;
+  --color-input: #e8dfcb;
+  --color-ring: #d99a16;
 }

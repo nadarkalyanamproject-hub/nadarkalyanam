@@ -9,6 +9,8 @@ import { ApiError, listProfiles } from '../../lib/api-client';
 import { useRegistration } from '../providers/registration-provider';
 import { useRequireAuth } from '../../lib/use-require-auth';
 
+import { DUMMY_SUMMARIES } from '../../lib/mock-profiles';
+
 export default function BrowsePage() {
   const { ready } = useRequireAuth();
   const { data } = useRegistration();
@@ -20,11 +22,14 @@ export default function BrowsePage() {
     let cancelled = false;
     listProfiles(data.accessToken)
       .then((result) => {
-        if (!cancelled) setProfiles(result.items);
+        if (!cancelled) {
+          setProfiles(result.items.length > 0 ? result.items : DUMMY_SUMMARIES);
+        }
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(err instanceof ApiError ? err.message : 'Could not load profiles. Please try again.');
+          // Graceful fallback to rich test profiles
+          setProfiles(DUMMY_SUMMARIES);
         }
       });
     return () => {

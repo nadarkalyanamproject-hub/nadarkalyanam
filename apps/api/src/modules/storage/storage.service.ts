@@ -46,6 +46,9 @@ export class StorageService {
   // providers (e.g. AWS S3 with forcePathStyle: false) must set
   // STORAGE_PUBLIC_URL explicitly.
   getObjectUrl(objectKey: string): string {
+    if (objectKey.startsWith('http://') || objectKey.startsWith('https://')) {
+      return objectKey;
+    }
     const base = this.publicUrl ?? `${this.endpoint}/${this.bucket}`;
     return `${base}/${objectKey}`;
   }

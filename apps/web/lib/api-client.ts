@@ -249,10 +249,13 @@ export function searchProfiles(
     ageMin?: number;
     ageMax?: number;
     city?: string;
+    gender?: 'MALE' | 'FEMALE';
     educationLevel?: string;
     profession?: string;
     maritalStatus?: string;
+    sort?: 'id' | 'newest';
     cursor?: string;
+    limit?: number;
   },
 ): Promise<SearchProfilesResponse> {
   const query = new URLSearchParams();
@@ -265,8 +268,8 @@ export function searchProfiles(
   });
 }
 
-export function listMatches(accessToken: string): Promise<ListMatchesResponse> {
-  return request<ListMatchesResponse>('/matches', {
+export function listMatches(accessToken: string, limit?: number): Promise<ListMatchesResponse> {
+  return request<ListMatchesResponse>(`/matches${limit ? `?limit=${limit}` : ''}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 }

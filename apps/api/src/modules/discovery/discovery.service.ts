@@ -40,6 +40,7 @@ export class DiscoveryService {
       userId: { notIn: [callerUserId, ...blockedUserIds] },
       user: { status: 'ACTIVE' },
       ...(Object.keys(dobRange).length > 0 ? { dateOfBirth: dobRange } : {}),
+      ...(query.gender ? { gender: query.gender } : {}),
       ...(query.city ? { details: { path: ['location', 'city'], equals: query.city } } : {}),
       ...(query.educationLevel
         ? { details: { path: ['education', 'educationLevel'], equals: query.educationLevel } }
@@ -48,10 +49,14 @@ export class DiscoveryService {
       ...(query.maritalStatus ? { details: { path: ['maritalStatus'], equals: query.maritalStatus } } : {}),
     };
 
+    // 'newest' has no cursor-pagination guarantee (createdAt ties aren't
+    // disambiguated) — acceptable for its one caller, an unpaginated
+    // "recently joined" preview strip; a real paginated newest-sort would
+    // need a compound (createdAt, id) cursor instead.
     const profiles = await this.prisma.profile.findMany({
       where,
-      orderBy: { id: 'asc' },
-      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+      orderBy: query.sort === 'newest' ? { createdAt: 'desc' } : { id: 'asc' },
+      ...(query.cursor && query.sort === 'id' ? { cursor: { id: query.cursor }, skip: 1 } : {}),
       take: query.limit + 1,
     });
 

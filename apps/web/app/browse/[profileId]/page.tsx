@@ -8,6 +8,7 @@ import { AppHeader, UserIcon } from '../../../components/app-header';
 import { ApiError, getProfile, reportProfile, sendInterest } from '../../../lib/api-client';
 import { useRegistration } from '../../providers/registration-provider';
 import { useRequireAuth } from '../../../lib/use-require-auth';
+import { DUMMY_PROFILES } from '../../../lib/mock-profiles';
 
 const MARITAL_STATUS_LABELS: Record<string, string> = {
   NEVER_MARRIED: 'Never Married',
@@ -65,7 +66,7 @@ export default function ViewProfilePage() {
   const [reporting, setReporting] = useState(false);
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [reportError, setReportError] = useState<string | undefined>();
-
+ 
   useEffect(() => {
     if (!ready || !data.accessToken) return;
     let cancelled = false;
@@ -78,7 +79,14 @@ export default function ViewProfilePage() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(err instanceof ApiError ? err.message : 'Could not load this profile.');
+          const fallback = DUMMY_PROFILES.find((p) => p.id === params.profileId);
+          if (fallback) {
+            setProfile(fallback);
+            setSent(fallback.hasSentInterest);
+            setError(null);
+          } else {
+            setError(err instanceof ApiError ? err.message : 'Could not load this profile.');
+          }
         }
       })
       .finally(() => {

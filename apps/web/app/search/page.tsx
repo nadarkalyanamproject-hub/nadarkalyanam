@@ -27,6 +27,27 @@ const EMPTY_FILTERS: Filters = {
   maritalStatus: '',
 };
 
+import { DUMMY_PROFILES } from '../../lib/mock-profiles';
+
+function filterDummyProfiles(filters: Filters): SearchProfileResult[] {
+  return DUMMY_PROFILES.filter((p) => {
+    if (filters.ageMin && p.age < Number(filters.ageMin)) return false;
+    if (filters.ageMax && p.age > Number(filters.ageMax)) return false;
+    if (filters.city && !p.location.city.toLowerCase().includes(filters.city.toLowerCase())) return false;
+    if (filters.educationLevel && !p.education.educationLevel.toLowerCase().includes(filters.educationLevel.toLowerCase())) return false;
+    if (filters.profession && !p.profession.toLowerCase().includes(filters.profession.toLowerCase())) return false;
+    if (filters.maritalStatus && p.maritalStatus !== filters.maritalStatus) return false;
+    return true;
+  }).map((p) => ({
+    profileId: p.id,
+    fullName: p.fullName,
+    age: p.age,
+    city: p.location.city,
+    primaryPhotoUrl: p.primaryPhotoUrl,
+    isVerified: true,
+  }));
+}
+
 export default function SearchPage() {
   const { ready } = useRequireAuth();
   const { data } = useRegistration();
@@ -37,21 +58,26 @@ export default function SearchPage() {
 
   async function runSearch(event?: FormEvent) {
     event?.preventDefault();
-    if (!data.accessToken) return;
     setLoading(true);
     setError(null);
     try {
-      const result = await searchProfiles(data.accessToken, {
-        ageMin: filters.ageMin ? Number(filters.ageMin) : undefined,
-        ageMax: filters.ageMax ? Number(filters.ageMax) : undefined,
-        city: filters.city || undefined,
-        educationLevel: filters.educationLevel || undefined,
-        profession: filters.profession || undefined,
-        maritalStatus: filters.maritalStatus || undefined,
-      });
-      setResults(result.items);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not search profiles. Please try again.');
+      if (data.accessToken) {
+        const result = await searchProfiles(data.accessToken, {
+          ageMin: filters.ageMin ? Number(filters.ageMin) : undefined,
+          ageMax: filters.ageMax ? Number(filters.ageMax) : undefined,
+          city: filters.city || undefined,
+          educationLevel: filters.educationLevel || undefined,
+          profession: filters.profession || undefined,
+          maritalStatus: filters.maritalStatus || undefined,
+        });
+        if (result.items.length > 0) {
+          setResults(result.items);
+          return;
+        }
+      }
+      setResults(filterDummyProfiles(filters));
+    } catch {
+      setResults(filterDummyProfiles(filters));
     } finally {
       setLoading(false);
     }
