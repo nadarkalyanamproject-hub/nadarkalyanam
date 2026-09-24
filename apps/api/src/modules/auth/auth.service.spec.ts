@@ -7,6 +7,7 @@ function buildService(overrides?: {
   redisGet?: () => Promise<string | null>;
   nodeEnv?: string;
   findUniqueResult?: unknown;
+  allowOtpDebugVisibility?: boolean;
 }) {
   const prisma = {
     user: {
@@ -23,6 +24,7 @@ function buildService(overrides?: {
   const configValues: Record<string, unknown> = {
     NODE_ENV: overrides?.nodeEnv ?? 'test',
     JWT_REFRESH_TOKEN_TTL_SECONDS: 2592000,
+    ALLOW_OTP_DEBUG_VISIBILITY: overrides?.allowOtpDebugVisibility ?? false,
   };
   const configService = {
     get: vi.fn((key: string) => configValues[key]),
@@ -69,6 +71,14 @@ describe('AuthService', () => {
     const result = await service.requestOtp('+919876543210');
 
     expect(result.devOtp).toBeUndefined();
+  });
+
+  it('requestOtp reveals devOtp in production when ALLOW_OTP_DEBUG_VISIBILITY is set', async () => {
+    const { service } = buildService({ nodeEnv: 'production', allowOtpDebugVisibility: true });
+
+    const result = await service.requestOtp('+919876543210');
+
+    expect(result.devOtp).toMatch(/^\d{6}$/);
   });
 
   it('verifyOtp rejects an invalid or expired OTP without touching the database', async () => {

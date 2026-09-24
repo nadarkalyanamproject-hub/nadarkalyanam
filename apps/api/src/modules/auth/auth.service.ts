@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto';
-import { Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { VerifyOtpResponse } from '@nadar-kalyanam/schemas';
@@ -21,6 +21,8 @@ function generateOtp(): string {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -38,9 +40,24 @@ export class AuthService {
     );
 
     const isDev = this.configService.get('NODE_ENV', { infer: true }) === 'development';
+    const allowOtpDebugVisibility = this.configService.get('ALLOW_OTP_DEBUG_VISIBILITY', {
+      infer: true,
+    });
+
+    if (allowOtpDebugVisibility) {
+      // Deliberately 'warn', not 'log'/'debug': production's pino level
+      // floor is 'info', and this needs to stand out from routine request
+      // logs, not blend into them — see env.schema.ts for the off-by-default
+      // gate.
+      this.logger.warn(
+        `[OTP_DEBUG_VISIBILITY] phoneNumber=${phoneNumber} otp=${otp} (expires in ${OTP_TTL_SECONDS}s). ` +
+          'ALLOW_OTP_DEBUG_VISIBILITY is enabled — unset it once real SMS delivery is wired up.',
+      );
+    }
+
     return {
       expiresInSeconds: OTP_TTL_SECONDS,
-      ...(isDev ? { devOtp: otp } : {}),
+      ...(isDev || allowOtpDebugVisibility ? { devOtp: otp } : {}),
     };
   }
 
