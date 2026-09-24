@@ -13,11 +13,15 @@ async function bootstrap(): Promise<void> {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }),
   );
-  app.enableCors();
 
   const configService = app.get(ConfigService<Env, true>);
+  app.enableCors({ origin: configService.get('CORS_ORIGIN', { infer: true }) });
+
   const port = configService.get('PORT', { infer: true });
-  await app.listen(port);
+  // Explicit 0.0.0.0: the default bind (no host arg) works locally, but
+  // Render's proxy/health-check traffic needs the process listening on all
+  // interfaces, not just loopback.
+  await app.listen(port, '0.0.0.0');
 }
 
 await bootstrap();
