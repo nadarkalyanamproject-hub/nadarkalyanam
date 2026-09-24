@@ -11,6 +11,7 @@ const UPLOAD_URL_TTL_SECONDS = 300;
 export class StorageService {
   private readonly bucket: string;
   private readonly endpoint: string;
+  private readonly publicUrl: string | undefined;
 
   constructor(
     @Inject(S3_CLIENT) private readonly s3: S3Client,
@@ -18,6 +19,7 @@ export class StorageService {
   ) {
     this.bucket = configService.get('MINIO_BUCKET_NAME', { infer: true });
     this.endpoint = configService.get('MINIO_ENDPOINT', { infer: true });
+    this.publicUrl = configService.get('STORAGE_PUBLIC_URL', { infer: true });
   }
 
   async createUploadUrl(objectKey: string, contentType: string): Promise<string> {
@@ -34,9 +36,17 @@ export class StorageService {
   }
 
   // The bucket's anonymous-download policy (set up in docker-compose's
-  // minio-init step) makes this URL resolvable without auth — no signing
-  // needed for reads.
+  // minio-init step, or the provider's equivalent in production) makes this
+  // URL resolvable without auth — no signing needed for reads.
+  //
+  // STORAGE_PUBLIC_URL overrides this when set (e.g. a provider's public
+  // bucket domain or a CDN in front of it). Without it, this falls back to
+  // path-style (`${endpoint}/${bucket}/${key}`), which only resolves
+  // correctly when STORAGE_FORCE_PATH_STYLE is true — virtual-hosted-style
+  // providers (e.g. AWS S3 with forcePathStyle: false) must set
+  // STORAGE_PUBLIC_URL explicitly.
   getObjectUrl(objectKey: string): string {
-    return `${this.endpoint}/${this.bucket}/${objectKey}`;
+    const base = this.publicUrl ?? `${this.endpoint}/${this.bucket}`;
+    return `${base}/${objectKey}`;
   }
 }

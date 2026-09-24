@@ -11,10 +11,8 @@ const s3ClientProvider: Provider = {
   useFactory: (configService: ConfigService<Env, true>) =>
     new S3Client({
       endpoint: configService.get('MINIO_ENDPOINT', { infer: true }),
-      region: 'us-east-1', // arbitrary — MinIO ignores region but the SDK requires one
-      // MinIO is path-style (http://host/bucket/key), not the AWS-default
-      // virtual-hosted-style (http://bucket.host/key).
-      forcePathStyle: true,
+      region: configService.get('STORAGE_REGION', { infer: true }),
+      forcePathStyle: configService.get('STORAGE_FORCE_PATH_STYLE', { infer: true }),
       credentials: {
         accessKeyId: configService.get('MINIO_ACCESS_KEY', { infer: true }),
         secretAccessKey: configService.get('MINIO_SECRET_KEY', { infer: true }),
