@@ -36,6 +36,17 @@ export const envSchema = z.object({
   // `${MINIO_ENDPOINT}/${MINIO_BUCKET_NAME}` (path-style) when unset, which
   // only resolves correctly when STORAGE_FORCE_PATH_STYLE is true.
   STORAGE_PUBLIC_URL: z.string().min(1).optional(),
+  // TEMPORARY escape hatch, pending real SMS provider integration (see
+  // auth.service.ts). Production normally has zero visibility into the OTP
+  // it generates — no log, no response field. Setting this to true reveals
+  // the OTP (response field + a server log line) regardless of NODE_ENV, so
+  // registration/login can be completed manually. Defaults to false so it
+  // can never ship on by accident — only ever set this temporarily while
+  // manually testing, then unset it.
+  ALLOW_OTP_DEBUG_VISIBILITY: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
 });
 
 export type Env = z.infer<typeof envSchema>;
