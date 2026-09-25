@@ -3,10 +3,13 @@ import { z } from 'zod';
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
-  // Origin the browser-facing web app is served from; CORS rejects everything
-  // else. Defaults to the local Next.js dev server so this doesn't break
-  // local development when unset.
-  CORS_ORIGIN: z.string().min(1).default('http://localhost:3002'),
+  // Comma-separated list of origins allowed to make cross-origin requests
+  // (web app, admin app, ...) — CORS rejects everything else. Parsed by
+  // common/cors-origins.ts, shared by main.ts's REST CORS and
+  // realtime.gateway.ts's WebSocket CORS. Defaults to the local Next.js dev
+  // servers (web on 3002, admin on 3001) so this doesn't break local
+  // development when unset.
+  CORS_ORIGIN: z.string().min(1).default('http://localhost:3002,http://localhost:3001'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   REDIS_URL: z.string().min(1, 'REDIS_URL is required'),
   JWT_ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900),

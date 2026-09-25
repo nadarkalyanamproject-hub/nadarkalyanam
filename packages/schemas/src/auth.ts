@@ -31,6 +31,10 @@ export const authUserSchema = z.object({
   id: z.string(),
   phoneNumber: z.string(),
   hasProfile: z.boolean(),
+  // True only when this login resolved to an admin-scoped token (see
+  // AuthService.verifyOtp) — lets a client distinguish an admin login from
+  // a member one without having to decode the JWT itself.
+  isAdmin: z.boolean(),
 });
 export type AuthUser = z.infer<typeof authUserSchema>;
 

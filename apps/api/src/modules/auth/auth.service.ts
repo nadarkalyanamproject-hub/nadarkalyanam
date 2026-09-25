@@ -119,6 +119,7 @@ export class AuthService {
         id: user.id,
         phoneNumber: user.phoneNumber,
         hasProfile: Boolean(user.profile),
+        isAdmin: Boolean(adminUser),
       },
     };
   }

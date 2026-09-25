@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module.js';
+import { parseCorsOrigins } from './common/cors-origins.js';
 import type { Env } from './modules/config/env.schema.js';
 
 async function bootstrap(): Promise<void> {
@@ -15,7 +16,7 @@ async function bootstrap(): Promise<void> {
   );
 
   const configService = app.get(ConfigService<Env, true>);
-  app.enableCors({ origin: configService.get('CORS_ORIGIN', { infer: true }) });
+  app.enableCors({ origin: parseCorsOrigins(configService.get('CORS_ORIGIN', { infer: true })) });
 
   const port = configService.get('PORT', { infer: true });
   // Explicit 0.0.0.0: the default bind (no host arg) works locally, but

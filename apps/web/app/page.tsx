@@ -257,6 +257,17 @@ export default function Home() {
         otp: otpCode,
         intent: 'login',
       });
+      // Admin accounts log in through this exact same phone/OTP flow — this
+      // is the one place that can tell the two apart (isAdmin on the
+      // response, not something the member web app should ever act on
+      // beyond redirecting away). Deliberately does NOT call setAuth: an
+      // admin-scoped token must never end up in this app's own auth state.
+      if (result.user.isAdmin) {
+        showToast('Redirecting to admin panel…', 'This account signs in through the admin app.');
+        const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL ?? 'http://localhost:3001';
+        window.location.href = adminUrl;
+        return;
+      }
       setSkipHomeRedirect(true);
       setAuth({
         accessToken: result.accessToken,

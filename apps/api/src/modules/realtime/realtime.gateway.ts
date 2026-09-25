@@ -8,6 +8,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
+import { parseCorsOrigins } from '../../common/cors-origins.js';
 import { MessagesService } from '../messages/messages.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -25,13 +26,15 @@ function userRoom(userId: string): string {
 // MessagesService rather than duplicating its authorization/persistence
 // logic.
 //
-// CORS reuses the same CORS_ORIGIN env var (and default) as the REST API's
+// CORS reuses the same CORS_ORIGIN env var (and parsing) as the REST API's
 // app.enableCors() call in main.ts — there is only one place this ever needs
 // updating. It's read directly from process.env rather than injected
 // ConfigService because @WebSocketGateway()'s options are evaluated at
 // module-load time, before Nest's DI container exists (same constraint
 // app.module.ts already works around for NODE_ENV in its pino config).
-@WebSocketGateway({ cors: { origin: process.env.CORS_ORIGIN ?? 'http://localhost:3002' } })
+@WebSocketGateway({
+  cors: { origin: parseCorsOrigins(process.env.CORS_ORIGIN ?? 'http://localhost:3002,http://localhost:3001') },
+})
 export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   private readonly server!: Server;

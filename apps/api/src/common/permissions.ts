@@ -4,8 +4,11 @@
 // of codes the API checks; which codes each Role grants is data (seeded),
 // not code.
 export const PERMISSIONS = {
+  MEMBERS_VIEW: 'members.view',
+  MEMBERS_EDIT: 'members.edit',
   MEMBERS_SUSPEND: 'members.suspend',
   MEMBERS_REINSTATE: 'members.reinstate',
+  MEMBERS_REMOVE: 'members.remove',
   REPORTS_REVIEW: 'reports.review',
   VERIFICATION_REVIEW: 'verification.review',
   PAYMENTS_REFUND: 'payments.refund',
