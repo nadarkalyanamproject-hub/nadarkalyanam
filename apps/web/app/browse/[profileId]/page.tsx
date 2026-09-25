@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import type { PublicProfileDetail } from '@nadar-kalyanam/schemas';
 import { Button, Card } from '@nadar-kalyanam/ui';
 import { AppHeader, UserIcon } from '../../../components/app-header';
+import { PhotoLightbox } from '../../../components/photo-lightbox';
 import { ApiError, getProfile, reportProfile, sendInterest } from '../../../lib/api-client';
 import { useRegistration } from '../../providers/registration-provider';
 import { useRequireAuth } from '../../../lib/use-require-auth';
@@ -66,6 +67,7 @@ export default function ViewProfilePage() {
   const [reporting, setReporting] = useState(false);
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [reportError, setReportError] = useState<string | undefined>();
+  const [enlargedPhotoUrl, setEnlargedPhotoUrl] = useState<string | null>(null);
  
   useEffect(() => {
     if (!ready || !data.accessToken) return;
@@ -229,7 +231,8 @@ export default function ViewProfilePage() {
                     {profile.photos.map((photo) => (
                       <div
                         key={photo.id}
-                        className="aspect-square overflow-hidden rounded-lg border border-border bg-background"
+                        onClick={() => setEnlargedPhotoUrl(photo.url)}
+                        className="aspect-square cursor-pointer overflow-hidden rounded-lg border border-border bg-background"
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={photo.url} alt="" className="h-full w-full object-cover" />
@@ -286,6 +289,10 @@ export default function ViewProfilePage() {
           )}
         </div>
       </main>
+
+      {enlargedPhotoUrl && (
+        <PhotoLightbox url={enlargedPhotoUrl} onClose={() => setEnlargedPhotoUrl(null)} />
+      )}
     </>
   );
 }

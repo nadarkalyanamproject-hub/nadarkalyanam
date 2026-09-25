@@ -11,6 +11,7 @@ import {
   setPrimaryPhoto,
   uploadPhotoToStorage,
 } from '../../lib/api-client';
+import { PhotoLightbox } from '../photo-lightbox';
 
 const ALLOWED_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -28,6 +29,7 @@ export function PhotoGalleryCard({
   const [uploading, setUploading] = useState(false);
   const [actionError, setActionError] = useState<string | undefined>();
   const [pendingPhotoId, setPendingPhotoId] = useState<string | null>(null);
+  const [enlargedPhotoUrl, setEnlargedPhotoUrl] = useState<string | null>(null);
 
   const photos = [...(profile.photos || [])].sort((a, b) => a.sortOrder - b.sortOrder);
   const primaryPhoto = photos.find((p) => p.isPrimary) || photos[0];
@@ -144,7 +146,8 @@ export function PhotoGalleryCard({
           return (
             <div
               key={photo.id}
-              className="group relative aspect-square overflow-hidden rounded-xl border border-[#E8DCC8] bg-[#FAF6EF]"
+              onClick={() => setEnlargedPhotoUrl(photo.url)}
+              className="group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-[#E8DCC8] bg-[#FAF6EF]"
             >
               {/* Primary Badge */}
               {isPrimary && (
@@ -168,7 +171,10 @@ export function PhotoGalleryCard({
                     <button
                       type="button"
                       disabled={pendingPhotoId === photo.id}
-                      onClick={() => void handleSetPrimary(photo.id)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleSetPrimary(photo.id);
+                      }}
                       className="flex-1 rounded bg-[#FFFDF9]/90 px-1.5 py-1 text-[10px] font-semibold text-[#7A0710] backdrop-blur-sm transition-colors hover:bg-[#FFFFFF]"
                     >
                       Make Primary
@@ -177,7 +183,10 @@ export function PhotoGalleryCard({
                   <button
                     type="button"
                     disabled={pendingPhotoId === photo.id}
-                    onClick={() => void handleDelete(photo.id)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void handleDelete(photo.id);
+                    }}
                     className="rounded bg-red-600/90 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-sm transition-colors hover:bg-red-700"
                     title="Delete photo"
                   >
@@ -209,6 +218,10 @@ export function PhotoGalleryCard({
           </button>
         ))}
       </div>
+
+      {enlargedPhotoUrl && (
+        <PhotoLightbox url={enlargedPhotoUrl} onClose={() => setEnlargedPhotoUrl(null)} />
+      )}
     </div>
   );
 }
