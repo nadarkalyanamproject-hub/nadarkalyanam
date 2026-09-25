@@ -23,9 +23,9 @@ export function TimelineContent({
 }: TimelineContentProps) {
   const MotionComponent = (
     typeof Component === "string" && Component in motion
-      ? (motion as Record<string, any>)[Component]
+      ? motion[Component as keyof typeof motion]
       : motion.create(typeof Component === "string" ? Component : "div")
-  ) as React.ComponentType<any>;
+  ) as React.ElementType;
 
   const defaultVariants: Variants = {
     visible: (i: number) => ({

@@ -5,7 +5,7 @@ import type { MatchResult } from '@nadar-kalyanam/schemas';
 import { Card } from '@nadar-kalyanam/ui';
 import { AppHeader } from '../../components/app-header';
 import { ResultCard } from '../../components/discovery/result-card';
-import { ApiError, listMatches } from '../../lib/api-client';
+import { listMatches } from '../../lib/api-client';
 import { useRegistration } from '../providers/registration-provider';
 import { useRequireAuth } from '../../lib/use-require-auth';
 
@@ -24,7 +24,7 @@ export default function MatchesPage() {
   const { ready } = useRequireAuth();
   const { data } = useRegistration();
   const [matches, setMatches] = useState<MatchResult[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
 
   useEffect(() => {
     if (!ready || !data.accessToken) return;
@@ -35,7 +35,7 @@ export default function MatchesPage() {
           setMatches(result.items.length > 0 ? result.items : DUMMY_MATCHES);
         }
       })
-      .catch((err: unknown) => {
+      .catch(() => {
         if (!cancelled) {
           setMatches(DUMMY_MATCHES);
         }

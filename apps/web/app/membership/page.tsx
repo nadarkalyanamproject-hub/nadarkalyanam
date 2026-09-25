@@ -13,11 +13,6 @@ import {
   Lock,
   EyeOff,
   Sparkles,
-  Phone,
-  MessageSquare,
-  Compass,
-  Crown,
-  UserCheck,
   CheckCircle2,
 } from 'lucide-react';
 

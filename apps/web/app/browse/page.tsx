@@ -5,7 +5,7 @@ import type { PublicProfileSummary } from '@nadar-kalyanam/schemas';
 import { Card } from '@nadar-kalyanam/ui';
 import { AppHeader } from '../../components/app-header';
 import { ProfileCard } from '../../components/browse/profile-card';
-import { ApiError, listProfiles } from '../../lib/api-client';
+import { listProfiles } from '../../lib/api-client';
 import { useRegistration } from '../providers/registration-provider';
 import { useRequireAuth } from '../../lib/use-require-auth';
 
@@ -15,7 +15,7 @@ export default function BrowsePage() {
   const { ready } = useRequireAuth();
   const { data } = useRegistration();
   const [profiles, setProfiles] = useState<PublicProfileSummary[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
 
   useEffect(() => {
     if (!ready || !data.accessToken) return;
@@ -26,7 +26,7 @@ export default function BrowsePage() {
           setProfiles(result.items.length > 0 ? result.items : DUMMY_SUMMARIES);
         }
       })
-      .catch((err: unknown) => {
+      .catch(() => {
         if (!cancelled) {
           // Graceful fallback to rich test profiles
           setProfiles(DUMMY_SUMMARIES);

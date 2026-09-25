@@ -251,7 +251,9 @@ export function AuthenticatedHome() {
                       <User className="absolute left-3 h-4 w-4 text-[#A88C78] pointer-events-none" />
                       <select
                         value={lookingFor}
-                        onChange={(e) => setLookingFor(e.target.value as any)}
+                        onChange={(e) =>
+                          setLookingFor(e.target.value as 'Nadar Bride' | 'Nadar Groom')
+                        }
                         className="w-full pl-9 pr-8 py-2.5 rounded-xl border border-[#DECDBB] bg-[#FFFDF9] text-xs sm:text-sm font-bold text-[#2B1515] appearance-none focus:outline-none focus:ring-1 focus:ring-[#7B1118]"
                       >
                         <option value="Nadar Bride">Nadar Bride</option>
