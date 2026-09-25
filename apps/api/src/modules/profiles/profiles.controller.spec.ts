@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Profile } from '../../generated/prisma/client.js';
-import { toPublicProfileDetail, toPublicProfileSummary } from './profiles.controller.js';
+import { ProfilesController, toPublicProfileDetail, toPublicProfileSummary } from './profiles.controller.js';
 
 // The privacy requirement this project treats as non-negotiable: email must
 // never appear in a response representing another user's profile. These
@@ -110,5 +110,52 @@ describe('toPublicProfileDetail', () => {
   it('passes hasSentInterest through as given, both true and false', () => {
     expect(toPublicProfileDetail(rawProfile, [], true).hasSentInterest).toBe(true);
     expect(toPublicProfileDetail(rawProfile, [], false).hasSentInterest).toBe(false);
+  });
+});
+
+// The bucket is private — every photo URL in every response below must be
+// whatever PhotosService/StorageService produced (a pre-signed URL), never
+// a plain string this layer built itself. Each test's mock returns a
+// signed-looking URL and asserts it survives unmodified into the response.
+describe('ProfilesController — photo URLs are signed, not plain', () => {
+  const SIGNED_URL =
+    'https://s3.example.com/bucket/profiles/profile-1/photo.jpg?X-Amz-Signature=abc123&X-Amz-Expires=3600';
+
+  function buildController(photos: unknown[] = [{ id: 'photo-1', url: SIGNED_URL, isPrimary: true, sortOrder: 0 }]) {
+    const profilesService = {
+      getMyProfile: vi.fn().mockResolvedValue(rawProfile),
+      updateProfile: vi.fn().mockResolvedValue(rawProfile),
+      listOtherProfiles: vi.fn().mockResolvedValue({ profiles: [rawProfile], total: 1 }),
+      getSentInterestTargetUserIds: vi.fn().mockResolvedValue(new Set()),
+      getOtherProfile: vi.fn().mockResolvedValue(rawProfile),
+    };
+    const photosService = { getPhotosForProfile: vi.fn().mockResolvedValue(photos) };
+    const controller = new ProfilesController(profilesService as never, photosService as never);
+    return { controller, photosService };
+  }
+
+  it('GET /profiles/me returns the signed photo URL unmodified', async () => {
+    const { controller } = buildController();
+
+    const result = await controller.getMe({ userId: 'user-1' });
+
+    expect(result.photos[0].url).toBe(SIGNED_URL);
+  });
+
+  it('GET /profiles (list) returns the signed primaryPhotoUrl unmodified', async () => {
+    const { controller } = buildController();
+
+    const result = await controller.list({ userId: 'user-1' });
+
+    expect(result.items[0].primaryPhotoUrl).toBe(SIGNED_URL);
+  });
+
+  it('GET /profiles/:id returns the signed photo URLs unmodified', async () => {
+    const { controller } = buildController();
+
+    const result = await controller.getOne({ userId: 'user-1' }, 'profile-1');
+
+    expect(result.primaryPhotoUrl).toBe(SIGNED_URL);
+    expect(result.photos[0].url).toBe(SIGNED_URL);
   });
 });

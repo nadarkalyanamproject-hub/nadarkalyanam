@@ -178,4 +178,32 @@ describe('MessagesService.listConversations', () => {
 
     expect(result.items).toEqual([]);
   });
+
+  // Photo URLs must always be whatever StorageService/PhotosService produced
+  // (a pre-signed URL, since the bucket is private) — this layer must never
+  // construct or rewrite a URL itself.
+  it('surfaces the primary photo URL exactly as returned by PhotosService, unmodified', async () => {
+    const { service, prisma, photosService } = buildService();
+    prisma.conversation.findMany.mockResolvedValueOnce([
+      {
+        id: CONVERSATION_ID,
+        interestId: 'interest-1',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        participants: [{ userId: CALLER_USER_ID }, { userId: OTHER_USER_ID }],
+        messages: [],
+      },
+    ]);
+    prisma.profile.findMany.mockResolvedValueOnce([
+      { id: 'profile-other', userId: OTHER_USER_ID, fullName: 'Other Person' },
+    ]);
+    const signedUrl =
+      'https://s3.example.com/bucket/profiles/profile-other/photo.jpg?X-Amz-Signature=abc123&X-Amz-Expires=3600';
+    photosService.getPhotosForProfile.mockResolvedValueOnce([
+      { id: 'photo-1', url: signedUrl, isPrimary: true, sortOrder: 0 },
+    ]);
+
+    const result = await service.listConversations(CALLER_USER_ID);
+
+    expect(result.items[0].otherParticipant.primaryPhotoUrl).toBe(signedUrl);
+  });
 });

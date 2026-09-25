@@ -36,7 +36,7 @@ function buildService(nodeEnv: string = 'test') {
   const storage = {
     createUploadUrl: vi.fn().mockResolvedValue('https://minio.example/presigned-put-url'),
     deleteObject: vi.fn().mockResolvedValue(undefined),
-    getObjectUrl: vi.fn((objectKey: string) => `https://minio.example/bucket/${objectKey}`),
+    getObjectUrl: vi.fn((objectKey: string) => Promise.resolve(`https://minio.example/bucket/${objectKey}`)),
   };
   const configService = { get: vi.fn().mockReturnValue(nodeEnv) };
 

@@ -117,7 +117,7 @@ export class PhotosService {
       orderBy: { sortOrder: 'asc' },
     });
 
-    return photos.map((photo) => this.toPhotoResponse(photo));
+    return Promise.all(photos.map((photo) => this.toPhotoResponse(photo)));
   }
 
   private async getOwnedPhoto(profileId: string, photoId: string) {
@@ -128,15 +128,15 @@ export class PhotosService {
     return photo;
   }
 
-  private toPhotoResponse(photo: {
+  private async toPhotoResponse(photo: {
     id: string;
     objectKey: string;
     isPrimary: boolean;
     sortOrder: number;
-  }): PhotoResponse {
+  }): Promise<PhotoResponse> {
     return {
       id: photo.id,
-      url: this.storage.getObjectUrl(photo.objectKey),
+      url: await this.storage.getObjectUrl(photo.objectKey),
       isPrimary: photo.isPrimary,
       sortOrder: photo.sortOrder,
     };

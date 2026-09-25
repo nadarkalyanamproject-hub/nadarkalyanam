@@ -37,11 +37,6 @@ export const envSchema = z.object({
   // requires this to match the bucket's actual region or request signing
   // fails.
   STORAGE_REGION: z.string().min(1).default('us-east-1'),
-  // Optional override for the public URL objects are read from (e.g. a
-  // provider's public bucket domain or a CDN in front of it). Falls back to
-  // `${MINIO_ENDPOINT}/${MINIO_BUCKET_NAME}` (path-style) when unset, which
-  // only resolves correctly when STORAGE_FORCE_PATH_STYLE is true.
-  STORAGE_PUBLIC_URL: z.string().min(1).optional(),
   // TEMPORARY escape hatch, pending real SMS provider integration (see
   // auth.service.ts). Production normally has zero visibility into the OTP
   // it generates — no log, no response field. Setting this to true reveals
