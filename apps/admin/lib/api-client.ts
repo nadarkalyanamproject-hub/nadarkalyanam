@@ -65,6 +65,21 @@ export function verifyOtp(phoneNumber: string, otp: string): Promise<AdminVerify
   });
 }
 
+// --- Dashboard ---------------------------------------------------------
+
+export interface DashboardStats {
+  totalMembers: number;
+  membersByStatus: { active: number; suspended: number; pendingDeletion: number };
+  newSignupsLast7Days: number;
+  pendingReportsCount: number;
+  verifiedProfilesCount: number;
+  recentSignups: { id: string; fullName: string | null; phoneNumber: string; createdAt: string }[];
+}
+
+export function getDashboardStats(accessToken: string): Promise<DashboardStats> {
+  return request('/admin/dashboard', { headers: authHeaders(accessToken) });
+}
+
 // --- Members -----------------------------------------------------------
 
 export interface MemberSummary {

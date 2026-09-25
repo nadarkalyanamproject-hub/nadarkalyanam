@@ -59,7 +59,7 @@ export default function AdminLoginPage() {
         refreshToken: result.refreshToken,
         adminUserId: result.user.id,
       });
-      router.push('/members');
+      router.push('/');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not verify OTP. Please try again.');
     } finally {

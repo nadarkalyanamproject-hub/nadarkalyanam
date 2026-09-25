@@ -9,17 +9,39 @@ function buildService(overrides?: {
   findUniqueResult?: unknown;
   findManyResult?: unknown[];
   countResult?: number;
+  totalMembersResult?: number;
+  newSignupsResult?: number;
+  groupByResult?: unknown[];
+  reportCountResult?: number;
+  profileCountResult?: number;
 }) {
   const findUniqueResult =
     overrides && 'findUniqueResult' in overrides ? overrides.findUniqueResult : { id: USER_ID, status: 'ACTIVE' };
+  // getDashboardStats calls user.count() twice — once with no createdAt
+  // filter (total members) and once with one (new signups this week).
+  // listMembers also calls user.count({ where }) where `where` can be `{}`
+  // (no search term), so branch on the createdAt key specifically rather
+  // than truthiness of `where` itself.
+  const userCount = vi.fn().mockImplementation((args?: { where?: { createdAt?: unknown } }) =>
+    Promise.resolve(
+      args?.where?.createdAt ? (overrides?.newSignupsResult ?? 0) : (overrides?.totalMembersResult ?? overrides?.countResult ?? 0),
+    ),
+  );
   const prisma = {
     user: {
       findUnique: vi.fn().mockResolvedValue(findUniqueResult),
       findMany: vi.fn().mockResolvedValue(overrides?.findManyResult ?? []),
-      count: vi.fn().mockResolvedValue(overrides?.countResult ?? 0),
+      count: userCount,
+      groupBy: vi.fn().mockResolvedValue(overrides?.groupByResult ?? []),
       update: vi.fn().mockImplementation(({ where, data }: { where: { id: string }; data: Record<string, unknown> }) =>
         Promise.resolve({ id: where.id, status: 'ACTIVE', ...data }),
       ),
+    },
+    report: {
+      count: vi.fn().mockResolvedValue(overrides?.reportCountResult ?? 0),
+    },
+    profile: {
+      count: vi.fn().mockResolvedValue(overrides?.profileCountResult ?? 0),
     },
   };
   const photosService = { getPhotosForProfile: vi.fn().mockResolvedValue([]) };
@@ -144,6 +166,79 @@ describe('AdminService.getMemberDetail', () => {
     const result = await service.getMemberDetail(USER_ID);
 
     expect(result.scheduledAnonymizationAt).toBe('2026-01-15T00:00:00.000Z');
+  });
+});
+
+describe('AdminService.getDashboardStats', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('aggregates member counts, status breakdown, reports, verified profiles, and recent signups', async () => {
+    const { service, prisma } = buildService({
+      totalMembersResult: 42,
+      newSignupsResult: 5,
+      groupByResult: [
+        { status: 'ACTIVE', _count: { _all: 38 } },
+        { status: 'SUSPENDED', _count: { _all: 3 } },
+        { status: 'PENDING_DELETION', _count: { _all: 1 } },
+      ],
+      reportCountResult: 4,
+      profileCountResult: 30,
+      findManyResult: [
+        {
+          id: 'user-recent-1',
+          phoneNumber: '+919876500001',
+          createdAt: new Date('2026-09-20T00:00:00.000Z'),
+          profile: { fullName: 'Recent User' },
+        },
+        {
+          id: 'user-recent-2',
+          phoneNumber: '+919876500002',
+          createdAt: new Date('2026-09-19T00:00:00.000Z'),
+          profile: null,
+        },
+      ],
+    });
+
+    const result = await service.getDashboardStats();
+
+    expect(result.totalMembers).toBe(42);
+    expect(result.membersByStatus).toEqual({ active: 38, suspended: 3, pendingDeletion: 1 });
+    expect(result.newSignupsLast7Days).toBe(5);
+    expect(result.pendingReportsCount).toBe(4);
+    expect(result.verifiedProfilesCount).toBe(30);
+    expect(result.recentSignups).toEqual([
+      { id: 'user-recent-1', fullName: 'Recent User', phoneNumber: '+919876500001', createdAt: '2026-09-20T00:00:00.000Z' },
+      { id: 'user-recent-2', fullName: null, phoneNumber: '+919876500002', createdAt: '2026-09-19T00:00:00.000Z' },
+    ]);
+
+    expect(prisma.report.count).toHaveBeenCalledWith({ where: { status: { in: ['OPEN', 'IN_REVIEW'] } } });
+    expect(prisma.profile.count).toHaveBeenCalledWith({ where: { isVerified: true } });
+    expect(prisma.user.groupBy).toHaveBeenCalledWith({ by: ['status'], _count: { _all: true } });
+  });
+
+  it('defaults a status missing from groupBy results to zero, rather than crashing', async () => {
+    const { service } = buildService({
+      groupByResult: [{ status: 'ACTIVE', _count: { _all: 10 } }],
+    });
+
+    const result = await service.getDashboardStats();
+
+    expect(result.membersByStatus).toEqual({ active: 10, suspended: 0, pendingDeletion: 0 });
+  });
+
+  it('queries new signups with a 7-day createdAt lower bound', async () => {
+    const { service, prisma } = buildService({ newSignupsResult: 7 });
+
+    await service.getDashboardStats();
+
+    const call = prisma.user.count.mock.calls.find((c: unknown[]) => (c[0] as { where?: { createdAt?: unknown } })?.where?.createdAt);
+    expect(call).toBeTruthy();
+    const gte = (call![0] as { where: { createdAt: { gte: Date } } }).where.createdAt.gte;
+    const daysAgo = (Date.now() - gte.getTime()) / (24 * 60 * 60 * 1000);
+    expect(daysAgo).toBeGreaterThan(6.9);
+    expect(daysAgo).toBeLessThan(7.1);
   });
 });
 

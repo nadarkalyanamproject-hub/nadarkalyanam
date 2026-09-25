@@ -31,6 +31,17 @@ export class AdminController {
     private readonly auditLogService: AuditLogService,
   ) {}
 
+  // Reuses MEMBERS_VIEW rather than a new "dashboard.view" code: this is a
+  // platform-overview page built mostly from member data (with a bare
+  // report count folded in for glanceability, not report content/detail),
+  // and every role that can see Members (SUPER_ADMIN, MODERATOR) already
+  // holds MEMBERS_VIEW — see prisma/seed.ts's ROLE_PERMISSIONS.
+  @Get('dashboard')
+  @RequirePermission(PERMISSIONS.MEMBERS_VIEW)
+  getDashboard() {
+    return this.adminService.getDashboardStats();
+  }
+
   @Get('members')
   @RequirePermission(PERMISSIONS.MEMBERS_VIEW)
   listMembers(

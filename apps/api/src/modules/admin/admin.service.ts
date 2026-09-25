@@ -163,6 +163,55 @@ export class AdminService {
     };
   }
 
+  // Platform-overview landing page. Status breakdown deliberately covers
+  // only ACTIVE/SUSPENDED/PENDING_DELETION: DELETED exists in the
+  // AccountStatus enum but nothing in this codebase ever sets it yet (no
+  // anonymization job exists — see removeMember's comment above), so
+  // reporting a count for it would just always show zero, not a real signal.
+  // totalMembers intentionally has no status filter, matching listMembers'
+  // own definition of "member" (a User row, regardless of status/profile
+  // completion). "Pending reports" uses the same OPEN/IN_REVIEW definition
+  // ModerationService.listQueue already uses for its queue, so this number
+  // always matches what an admin sees if they click through to Reports.
+  async getDashboardStats() {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const [totalMembers, statusGroups, newSignupsLast7Days, pendingReportsCount, verifiedProfilesCount, recentUsers] =
+      await Promise.all([
+        this.prisma.user.count(),
+        this.prisma.user.groupBy({ by: ['status'], _count: { _all: true } }),
+        this.prisma.user.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+        this.prisma.report.count({ where: { status: { in: ['OPEN', 'IN_REVIEW'] } } }),
+        this.prisma.profile.count({ where: { isVerified: true } }),
+        this.prisma.user.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          include: { profile: { select: { fullName: true } } },
+        }),
+      ]);
+
+    const membersByStatus = { active: 0, suspended: 0, pendingDeletion: 0 };
+    for (const group of statusGroups) {
+      if (group.status === 'ACTIVE') membersByStatus.active = group._count._all;
+      else if (group.status === 'SUSPENDED') membersByStatus.suspended = group._count._all;
+      else if (group.status === 'PENDING_DELETION') membersByStatus.pendingDeletion = group._count._all;
+    }
+
+    return {
+      totalMembers,
+      membersByStatus,
+      newSignupsLast7Days,
+      pendingReportsCount,
+      verifiedProfilesCount,
+      recentSignups: recentUsers.map((user) => ({
+        id: user.id,
+        fullName: user.profile?.fullName ?? null,
+        phoneNumber: user.phoneNumber,
+        createdAt: user.createdAt.toISOString(),
+      })),
+    };
+  }
+
   // FR-11.5. Needs an approved definition of "active subscription" and
   // refund-reporting scope before the aggregation query is meaningful —
   // tracked as an open decision, not a missing capability of this service.

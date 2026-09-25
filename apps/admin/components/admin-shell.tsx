@@ -6,6 +6,7 @@ import { Button } from '@nadar-kalyanam/ui';
 import { useAdminAuth } from '../app/providers/admin-auth-provider';
 
 const NAV_ITEMS = [
+  { href: '/', label: 'Dashboard' },
   { href: '/members', label: 'Members' },
   { href: '/reports', label: 'Reports' },
   { href: '/audit-logs', label: 'Audit Log' },
@@ -33,7 +34,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   key={item.href}
                   href={item.href}
                   className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                    pathname.startsWith(item.href)
+                    (item.href === '/' ? pathname === '/' : pathname.startsWith(item.href))
                       ? 'bg-primary text-primary-foreground'
                       : 'text-foreground hover:bg-muted'
                   }`}
