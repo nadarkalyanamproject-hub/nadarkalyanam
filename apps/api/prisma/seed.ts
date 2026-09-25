@@ -399,6 +399,32 @@ async function main() {
 
   console.log('Seeded roles, permissions, and membership plans.');
 
+  // First admin account — the only way to bootstrap admin access today,
+  // since there is deliberately no "admin invites another admin" flow yet.
+  // Logs in through the exact same phone/OTP flow as a regular member
+  // (POST /auth/otp/request, then POST /auth/otp/verify with
+  // intent: 'login') using ADMIN_PHONE_NUMBER below. Because a linked
+  // AdminUser row exists for that User, auth.service.ts's verifyOtp() issues
+  // an admin-scoped (typ: 'admin') token instead of a normal member token —
+  // no separate admin credential or endpoint exists.
+  const ADMIN_PHONE_NUMBER = '+919876543200';
+  const ADMIN_EMAIL = 'admin@nadarkalyanam.dev';
+  const ADMIN_ROLE_NAME = 'SUPER_ADMIN';
+
+  const adminAccountUser = await prisma.user.upsert({
+    where: { phoneNumber: ADMIN_PHONE_NUMBER },
+    update: { status: 'ACTIVE' },
+    create: { phoneNumber: ADMIN_PHONE_NUMBER, status: 'ACTIVE' },
+  });
+  const superAdminRole = await prisma.role.findUniqueOrThrow({ where: { name: ADMIN_ROLE_NAME } });
+  await prisma.adminUser.upsert({
+    where: { userId: adminAccountUser.id },
+    update: { roleId: superAdminRole.id, isActive: true },
+    create: { userId: adminAccountUser.id, email: ADMIN_EMAIL, roleId: superAdminRole.id },
+  });
+
+  console.log(`Seeded first admin account (phone: ${ADMIN_PHONE_NUMBER}, role: ${ADMIN_ROLE_NAME}).`);
+
   // Seed dummy test profiles
   for (const item of DUMMY_SEED_PROFILES) {
     const user = await prisma.user.upsert({

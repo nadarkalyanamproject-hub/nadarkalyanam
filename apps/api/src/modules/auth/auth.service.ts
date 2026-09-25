@@ -86,7 +86,19 @@ export class AuthService {
             include: { profile: { select: { id: true } } },
           });
 
-    const accessToken = await this.jwtService.signAsync({ sub: user.id });
+    // Admin login reuses this exact same phone/OTP flow — there is no
+    // separate admin login endpoint. Only checked on the 'login' path:
+    // admin accounts are pre-provisioned (via prisma/seed.ts), never
+    // self-registered. If this User has a linked AdminUser, they get an
+    // admin-scoped token INSTEAD of a normal member token — never both.
+    // Note `sub` is the AdminUser's own id, not the User's id: that's what
+    // AdminAuthGuard looks up by.
+    const adminUser =
+      intent === 'login' ? await this.prisma.adminUser.findUnique({ where: { userId: user.id } }) : null;
+
+    const accessToken = adminUser
+      ? await this.jwtService.signAsync({ sub: adminUser.id, typ: 'admin' })
+      : await this.jwtService.signAsync({ sub: user.id });
 
     const refreshToken = randomBytes(32).toString('hex');
     const refreshTtlSeconds = this.configService.get('JWT_REFRESH_TOKEN_TTL_SECONDS', {

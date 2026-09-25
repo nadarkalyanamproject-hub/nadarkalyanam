@@ -38,6 +38,7 @@ model User {
   notifications              Notification[]
   callsAsCaller              Call[]                    @relation("CallCaller")
   callsAsCallee              Call[]                    @relation("CallCallee")
+  adminUser                  AdminUser?
 
   @@map("users")
 }
@@ -429,6 +430,11 @@ model RolePermission {
 
 model AdminUser {
   id         String   @id @default(uuid())
+  // Admin login reuses the existing phone/OTP flow (see auth.service.ts's
+  // verifyOtp) — this is the link from a real User to their admin identity.
+  // Real TOTP-based MFA (mfaEnabled, below) is deferred, not built yet.
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id])
   email      String   @unique
   roleId     String
   role       Role     @relation(fields: [roleId], references: [id])

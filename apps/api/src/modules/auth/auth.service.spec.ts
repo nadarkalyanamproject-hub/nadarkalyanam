@@ -8,11 +8,15 @@ function buildService(overrides?: {
   nodeEnv?: string;
   findUniqueResult?: unknown;
   allowOtpDebugVisibility?: boolean;
+  adminUserResult?: unknown;
 }) {
   const prisma = {
     user: {
       upsert: vi.fn().mockResolvedValue({ id: 'user-1', phoneNumber: '+919876543210', profile: null }),
       findUnique: vi.fn().mockResolvedValue(overrides?.findUniqueResult ?? null),
+    },
+    adminUser: {
+      findUnique: vi.fn().mockResolvedValue(overrides?.adminUserResult ?? null),
     },
     session: {
       create: vi.fn().mockResolvedValue({ id: 'session-1' }),
@@ -161,5 +165,51 @@ describe('AuthService', () => {
 
     expect(prisma.user.upsert).toHaveBeenCalledTimes(2);
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  describe('admin-aware login', () => {
+    const otp = '123456';
+    const hashedOtp = createHash('sha256').update(otp).digest('hex');
+    const memberUser = { id: 'user-1', phoneNumber: '+919876543210', profile: null };
+    const adminRow = { id: 'admin-1', userId: 'user-1', roleId: 'role-1', isActive: true };
+
+    it('logging in as a user WITH an AdminUser record issues an admin-scoped (typ: "admin") token, not a member token', async () => {
+      const { service, prisma, jwtService } = buildService({
+        redisGet: async () => hashedOtp,
+        findUniqueResult: memberUser,
+        adminUserResult: adminRow,
+      });
+
+      await service.verifyOtp('+919876543210', otp, 'login');
+
+      expect(prisma.adminUser.findUnique).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
+      // sub is the AdminUser's own id (what AdminAuthGuard looks up by), not the User's id.
+      expect(jwtService.signAsync).toHaveBeenCalledWith({ sub: 'admin-1', typ: 'admin' });
+      expect(jwtService.signAsync).not.toHaveBeenCalledWith({ sub: 'user-1' });
+    });
+
+    it('logging in as a normal user (no AdminUser record) still issues the existing member token, unchanged', async () => {
+      const { service, prisma, jwtService } = buildService({
+        redisGet: async () => hashedOtp,
+        findUniqueResult: memberUser,
+        adminUserResult: null,
+      });
+
+      await service.verifyOtp('+919876543210', otp, 'login');
+
+      // The check runs (it must, to know there's no admin link) but falls through.
+      expect(prisma.adminUser.findUnique).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
+      expect(jwtService.signAsync).toHaveBeenCalledWith({ sub: 'user-1' });
+      expect(jwtService.signAsync).not.toHaveBeenCalledWith(expect.objectContaining({ typ: 'admin' }));
+    });
+
+    it('the admin-link check never runs on intent "register" — admins are pre-provisioned, never self-registered', async () => {
+      const { service, prisma, jwtService } = buildService({ redisGet: async () => hashedOtp });
+
+      await service.verifyOtp('+919876543210', otp, 'register');
+
+      expect(prisma.adminUser.findUnique).not.toHaveBeenCalled();
+      expect(jwtService.signAsync).toHaveBeenCalledWith({ sub: 'user-1' });
+    });
   });
 });
