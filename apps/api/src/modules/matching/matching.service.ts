@@ -39,13 +39,20 @@ export class MatchingService {
       ranked.map(async ({ profile, score }) => {
         const photos = await this.photosService.getPhotosForProfile(profile.id);
         const primaryPhotoUrl = photos.find((photo) => photo.isPrimary)?.url ?? photos[0]?.url ?? null;
-        const details = profile.details as { location?: { city?: string } } | null;
+        const details = profile.details as {
+          location?: { city?: string };
+          education?: { profession?: string };
+          religion?: string;
+        } | null;
         return {
           profileId: profile.id,
           fullName: profile.fullName,
           age: calculateAge(profile.dateOfBirth),
           city: details?.location?.city ?? null,
           primaryPhotoUrl,
+          isVerified: profile.isVerified,
+          profession: details?.education?.profession || null,
+          religion: details?.religion || null,
           score,
         };
       }),

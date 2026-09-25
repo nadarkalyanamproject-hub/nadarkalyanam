@@ -8,7 +8,11 @@ import { REGISTRATION_STORAGE_KEY, type RegistrationDraft } from '../../lib/regi
 interface RegistrationContextValue {
   data: RegistrationDraft;
   hydrated: boolean;
-  setPhoneNumber: (phoneNumber: string, fullNamePrefill?: string) => void;
+  setPhoneNumber: (
+    phoneNumber: string,
+    fullNamePrefill?: string,
+    genderPrefill?: 'MALE' | 'FEMALE',
+  ) => void;
   setDevOtp: (devOtp: string | undefined) => void;
   setAuth: (auth: {
     accessToken: string;
@@ -58,9 +62,17 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     }
   }, [data, hydrated]);
 
-  const setPhoneNumber = useCallback((phoneNumber: string, fullNamePrefill?: string) => {
-    setData((prev) => ({ ...prev, phoneNumber, fullNamePrefill: fullNamePrefill ?? prev.fullNamePrefill }));
-  }, []);
+  const setPhoneNumber = useCallback(
+    (phoneNumber: string, fullNamePrefill?: string, genderPrefill?: 'MALE' | 'FEMALE') => {
+      setData((prev) => ({
+        ...prev,
+        phoneNumber,
+        fullNamePrefill: fullNamePrefill ?? prev.fullNamePrefill,
+        genderPrefill: genderPrefill ?? prev.genderPrefill,
+      }));
+    },
+    [],
+  );
 
   const setDevOtp = useCallback((devOtp: string | undefined) => {
     setData((prev) => ({ ...prev, devOtp }));

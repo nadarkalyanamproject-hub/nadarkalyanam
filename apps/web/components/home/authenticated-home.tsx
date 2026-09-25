@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type {
@@ -18,98 +18,83 @@ import {
   MapPin,
   Search,
   ShieldCheck,
-  Sparkles,
   Star,
   User,
   Users,
 } from 'lucide-react';
-import { AppHeader } from '../app-header';
-import { listInterests, listMatches, listNotifications, searchProfiles, sendInterest } from '../../lib/api-client';
+import { AppHeader, UserIcon } from '../app-header';
+import { ApiError, listInterests, listMatches, listNotifications, searchProfiles, sendInterest } from '../../lib/api-client';
 import { useProfile } from '../../lib/use-profile';
 import { useRegistration } from '../../app/providers/registration-provider';
-import { DUMMY_PROFILES } from '../../lib/mock-profiles';
 
-interface RecommendedMatchCard {
-  id: string;
-  name: string;
-  age: number;
-  city: string;
-  state: string;
-  educationAndJob: string;
-  community: string;
-  photoUrl: string;
-  isVerified: boolean;
-  hasSentInterest?: boolean;
+// One real avatar stack + honest count, reused by all four "More Profiles
+// to Explore" tiles — never a hardcoded stock photo or an invented total.
+function ExploreTile({
+  href,
+  icon,
+  iconBg,
+  iconBorder,
+  iconColor,
+  title,
+  subtitle,
+  profiles,
+}: {
+  href: string;
+  icon: ReactNode;
+  iconBg: string;
+  iconBorder: string;
+  iconColor: string;
+  title: string;
+  subtitle: string;
+  profiles: { profileId: string; primaryPhotoUrl: string | null }[];
+}) {
+  const shown = profiles.slice(0, 3);
+  const remaining = profiles.length - shown.length;
+
+  return (
+    <Link
+      href={href}
+      className="bg-white rounded-2xl p-4 border border-[#E8DCCF] shadow-xs hover:shadow-md transition-all flex items-center justify-between group"
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className={`h-11 w-11 rounded-xl border flex items-center justify-center shrink-0 ${iconBg} ${iconBorder} ${iconColor}`}
+        >
+          {icon}
+        </div>
+        <div>
+          <h3 className="font-bold text-xs sm:text-sm text-[#2B1515] group-hover:text-[#7B1118] transition-colors">
+            {title}
+          </h3>
+          <p className="text-[11px] text-[#73645C]">{subtitle}</p>
+          {shown.length > 0 && (
+            <div className="flex items-center gap-1.5 mt-2">
+              <div className="flex -space-x-1.5">
+                {shown.map((p) =>
+                  p.primaryPhotoUrl ? (
+                    <div key={p.profileId} className="h-5 w-5 rounded-full overflow-hidden border border-white">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.primaryPhotoUrl} alt="" className="h-full w-full object-cover" />
+                    </div>
+                  ) : (
+                    <div
+                      key={p.profileId}
+                      className="h-5 w-5 rounded-full border border-white bg-[#F3EDE6] flex items-center justify-center"
+                    >
+                      <UserIcon className="h-3 w-3 text-[#A88C78]" />
+                    </div>
+                  ),
+                )}
+              </div>
+              {remaining > 0 && <span className={`text-[11px] font-bold ${iconColor}`}>+{remaining}</span>}
+            </div>
+          )}
+        </div>
+      </div>
+      <ChevronRight className="h-4 w-4 text-[#8C7B73] group-hover:text-[#7B1118] transition-colors shrink-0" />
+    </Link>
+  );
 }
-
-const DEFAULT_RECOMMENDED: RecommendedMatchCard[] = [
-  {
-    id: 'rec-priya-01',
-    name: 'Priya',
-    age: 28,
-    city: 'Chennai',
-    state: 'Tamil Nadu',
-    educationAndJob: 'MBA • IT Professional',
-    community: 'Nadar • Hindu',
-    photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
-    isVerified: true,
-  },
-  {
-    id: 'rec-divya-02',
-    name: 'Divya',
-    age: 27,
-    city: 'Coimbatore',
-    state: 'Tamil Nadu',
-    educationAndJob: 'B.Tech • Software Engineer',
-    community: 'Nadar • Hindu',
-    photoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80',
-    isVerified: true,
-  },
-  {
-    id: 'rec-meena-03',
-    name: 'Meena',
-    age: 29,
-    city: 'Bangalore',
-    state: 'Karnataka',
-    educationAndJob: 'M.Com • Banking',
-    community: 'Nadar • Hindu',
-    photoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=800&q=80',
-    isVerified: true,
-  },
-  {
-    id: 'rec-kavya-04',
-    name: 'Kavya',
-    age: 26,
-    city: 'Madurai',
-    state: 'Tamil Nadu',
-    educationAndJob: 'BDS • Dentist',
-    community: 'Nadar • Hindu',
-    photoUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80',
-    isVerified: true,
-  },
-  {
-    id: 'rec-anitha-05',
-    name: 'Anitha',
-    age: 30,
-    city: 'Chennai',
-    state: 'Tamil Nadu',
-    educationAndJob: 'CA • Finance Professional',
-    community: 'Nadar • Hindu',
-    photoUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80',
-    isVerified: true,
-  },
-  {
-    id: 'rec-swathi-06',
-    name: 'Swathi',
-    age: 28,
-    city: 'Trichy',
-    state: 'Tamil Nadu',
-    educationAndJob: 'MBA • HR Professional',
-    community: 'Nadar • Hindu',
-    photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
-    isVerified: true,
-  },
-];
 
 const POPULAR_TAGS = [
   'Chennai',
@@ -135,6 +120,7 @@ export function AuthenticatedHome() {
   const [locationCity, setLocationCity] = useState('Chennai');
   const [sentMap, setSentMap] = useState<Record<string, boolean>>({});
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!data.accessToken || !profile) return;
@@ -189,12 +175,12 @@ export function AuthenticatedHome() {
   async function handleSendInterest(matchId: string) {
     if (!data.accessToken || sentMap[matchId]) return;
     setSendingId(matchId);
+    setSendError(null);
     try {
       await sendInterest(data.accessToken, { targetProfileId: matchId });
       setSentMap((prev) => ({ ...prev, [matchId]: true }));
-    } catch {
-      // For demo cards or fallback
-      setSentMap((prev) => ({ ...prev, [matchId]: true }));
+    } catch (err) {
+      setSendError(err instanceof ApiError ? err.message : 'Could not send interest. Please try again.');
     } finally {
       setSendingId(null);
     }
@@ -202,6 +188,13 @@ export function AuthenticatedHome() {
 
   const firstName = profile?.fullName ? profile.fullName.split(' ')[0] : 'ARJUN';
   const completionScore = profile?.completionScore && profile.completionScore > 0 ? profile.completionScore : 60;
+
+  // Real, derived from the same fetched pool — never hardcoded stock photos
+  // or invented counts (see the tiles below).
+  const ownCity = profile?.details?.location?.city;
+  const newMembers = discoverPool ?? [];
+  const verifiedMembers = (discoverPool ?? []).filter((p) => p.isVerified);
+  const nearbyMembers = ownCity ? (discoverPool ?? []).filter((p) => p.city === ownCity) : [];
 
   return (
     <>
@@ -401,89 +394,115 @@ export function AuthenticatedHome() {
             </Link>
           </div>
 
-          {/* 6 Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {DEFAULT_RECOMMENDED.map((person) => {
-              const isSent = sentMap[person.id];
-              const isSending = sendingId === person.id;
+          {sendError && <p className="text-xs font-semibold text-destructive">{sendError}</p>}
 
-              return (
-                <div
-                  key={person.id}
-                  className="bg-white rounded-2xl border border-[#E8DCCF] shadow-xs hover:shadow-md transition-all overflow-hidden flex flex-col justify-between group"
-                >
-                  <div>
-                    {/* Photo with Verified Badge */}
-                    <div className="relative aspect-[4/3] w-full bg-[#F3EDE6] overflow-hidden">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={person.photoUrl}
-                        alt={person.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      {person.isVerified && (
-                        <div className="absolute top-2 right-2 z-10">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-white/95 backdrop-blur-xs px-2 py-0.5 text-[10px] font-bold text-[#16A34A] shadow-xs">
-                            <span className="text-[10px]">✓</span> Verified
-                          </span>
-                        </div>
-                      )}
+          {matches && matches.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {matches.map((match) => {
+                const isSent = sentMap[match.profileId];
+                const isSending = sendingId === match.profileId;
+
+                return (
+                  <div
+                    key={match.profileId}
+                    className="bg-white rounded-2xl border border-[#E8DCCF] shadow-xs hover:shadow-md transition-all overflow-hidden flex flex-col justify-between group"
+                  >
+                    <div>
+                      {/* Photo with Verified Badge */}
+                      <div className="relative aspect-[4/3] w-full bg-[#F3EDE6] overflow-hidden">
+                        {match.primaryPhotoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={match.primaryPhotoUrl}
+                            alt={match.fullName}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-[#A88C78]">
+                            <UserIcon className="h-10 w-10" />
+                          </div>
+                        )}
+                        {match.isVerified && (
+                          <div className="absolute top-2 right-2 z-10">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-white/95 backdrop-blur-xs px-2 py-0.5 text-[10px] font-bold text-[#16A34A] shadow-xs">
+                              <span className="text-[10px]">✓</span> Verified
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Card Content */}
+                      <div className="p-3.5 space-y-1.5">
+                        <Link href={`/browse/${match.profileId}`}>
+                          <h3 className="font-bold text-sm sm:text-base text-[#2B1515] hover:text-[#7B1118] transition-colors truncate">
+                            {match.fullName}, {match.age}
+                          </h3>
+                        </Link>
+
+                        {match.city && (
+                          <p className="text-xs text-[#73645C] flex items-center gap-1 truncate">
+                            <MapPin className="h-3.5 w-3.5 shrink-0 text-[#9A3412]" />
+                            <span>{match.city}</span>
+                          </p>
+                        )}
+
+                        {match.profession && (
+                          <p className="text-xs text-[#73645C] flex items-center gap-1 truncate">
+                            <span className="text-[#9A3412] text-xs">🎓</span>
+                            <span>{match.profession}</span>
+                          </p>
+                        )}
+
+                        {match.religion && (
+                          <p className="text-xs text-[#73645C] flex items-center gap-1 truncate">
+                            <span className="text-[#9A3412] text-xs">🌸</span>
+                            <span>{match.religion}</span>
+                          </p>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Card Content */}
-                    <div className="p-3.5 space-y-1.5">
-                      <Link href={`/browse/${person.id}`}>
-                        <h3 className="font-bold text-sm sm:text-base text-[#2B1515] hover:text-[#7B1118] transition-colors truncate">
-                          {person.name}, {person.age}
-                        </h3>
-                      </Link>
-
-                      {/* City */}
-                      <p className="text-xs text-[#73645C] flex items-center gap-1 truncate">
-                        <MapPin className="h-3.5 w-3.5 shrink-0 text-[#9A3412]" />
-                        <span>
-                          {person.city}, {person.state}
-                        </span>
-                      </p>
-
-                      {/* Job / Education */}
-                      <p className="text-xs text-[#73645C] flex items-center gap-1 truncate">
-                        <span className="text-[#9A3412] text-xs">🎓</span>
-                        <span>{person.educationAndJob}</span>
-                      </p>
-
-                      {/* Community */}
-                      <p className="text-xs text-[#73645C] flex items-center gap-1 truncate">
-                        <span className="text-[#9A3412] text-xs">🌸</span>
-                        <span>{person.community}</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Send Interest CTA */}
-                  <div className="p-3 pt-0">
-                    <button
-                      type="button"
-                      disabled={isSent || isSending}
-                      onClick={() => void handleSendInterest(person.id)}
-                      className={`w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                        isSent
-                          ? 'bg-[#F0FDF4] text-[#16A34A] border border-[#86EFAC]'
-                          : 'bg-white hover:bg-[#FFF8F0] text-[#7B1118] border border-[#E7CDAF]'
-                      }`}
-                    >
-                      <Heart
-                        className={`h-3.5 w-3.5 ${
-                          isSent ? 'fill-[#16A34A] text-[#16A34A]' : 'text-[#7B1118]'
+                    {/* Send Interest CTA */}
+                    <div className="p-3 pt-0">
+                      <button
+                        type="button"
+                        disabled={isSent || isSending}
+                        onClick={() => void handleSendInterest(match.profileId)}
+                        className={`w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          isSent
+                            ? 'bg-[#F0FDF4] text-[#16A34A] border border-[#86EFAC]'
+                            : 'bg-white hover:bg-[#FFF8F0] text-[#7B1118] border border-[#E7CDAF]'
                         }`}
-                      />
-                      <span>{isSent ? 'Interest Sent' : isSending ? 'Sending…' : 'Send Interest'}</span>
-                    </button>
+                      >
+                        <Heart
+                          className={`h-3.5 w-3.5 ${
+                            isSent ? 'fill-[#16A34A] text-[#16A34A]' : 'text-[#7B1118]'
+                          }`}
+                        />
+                        <span>{isSent ? 'Interest Sent' : isSending ? 'Sending…' : 'Send Interest'}</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            matches && (
+              // Compact — no giant empty rectangle.
+              <div className="flex flex-col items-center gap-2 py-8 text-center">
+                <p className="text-sm font-semibold text-[#2B1515]">No new recommendations yet</p>
+                <p className="text-xs text-[#73645C] max-w-sm">
+                  Try adjusting your preferences to discover more compatible profiles.
+                </p>
+                <Link
+                  href="/matches"
+                  className="mt-2 rounded-lg bg-[#7B1118] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#650B11] transition-colors"
+                >
+                  Explore Matches
+                </Link>
+              </div>
+            )
+          )}
         </section>
 
         {/* =========================================================================
@@ -500,197 +519,46 @@ export function AuthenticatedHome() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Tile 1: Recently Joined */}
-            <Link
+            <ExploreTile
               href="/search?sort=newest"
-              className="bg-white rounded-2xl p-4 border border-[#E8DCCF] shadow-xs hover:shadow-md transition-all flex items-center justify-between group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-11 w-11 rounded-xl bg-[#FEE2E2] border border-[#FECDD3] flex items-center justify-center text-[#DC2626] shrink-0">
-                  <Users className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xs sm:text-sm text-[#2B1515] group-hover:text-[#7B1118] transition-colors">
-                    Recently Joined
-                  </h3>
-                  <p className="text-[11px] text-[#73645C]">New members in the Nadar community</p>
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <div className="flex -space-x-1.5">
-                      <div className="h-5 w-5 rounded-full overflow-hidden border border-white">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <div className="h-5 w-5 rounded-full overflow-hidden border border-white">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80"
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <div className="h-5 w-5 rounded-full overflow-hidden border border-white">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&q=80"
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-bold text-[#DC2626]">+124</span>
-                  </div>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-[#8C7B73] group-hover:text-[#7B1118] transition-colors" />
-            </Link>
-
-            {/* Tile 2: Verified Members */}
-            <Link
+              icon={<Users className="h-5 w-5" />}
+              iconBg="bg-[#FEE2E2]"
+              iconBorder="border-[#FECDD3]"
+              iconColor="text-[#DC2626]"
+              title="Recently Joined"
+              subtitle="New members in the Nadar community"
+              profiles={newMembers}
+            />
+            <ExploreTile
               href="/search?verified=true"
-              className="bg-white rounded-2xl p-4 border border-[#E8DCCF] shadow-xs hover:shadow-md transition-all flex items-center justify-between group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-11 w-11 rounded-xl bg-[#FEF3C7] border border-[#FDE68A] flex items-center justify-center text-[#D97706] shrink-0">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xs sm:text-sm text-[#2B1515] group-hover:text-[#7B1118] transition-colors">
-                    Verified Members
-                  </h3>
-                  <p className="text-[11px] text-[#73645C]">Identity verified profiles</p>
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <div className="flex -space-x-1.5">
-                      <div className="h-5 w-5 rounded-full overflow-hidden border border-white">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80"
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <div className="h-5 w-5 rounded-full overflow-hidden border border-white">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80"
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <div className="h-5 w-5 rounded-full overflow-hidden border border-white">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src="https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=100&q=80"
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-bold text-[#D97706]">+86</span>
-                  </div>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-[#8C7B73] group-hover:text-[#7B1118] transition-colors" />
-            </Link>
-
-            {/* Tile 3: Nearby Matches */}
-            <Link
-              href="/search?city=Chennai"
-              className="bg-white rounded-2xl p-4 border border-[#E8DCCF] shadow-xs hover:shadow-md transition-all flex items-center justify-between group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-11 w-11 rounded-xl bg-[#FFE4E6] border border-[#FECDD3] flex items-center justify-center text-[#E11D48] shrink-0">
-                  <MapPin className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xs sm:text-sm text-[#2B1515] group-hover:text-[#7B1118] transition-colors">
-                    Nearby Matches
-                  </h3>
-                  <p className="text-[11px] text-[#73645C]">Members from Chennai and nearby</p>
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <div className="flex -space-x-1.5">
-                      <div className="h-5 w-5 rounded-full overflow-hidden border border-white">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=100&q=80"
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <div className="h-5 w-5 rounded-full overflow-hidden border border-white">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&q=80"
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <div className="h-5 w-5 rounded-full overflow-hidden border border-white">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=100&q=80"
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-bold text-[#E11D48]">+72</span>
-                  </div>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-[#8C7B73] group-hover:text-[#7B1118] transition-colors" />
-            </Link>
-
-            {/* Tile 4: Most Compatible */}
-            <Link
+              icon={<ShieldCheck className="h-5 w-5" />}
+              iconBg="bg-[#FEF3C7]"
+              iconBorder="border-[#FDE68A]"
+              iconColor="text-[#D97706]"
+              title="Verified Members"
+              subtitle="Identity verified profiles"
+              profiles={verifiedMembers}
+            />
+            <ExploreTile
+              href={ownCity ? `/search?city=${encodeURIComponent(ownCity)}` : '/search'}
+              icon={<MapPin className="h-5 w-5" />}
+              iconBg="bg-[#FFE4E6]"
+              iconBorder="border-[#FECDD3]"
+              iconColor="text-[#E11D48]"
+              title="Nearby Matches"
+              subtitle={ownCity ? `Members from ${ownCity} and nearby` : 'Members near you'}
+              profiles={nearbyMembers}
+            />
+            <ExploreTile
               href="/matches"
-              className="bg-white rounded-2xl p-4 border border-[#E8DCCF] shadow-xs hover:shadow-md transition-all flex items-center justify-between group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-11 w-11 rounded-xl bg-[#FEF9C3] border border-[#FEF08A] flex items-center justify-center text-[#CA8A04] shrink-0">
-                  <Star className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xs sm:text-sm text-[#2B1515] group-hover:text-[#7B1118] transition-colors">
-                    Most Compatible
-                  </h3>
-                  <p className="text-[11px] text-[#73645C]">Based on your preferences</p>
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <div className="flex -space-x-1.5">
-                      <div className="h-5 w-5 rounded-full overflow-hidden border border-white">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=100&q=80"
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <div className="h-5 w-5 rounded-full overflow-hidden border border-white">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <div className="h-5 w-5 rounded-full overflow-hidden border border-white">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80"
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-bold text-[#CA8A04]">+58</span>
-                  </div>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-[#8C7B73] group-hover:text-[#7B1118] transition-colors" />
-            </Link>
+              icon={<Star className="h-5 w-5" />}
+              iconBg="bg-[#FEF9C3]"
+              iconBorder="border-[#FEF08A]"
+              iconColor="text-[#CA8A04]"
+              title="Most Compatible"
+              subtitle="Based on your preferences"
+              profiles={matches ?? []}
+            />
           </div>
         </section>
       </main>

@@ -738,6 +738,115 @@ html {
   display: block;
 }
 
+/* Gender Selector in Registration Card */
+.gender-select-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: fadeInDown 0.25s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gender-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.gender-prompt-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6C5E5E;
+  letter-spacing: 0.01em;
+}
+
+.gender-toggle-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.gender-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid var(--color-input-border);
+  background-color: var(--color-input-bg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+  user-select: none;
+}
+
+.gender-chip:hover {
+  border-color: #C49A9E;
+  background-color: #FFF9F9;
+}
+
+.gender-chip.active {
+  border-color: var(--color-maroon-primary);
+  background-color: #FFF5F5;
+  box-shadow: 0 0 0 2px rgba(142, 27, 36, 0.12);
+}
+
+.gender-radio-circle {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #8C7B7B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.gender-chip.active .gender-radio-circle {
+  border-color: var(--color-maroon-primary);
+}
+
+.gender-radio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: transparent;
+  transition: background-color var(--transition-fast);
+}
+
+.gender-chip.active .gender-radio-dot {
+  background-color: var(--color-maroon-primary);
+}
+
+.gender-chip-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #382A2A;
+}
+
+.gender-chip.active .gender-chip-text {
+  font-weight: 600;
+  color: var(--color-maroon-primary);
+}
+
+.gender-select-group.has-error .gender-chip {
+  border-color: #C22020;
+}
+
 .nk-landing .btn-submit,
 .btn-submit {
   background: linear-gradient(135deg, var(--color-red-primary) 0%, var(--color-red-dark) 100%) !important;

@@ -9,17 +9,6 @@ import { listMatches } from '../../lib/api-client';
 import { useRegistration } from '../providers/registration-provider';
 import { useRequireAuth } from '../../lib/use-require-auth';
 
-import { DUMMY_PROFILES } from '../../lib/mock-profiles';
-
-const DUMMY_MATCHES: MatchResult[] = DUMMY_PROFILES.map((p, idx) => ({
-  profileId: p.id,
-  fullName: p.fullName,
-  age: p.age,
-  city: p.location.city,
-  primaryPhotoUrl: p.primaryPhotoUrl,
-  score: Math.max(78, 98 - idx * 3),
-}));
-
 export default function MatchesPage() {
   const { ready } = useRequireAuth();
   const { data } = useRegistration();
@@ -31,13 +20,11 @@ export default function MatchesPage() {
     let cancelled = false;
     listMatches(data.accessToken)
       .then((result) => {
-        if (!cancelled) {
-          setMatches(result.items.length > 0 ? result.items : DUMMY_MATCHES);
-        }
+        if (!cancelled) setMatches(result.items);
       })
       .catch(() => {
         if (!cancelled) {
-          setMatches(DUMMY_MATCHES);
+          setError(err instanceof ApiError ? err.message : 'Could not load your matches. Please try again.');
         }
       });
     return () => {

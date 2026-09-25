@@ -6,6 +6,9 @@ export const matchResultSchema = z.object({
   age: z.number(),
   city: z.string().nullable(),
   primaryPhotoUrl: z.string().nullable(),
+  isVerified: z.boolean(),
+  profession: z.string().nullable(),
+  religion: z.string().nullable(),
   score: z.number(),
 });
 export type MatchResult = z.infer<typeof matchResultSchema>;

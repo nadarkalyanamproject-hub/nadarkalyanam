@@ -32,6 +32,7 @@ export default function BasicDetailsPage() {
   const [form, setForm] = useState<FormState>(() => ({
     ...EMPTY_FORM,
     fullName: data.fullNamePrefill ?? EMPTY_FORM.fullName,
+    gender: data.basicDetails?.gender ?? data.genderPrefill ?? EMPTY_FORM.gender,
     ...(data.basicDetails as unknown as Partial<FormState>),
   }));
   const [errors, setErrors] = useState<Record<string, string>>({});

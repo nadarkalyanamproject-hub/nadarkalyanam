@@ -65,6 +65,9 @@ export default function Home() {
   const [profileFor, setProfileFor] = useState('');
   const [profileForError, setProfileForError] = useState(false);
 
+  const [gender, setGender] = useState<'MALE' | 'FEMALE' | ''>('');
+  const [genderError, setGenderError] = useState(false);
+
   const [fullName, setFullName] = useState('');
   const [fullNameError, setFullNameError] = useState(false);
 
@@ -134,6 +137,14 @@ export default function Home() {
       setProfileForError(false);
     }
 
+    const isMyself = profileFor.toLowerCase() === 'myself';
+    if (isMyself && !gender) {
+      setGenderError(true);
+      isValid = false;
+    } else {
+      setGenderError(false);
+    }
+
     if (!fullName.trim() || fullName.trim().length < 2) {
       setFullNameError(true);
       isValid = false;
@@ -154,7 +165,18 @@ export default function Home() {
     setSubmitting(true);
     try {
       const { devOtp } = await requestOtp({ phoneNumber });
-      setPhoneNumber(phoneNumber, fullName.trim());
+
+      let effectiveGender: 'MALE' | 'FEMALE' | undefined = undefined;
+      const lowerProfileFor = profileFor.toLowerCase();
+      if (lowerProfileFor === 'myself') {
+        if (gender === 'MALE' || gender === 'FEMALE') effectiveGender = gender;
+      } else if (lowerProfileFor === 'son' || lowerProfileFor === 'brother') {
+        effectiveGender = 'MALE';
+      } else if (lowerProfileFor === 'daughter' || lowerProfileFor === 'sister') {
+        effectiveGender = 'FEMALE';
+      }
+
+      setPhoneNumber(phoneNumber, fullName.trim(), effectiveGender);
       setRegisterDevOtp(devOtp);
       setRegisterStep('otp');
     } catch (error) {
@@ -173,6 +195,8 @@ export default function Home() {
     setRegisterOtp('');
     setRegisterOtpError(undefined);
     setRegisterDevOtp(undefined);
+    setGender('');
+    setGenderError(false);
     setSubmitting(false);
   }
 
@@ -600,6 +624,10 @@ export default function Home() {
                             setProfileFor(option);
                             setProfileForError(false);
                             setProfileForOpen(false);
+                            if (option.toLowerCase() !== 'myself') {
+                              setGender('');
+                              setGenderError(false);
+                            }
                           }}
                         >
                           {option}
@@ -608,6 +636,47 @@ export default function Home() {
                     </ul>
                     <span className="error-msg">Please select who this profile is for</span>
                   </div>
+
+                  {profileFor.toLowerCase() === 'myself' && (
+                    <div className={`form-group gender-select-group${genderError ? ' has-error' : ''}`}>
+                      <div className="gender-header">
+                        <span className="gender-prompt-label">Select Gender</span>
+                      </div>
+                      <div className="gender-toggle-group" role="radiogroup" aria-label="Gender">
+                        <button
+                          type="button"
+                          className={`gender-chip${gender === 'MALE' ? ' active' : ''}`}
+                          onClick={() => {
+                            setGender('MALE');
+                            setGenderError(false);
+                          }}
+                          role="radio"
+                          aria-checked={gender === 'MALE'}
+                        >
+                          <span className="gender-radio-circle">
+                            <span className="gender-radio-dot" />
+                          </span>
+                          <span className="gender-chip-text">Male</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`gender-chip${gender === 'FEMALE' ? ' active' : ''}`}
+                          onClick={() => {
+                            setGender('FEMALE');
+                            setGenderError(false);
+                          }}
+                          role="radio"
+                          aria-checked={gender === 'FEMALE'}
+                        >
+                          <span className="gender-radio-circle">
+                            <span className="gender-radio-dot" />
+                          </span>
+                          <span className="gender-chip-text">Female</span>
+                        </button>
+                      </div>
+                      <span className="error-msg">Please select male or female</span>
+                    </div>
+                  )}
 
                   <div className={`form-group${fullNameError ? ' has-error' : ''}`}>
                     <div className="input-wrapper">

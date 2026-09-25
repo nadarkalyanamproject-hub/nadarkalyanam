@@ -8,6 +8,7 @@ import type {
 export interface RegistrationDraft {
   phoneNumber?: string;
   fullNamePrefill?: string;
+  genderPrefill?: 'MALE' | 'FEMALE';
   devOtp?: string;
   accessToken?: string;
   refreshToken?: string;
