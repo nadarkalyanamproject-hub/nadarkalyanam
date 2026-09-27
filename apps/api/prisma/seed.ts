@@ -384,6 +384,21 @@ async function main() {
         prioritySpotlight: true,
       },
     },
+    {
+      id: 'plan-vip-assisted-6m',
+      name: 'VIP Assisted - 6 months',
+      priceInPaise: 1499900,
+      durationDays: 180,
+      entitlements: {
+        phoneNumbers: 75,
+        unlimitedMessages: true,
+        unlimitedHoroscopes: true,
+        verifiedProfilesWithPhotos: true,
+        dedicatedRelationshipManager: true,
+        familyAssistance: true,
+        confidentialSearch: true,
+      },
+    },
   ];
 
   for (const plan of MEMBERSHIP_PLANS) {

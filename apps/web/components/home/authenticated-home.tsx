@@ -13,6 +13,7 @@ import {
   Calendar,
   ChevronDown,
   ChevronRight,
+  Crown,
   FileText,
   Heart,
   MapPin,
@@ -23,6 +24,7 @@ import {
   Users,
 } from 'lucide-react';
 import { AppHeader, UserIcon } from '../app-header';
+import { SponsoredBanner } from './sponsored-banner';
 import { ApiError, listInterests, listMatches, listNotifications, searchProfiles, sendInterest } from '../../lib/api-client';
 import { useProfile } from '../../lib/use-profile';
 import { useRegistration } from '../../app/providers/registration-provider';
@@ -373,6 +375,11 @@ export function AuthenticatedHome() {
         </section>
 
         {/* =========================================================================
+            SPONSORED ADVERTISEMENT BANNER
+            ========================================================================= */}
+        <SponsoredBanner />
+
+        {/* =========================================================================
             2. RECOMMENDED MATCHES FOR YOU SECTION (6 CARDS ROW)
             ========================================================================= */}
         <section className="space-y-4">
@@ -559,6 +566,68 @@ export function AuthenticatedHome() {
               subtitle="Based on your preferences"
               profiles={matches ?? []}
             />
+          </div>
+        </section>
+
+        {/* =========================================================================
+            4. MEMBERSHIP UPGRADE BANNER (PREMIUM BENEFITS)
+            ========================================================================= */}
+        <section className="rounded-3xl bg-gradient-to-br from-[#FFFBF0] via-[#FFF9ED] to-[#FAF1DE] border border-[#EADBBD] p-6 sm:p-8 lg:p-10 shadow-xs relative overflow-hidden">
+          {/* Subtle decorative background watermarks */}
+          <div className="absolute -right-12 -bottom-12 w-64 h-64 rounded-full bg-[#C89B3C]/5 pointer-events-none" />
+          <div className="absolute -left-12 -top-12 w-48 h-48 rounded-full bg-[#7B1118]/5 pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+            <div className="space-y-3 max-w-2xl text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 rounded-full bg-[#FAF0DC] px-3.5 py-1 text-xs font-bold text-[#7B1118] border border-[#EADBBD]">
+                <Crown className="h-3.5 w-3.5 text-[#C89B3C]" />
+                <span className="tracking-wider uppercase">PREMIUM MEMBERSHIP</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#2B1515] font-[family-name:var(--font-heading,serif)] tracking-tight">
+                Unlock Direct Phone Numbers &amp; Unlimited Chats
+              </h2>
+              <p className="text-xs sm:text-sm text-[#73645C] leading-relaxed">
+                Connect with compatible families with zero barriers. Upgrade to view verified contact details, express unlimited interest, and receive priority profile placement.
+              </p>
+
+              {/* Perks quick list */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                <div className="bg-white/80 rounded-xl p-3 border border-[#EADFD5] text-center">
+                  <div className="text-base font-extrabold text-[#7B1118]">50+</div>
+                  <div className="text-[11px] text-[#73645C] font-medium">Verified Contacts</div>
+                </div>
+                <div className="bg-white/80 rounded-xl p-3 border border-[#EADFD5] text-center">
+                  <div className="text-base font-extrabold text-[#7B1118]">Direct</div>
+                  <div className="text-[11px] text-[#73645C] font-medium">WhatsApp Sharing</div>
+                </div>
+                <div className="bg-white/80 rounded-xl p-3 border border-[#EADFD5] text-center">
+                  <div className="text-base font-extrabold text-[#7B1118]">Unlimited</div>
+                  <div className="text-[11px] text-[#73645C] font-medium">Horoscope Views</div>
+                </div>
+                <div className="bg-white/80 rounded-xl p-3 border border-[#EADFD5] text-center">
+                  <div className="text-base font-extrabold text-[#7B1118]">Top Spot</div>
+                  <div className="text-[11px] text-[#73645C] font-medium">Search Priority</div>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA Box */}
+            <div className="bg-white rounded-2xl p-6 border-2 border-[#C89B3C] shadow-md flex flex-col items-center text-center shrink-0 w-full sm:w-80">
+              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#C89B3C] mb-1">
+                Starting from ₹1,499
+              </span>
+              <h3 className="text-lg font-bold text-[#2B1515]">Gold &amp; Premium Plans</h3>
+              <p className="text-xs text-[#73645C] mt-1 mb-4">
+                Transparent pricing with instant activation and dedicated support.
+              </p>
+              <Link
+                href="/membership"
+                className="w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#7B1118] to-[#600C12] hover:opacity-95 text-white shadow-md shadow-[#7B1118]/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <span>View Membership Plans</span>
+                <span>→</span>
+              </Link>
+            </div>
           </div>
         </section>
       </main>

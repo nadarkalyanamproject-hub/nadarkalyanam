@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AuthenticatedHome } from '../components/home/authenticated-home';
 import { useRegistration } from './providers/registration-provider';
@@ -209,7 +210,9 @@ export default function Home() {
         otp: otpCode,
         intent: 'register',
       });
-      setSkipHomeRedirect(true);
+      if (!result.user.hasProfile) {
+        setSkipHomeRedirect(true);
+      }
       setAuth({
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
@@ -217,7 +220,7 @@ export default function Home() {
         hasProfile: result.user.hasProfile,
       });
       resetRegisterForm();
-      router.push(result.user.hasProfile ? '/profile' : '/onboarding/basic-details');
+      router.push(result.user.hasProfile ? '/' : '/onboarding/basic-details');
     } catch (error) {
       setSubmitting(false);
       setRegisterOtpError(
@@ -292,7 +295,9 @@ export default function Home() {
         window.location.href = adminUrl;
         return;
       }
-      setSkipHomeRedirect(true);
+      if (!result.user.hasProfile) {
+        setSkipHomeRedirect(true);
+      }
       setAuth({
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
@@ -301,7 +306,7 @@ export default function Home() {
       });
       closeAuthModal();
       showToast('Logged In', 'Welcome back to Nadar Kalyanam!');
-      router.push(result.user.hasProfile ? '/profile' : '/onboarding/basic-details');
+      router.push(result.user.hasProfile ? '/' : '/onboarding/basic-details');
     } catch (error) {
       setLoginSubmitting(false);
       setLoginOtpError(
@@ -481,6 +486,11 @@ export default function Home() {
               <a href="#hero" className="nav-link active">
                 Home
               </a>
+            </li>
+            <li>
+              <Link href="/membership" className="nav-link">
+                Membership
+              </Link>
             </li>
             <li>
               <a href="#trustSection" className="nav-link">
@@ -822,6 +832,94 @@ export default function Home() {
           </section>
         </div>
       </main>
+
+      {/* Membership Promotion Section */}
+      <section className="membership-promo-section" id="membershipSection">
+        <div className="membership-promo-container">
+          <div className="section-header">
+            <span className="section-badge">MEMBERSHIP PLANS</span>
+            <h2 className="section-title">Accelerate Your Search With Premium Membership</h2>
+            <p className="section-subtitle">
+              Connect directly with verified families, view contact details, and find your ideal match with dedicated assistance.
+            </p>
+          </div>
+
+          <div className="membership-promo-grid">
+            {/* Card 1: Gold */}
+            <div className="membership-card">
+              <div className="tier-header">
+                <span className="tier-name">GOLD</span>
+                <span className="tier-duration">3 MONTHS</span>
+              </div>
+              <div className="tier-price">
+                <span className="currency">₹</span>
+                <span className="amount">1,499</span>
+              </div>
+              <ul className="tier-features">
+                <li><span className="check-icon">✓</span> 50 Verified Phone Numbers</li>
+                <li><span className="check-icon">✓</span> Send unlimited messages &amp; chats</li>
+                <li><span className="check-icon">✓</span> Unlimited horoscope views</li>
+                <li><span className="check-icon">✓</span> Verified profiles with photos</li>
+              </ul>
+              <Link href="/membership" className="tier-btn">
+                Choose Gold
+              </Link>
+            </div>
+
+            {/* Card 2: Gold Plus */}
+            <div className="membership-card">
+              <div className="tier-header">
+                <span className="tier-name">GOLD PLUS</span>
+                <span className="tier-duration">3 MONTHS</span>
+              </div>
+              <div className="tier-price">
+                <span className="currency">₹</span>
+                <span className="amount">2,299</span>
+              </div>
+              <ul className="tier-features">
+                <li><span className="check-icon">✓</span> Unlimited Phone Numbers*</li>
+                <li><span className="check-icon">✓</span> Send unlimited messages &amp; chats</li>
+                <li><span className="check-icon">✓</span> Priority profile listing in search</li>
+                <li><span className="check-icon">✓</span> Direct WhatsApp contact sharing</li>
+              </ul>
+              <Link href="/membership" className="tier-btn">
+                Choose Gold Plus
+              </Link>
+            </div>
+
+            {/* Card 3: Gold Premium (Highlighted) */}
+            <div className="membership-card popular">
+              <div className="popular-badge">POPULAR</div>
+              <div className="tier-header">
+                <span className="tier-name">GOLD PREMIUM</span>
+                <span className="tier-duration">12 MONTHS</span>
+              </div>
+              <div className="tier-price">
+                <span className="currency">₹</span>
+                <span className="amount">5,999</span>
+              </div>
+              <ul className="tier-features">
+                <li><span className="check-icon">✓</span> Unlimited Phone Numbers*</li>
+                <li><span className="check-icon">✓</span> Dedicated Relationship Manager</li>
+                <li><span className="check-icon">✓</span> Top spot profile spotlight</li>
+                <li><span className="check-icon">✓</span> Handpicked weekly recommendations</li>
+              </ul>
+              <Link href="/membership" className="tier-btn popular-btn">
+                Choose Gold Premium
+              </Link>
+            </div>
+          </div>
+
+          <div className="membership-promo-footer">
+            <div className="footer-callout">
+              <span>All plans include complete contact privacy controls &amp; verified member guarantee.</span>
+              <Link href="/membership" className="view-all-link">
+                View Full Plan Comparison &amp; Benefits →
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Bottom Trust & Statistics Bar */}
       <aside className="trust-stats-bar" id="trustSection">

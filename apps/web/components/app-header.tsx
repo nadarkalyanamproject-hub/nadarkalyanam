@@ -99,6 +99,17 @@ function MandalaEmblem() {
   );
 }
 
+function CrownIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M3 18h18M4 14l3-8 5 4 5-4 3 8H4Z" />
+      <circle cx="4" cy="6" r="1" fill="currentColor" />
+      <circle cx="12" cy="4" r="1" fill="currentColor" />
+      <circle cx="20" cy="6" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 interface NavItem {
   key: string;
   label: string;
@@ -113,6 +124,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'interests', label: 'Interests', href: '/interests', icon: StarIcon },
   { key: 'messages', label: 'Messages', href: '/messages', icon: ChatIcon },
   { key: 'notifications', label: 'Notifications', href: '/notifications', icon: BellIcon },
+  { key: 'membership', label: 'Membership', href: '/membership', icon: CrownIcon },
   { key: 'profile', label: 'Profile', href: '/profile', icon: UserIcon },
 ];
 
@@ -308,6 +320,34 @@ export function AppHeader() {
               </div>
             </div>
           </>
+        )}
+
+        {!isAuthenticated && (
+          <div className="flex items-center gap-3 sm:gap-5">
+            <Link
+              href="/"
+              className="text-xs sm:text-sm font-semibold text-[#2B211C] hover:text-[#7A0710] transition-colors"
+            >
+              Home
+            </Link>
+            <Link
+              href="/membership"
+              className={`text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                pathname === '/membership'
+                  ? 'text-[#7A0710] font-bold'
+                  : 'text-[#2B211C] hover:text-[#7A0710]'
+              }`}
+            >
+              <CrownIcon className="h-4 w-4 text-[#C89B3C]" />
+              <span>Membership</span>
+            </Link>
+            <Link
+              href="/"
+              className="rounded-xl border border-[#7A0710] bg-[#FFFBF5] px-3.5 py-1.5 text-xs sm:text-sm font-bold text-[#7A0710] shadow-xs transition-all hover:bg-[#7A0710] hover:text-white"
+            >
+              Log In
+            </Link>
+          </div>
         )}
       </div>
 
