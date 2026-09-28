@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactElement, type SVGProps } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement, type SVGProps } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useRegistration } from '../app/providers/registration-provider';
@@ -125,8 +125,12 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'messages', label: 'Messages', href: '/messages', icon: ChatIcon },
   { key: 'notifications', label: 'Notifications', href: '/notifications', icon: BellIcon },
   { key: 'membership', label: 'Membership', href: '/membership', icon: CrownIcon },
-  { key: 'profile', label: 'Profile', href: '/profile', icon: UserIcon },
 ];
+
+// The profile icon's dropdown — the one profile entry point, desktop and
+// mobile alike.
+const ACCOUNT_MENU_ITEM_CLASS =
+  'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors focus:outline-none';
 
 export function AppHeader() {
   const pathname = usePathname();
@@ -134,12 +138,67 @@ export function AppHeader() {
   const { data, hydrated, clearAuth } = useRegistration();
   const { profile } = useProfile();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  // The account menu remembers the path it was opened on, and only counts as
+  // open while still on that path — so any navigation closes it without a
+  // state-syncing effect.
+  const [avatarMenuPath, setAvatarMenuPath] = useState<string | null>(null);
+  const avatarMenuOpen = avatarMenuPath !== null && avatarMenuPath === pathname;
+  const avatarMenuRef = useRef<HTMLDivElement>(null);
+  const avatarButtonRef = useRef<HTMLButtonElement>(null);
   const isAuthenticated = hydrated && Boolean(data.accessToken);
   const avatarUrl = profile?.photos?.find((photo) => photo.isPrimary)?.url ?? profile?.photos?.[0]?.url;
 
+  function closeAvatarMenu() {
+    setAvatarMenuPath(null);
+  }
+
+  function toggleAvatarMenu() {
+    setMenuOpen(false);
+    setAvatarMenuPath(avatarMenuOpen ? null : pathname);
+  }
+
+  // Outside press closes; Escape closes and hands focus back to the icon.
+  // Listeners exist only while the menu is open and are removed on close or
+  // unmount. A press on the icon itself is "inside", so the icon's own click
+  // is what toggles it shut rather than this listener racing it.
+  useEffect(() => {
+    if (!avatarMenuOpen) return;
+    function onPointerDown(event: PointerEvent) {
+      if (!avatarMenuRef.current?.contains(event.target as Node)) {
+        setAvatarMenuPath(null);
+      }
+    }
+    function onKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setAvatarMenuPath(null);
+        avatarButtonRef.current?.focus();
+      }
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [avatarMenuOpen]);
+
+  // Arrow-key movement between the menu's items (role="menu" convention).
+  function handleMenuKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]'));
+    const index = items.indexOf(document.activeElement as HTMLElement);
+    let next: number | null = null;
+    if (event.key === 'ArrowDown') next = (index + 1) % items.length;
+    else if (event.key === 'ArrowUp') next = (index - 1 + items.length) % items.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = items.length - 1;
+    if (next !== null) {
+      event.preventDefault();
+      items[next]?.focus();
+    }
+  }
+
   function handleLogout() {
-    setAvatarMenuOpen(false);
+    closeAvatarMenu();
     claimAuthRedirect();
     clearAuth();
     router.push('/');
@@ -230,7 +289,10 @@ export function AppHeader() {
               {/* Mobile Hamburger toggle */}
               <button
                 type="button"
-                onClick={() => setMenuOpen((open) => !open)}
+                onClick={() => {
+                  closeAvatarMenu();
+                  setMenuOpen((open) => !open);
+                }}
                 aria-label={menuOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={menuOpen}
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-[#2B211C] transition-colors hover:bg-[#F9F3E7] md:hidden"
@@ -238,62 +300,63 @@ export function AppHeader() {
                 {menuOpen ? <CloseIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
               </button>
 
-              {/* Avatar menu */}
-              <div className="relative">
+              {/* Account menu: the only profile entry point (desktop + mobile).
+                  The icon only toggles the menu; it never navigates. */}
+              <div className="relative" ref={avatarMenuRef}>
                 <button
+                  ref={avatarButtonRef}
                   type="button"
-                  onClick={() => setAvatarMenuOpen((open) => !open)}
+                  onClick={toggleAvatarMenu}
                   aria-label="Account menu"
+                  aria-haspopup="menu"
                   aria-expanded={avatarMenuOpen}
+                  aria-controls="account-menu"
                   className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-[#E8DCC8] bg-[#F9F3E7] text-[#7A0710] shadow-sm transition-all hover:border-[#D6A33A] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#D6A33A]/30"
                 >
                   {avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={avatarUrl} alt="Profile avatar" className="h-full w-full object-cover" />
+                    <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <UserIcon className="h-5 w-5" />
                   )}
                 </button>
 
                 {avatarMenuOpen && (
-                  <>
-                    <button
-                      type="button"
-                      aria-label="Close account menu"
-                      className="fixed inset-0 z-10"
-                      onClick={() => setAvatarMenuOpen(false)}
-                    />
-                    <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-xl border border-[#E8DCC8] bg-[#FFFFFF] p-2 shadow-lg animate-in fade-in zoom-in-95 duration-150">
-                      <div className="border-b border-[#F3EBDD] px-3 py-2">
-                        <p className="truncate text-sm font-semibold text-[#2B211C]">
-                          {profile?.fullName || 'My Account'}
-                        </p>
-                        <p className="truncate text-xs text-[#776B62]">
-                          {profile?.details?.email || 'Nadar Kalyanam Member'}
-                        </p>
-                      </div>
+                  <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-[#E8DCC8] bg-[#FFFFFF] p-2 shadow-lg animate-in fade-in zoom-in-95 duration-150">
+                    <div className="border-b border-[#F3EBDD] px-3 py-2">
+                      <p className="truncate text-sm font-semibold text-[#2B211C]">
+                        {profile?.fullName || 'My Account'}
+                      </p>
+                      <p className="truncate text-xs text-[#776B62]">
+                        {profile?.details?.email || 'Nadar Kalyanam Member'}
+                      </p>
+                    </div>
 
+                    <div id="account-menu" role="menu" aria-label="Account" onKeyDown={handleMenuKeyDown}>
                       <div className="py-1">
                         <Link
                           href="/profile"
-                          onClick={() => setAvatarMenuOpen(false)}
-                          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[#2B211C] transition-colors hover:bg-[#F9F3E7] hover:text-[#7A0710]"
+                          role="menuitem"
+                          onClick={closeAvatarMenu}
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-[#2B211C] hover:bg-[#F9F3E7] hover:text-[#7A0710] focus:bg-[#F9F3E7]`}
                         >
                           <UserIcon className="h-4 w-4 text-[#7A0710]" />
                           My Profile
                         </Link>
                         <Link
                           href="/membership"
-                          onClick={() => setAvatarMenuOpen(false)}
-                          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[#2B211C] transition-colors hover:bg-[#F9F3E7] hover:text-[#7A0710]"
+                          role="menuitem"
+                          onClick={closeAvatarMenu}
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-[#2B211C] hover:bg-[#F9F3E7] hover:text-[#7A0710] focus:bg-[#F9F3E7]`}
                         >
-                          <StarIcon className="h-4 w-4 text-[#7A0710]" />
+                          <CrownIcon className="h-4 w-4 text-[#7A0710]" />
                           Membership
                         </Link>
                         <Link
                           href="/"
-                          onClick={() => setAvatarMenuOpen(false)}
-                          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[#2B211C] transition-colors hover:bg-[#F9F3E7] hover:text-[#7A0710]"
+                          role="menuitem"
+                          onClick={closeAvatarMenu}
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-[#2B211C] hover:bg-[#F9F3E7] hover:text-[#7A0710] focus:bg-[#F9F3E7]`}
                         >
                           <HomeIcon className="h-4 w-4 text-[#776B62]" />
                           Home Page
@@ -303,8 +366,9 @@ export function AppHeader() {
                       <div className="border-t border-[#F3EBDD] pt-1">
                         <button
                           type="button"
+                          role="menuitem"
                           onClick={handleLogout}
-                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-[#94151C] transition-colors hover:bg-red-50"
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-[#94151C] hover:bg-red-50 focus:bg-red-50`}
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -315,7 +379,7 @@ export function AppHeader() {
                         </button>
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
@@ -400,20 +464,6 @@ export function AppHeader() {
               );
             })}
 
-            <div className="mt-2 border-t border-[#F3EBDD] pt-2">
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-[#94151C] hover:bg-red-50"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-                Log out
-              </button>
-            </div>
           </nav>
         </>
       )}
