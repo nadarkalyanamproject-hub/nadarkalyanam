@@ -15,6 +15,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { motion } from "motion/react";
+import { ContactInfoCard } from "@/components/ui/contact-info-card";
 
 export interface PricingPlan {
   id?: string;
@@ -25,7 +26,7 @@ export interface PricingPlan {
   yearlyPrice: number;
   buttonText: string;
   popular?: boolean;
-  features: { text: string; icon: React.ReactNode }[];
+  features: { text: string; icon: React.ReactNode; infoPlan?: 'gold-plus' | 'gold-premium' }[];
   includes: string[];
 }
 
@@ -60,7 +61,7 @@ export const defaultNadarPlans: PricingPlan[] = [
     yearlyPrice: 2299,
     buttonText: "Choose Plan",
     features: [
-      { text: "Unlimited Phone Numbers*", icon: <Phone size={18} /> },
+      { text: "Unlimited Phone Numbers", icon: <Phone size={18} />, infoPlan: "gold-plus" },
       { text: "Send unlimited messages", icon: <MessageSquare size={18} /> },
       { text: "Unlimited horoscope views", icon: <Calendar size={18} /> },
       { text: "Priority profile listing in search", icon: <Sparkles size={18} /> },
@@ -82,7 +83,7 @@ export const defaultNadarPlans: PricingPlan[] = [
     buttonText: "Choose Plan",
     popular: true,
     features: [
-      { text: "Unlimited Phone Numbers*", icon: <Phone size={18} /> },
+      { text: "Unlimited Phone Numbers", icon: <Phone size={18} />, infoPlan: "gold-premium" },
       { text: "Send unlimited messages", icon: <MessageSquare size={18} /> },
       { text: "Unlimited horoscope views", icon: <Calendar size={18} /> },
       { text: "Dedicated Relationship Manager", icon: <UserCheck size={18} /> },
@@ -221,7 +222,16 @@ export default function PricingSection({
                         <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#FAF5EC] text-[#C89B3C] mr-2.5 mt-0.5">
                           <Check className="h-3 w-3 stroke-[2.5]" />
                         </span>
-                        <span>{feature.text}</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span>{feature.text}</span>
+                          {feature.infoPlan && (
+                            <ContactInfoCard
+                              planType={feature.infoPlan}
+                              position="top"
+                              align="left"
+                            />
+                          )}
+                        </div>
                       </li>
                     ))}
                   </ul>

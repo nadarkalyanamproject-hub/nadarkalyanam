@@ -33,7 +33,7 @@ function userRoom(userId: string): string {
 // module-load time, before Nest's DI container exists (same constraint
 // app.module.ts already works around for NODE_ENV in its pino config).
 @WebSocketGateway({
-  cors: { origin: parseCorsOrigins(process.env.CORS_ORIGIN ?? 'http://localhost:3002,http://localhost:3001') },
+  cors: { origin: parseCorsOrigins(process.env.CORS_ORIGIN ?? 'http://localhost:3005,http://localhost:3002,http://localhost:3001') },
 })
 export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
