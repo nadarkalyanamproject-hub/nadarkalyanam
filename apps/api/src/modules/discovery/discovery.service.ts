@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { SearchProfileResult, SearchProfilesQuery, SearchProfilesResponse } from '@nadar-kalyanam/schemas';
 import { calculateAge } from '../../common/age.js';
 import { getBlockedUserIds } from '../../common/blocks.util.js';
+import { getRelationshipStates, relationshipFields } from '../../common/relationship.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -62,6 +63,13 @@ export class DiscoveryService {
 
     const hasMore = profiles.length > query.limit;
     const page = hasMore ? profiles.slice(0, query.limit) : profiles;
+    // Connected members stay in results (labeled, not excluded) so ranking
+    // and cursor pagination are unaffected. One batched query per page.
+    const relationships = await getRelationshipStates(
+      this.prisma,
+      callerUserId,
+      page.map((profile) => profile.userId),
+    );
 
     const items: SearchProfileResult[] = await Promise.all(
       page.map(async (profile) => {
@@ -75,6 +83,7 @@ export class DiscoveryService {
           city: details?.location?.city ?? null,
           primaryPhotoUrl,
           isVerified: profile.isVerified,
+          ...relationshipFields(relationships.get(profile.userId)),
         };
       }),
     );

@@ -43,7 +43,7 @@ const rawProfile = {
 
 describe('toPublicProfileSummary', () => {
   it('never includes an email field, in the object or its serialized JSON', () => {
-    const summary = toPublicProfileSummary(rawProfile, null, false);
+    const summary = toPublicProfileSummary(rawProfile, null, undefined);
 
     expect(summary).not.toHaveProperty('email');
     expect(JSON.stringify(summary)).not.toContain('meena.kumari@example.com');
@@ -51,14 +51,14 @@ describe('toPublicProfileSummary', () => {
   });
 
   it('does not include the raw dateOfBirth, only the computed age', () => {
-    const summary = toPublicProfileSummary(rawProfile, null, false);
+    const summary = toPublicProfileSummary(rawProfile, null, undefined);
 
     expect(summary).not.toHaveProperty('dateOfBirth');
     expect(typeof summary.age).toBe('number');
   });
 
   it('still surfaces the real, non-sensitive fields correctly', () => {
-    const summary = toPublicProfileSummary(rawProfile, 'https://photos.example/primary.jpg', false);
+    const summary = toPublicProfileSummary(rawProfile, 'https://photos.example/primary.jpg', undefined);
 
     expect(summary).toMatchObject({
       id: 'profile-1',
@@ -72,15 +72,22 @@ describe('toPublicProfileSummary', () => {
     });
   });
 
-  it('passes hasSentInterest through as given, both true and false', () => {
-    expect(toPublicProfileSummary(rawProfile, null, true).hasSentInterest).toBe(true);
-    expect(toPublicProfileSummary(rawProfile, null, false).hasSentInterest).toBe(false);
+  it('carries relationshipStatus + conversationId, and derives the legacy hasSentInterest from it', () => {
+    const none = toPublicProfileSummary(rawProfile, null, undefined);
+    const sent = toPublicProfileSummary(rawProfile, null, { status: 'INTEREST_SENT', conversationId: null });
+    const received = toPublicProfileSummary(rawProfile, null, { status: 'INTEREST_RECEIVED', conversationId: null });
+    const connected = toPublicProfileSummary(rawProfile, null, { status: 'CONNECTED', conversationId: 'conv-1' });
+
+    expect(none).toMatchObject({ relationshipStatus: 'NONE', conversationId: null, hasSentInterest: false });
+    expect(sent).toMatchObject({ relationshipStatus: 'INTEREST_SENT', hasSentInterest: true });
+    expect(received).toMatchObject({ relationshipStatus: 'INTEREST_RECEIVED', hasSentInterest: false });
+    expect(connected).toMatchObject({ relationshipStatus: 'CONNECTED', conversationId: 'conv-1', hasSentInterest: true });
   });
 });
 
 describe('toPublicProfileDetail', () => {
   it('never includes an email field, in the object or its serialized JSON', () => {
-    const detail = toPublicProfileDetail(rawProfile, [], false);
+    const detail = toPublicProfileDetail(rawProfile, [], undefined);
 
     expect(detail).not.toHaveProperty('email');
     expect(JSON.stringify(detail)).not.toContain('meena.kumari@example.com');
@@ -88,14 +95,14 @@ describe('toPublicProfileDetail', () => {
   });
 
   it('does not include the raw dateOfBirth, only the computed age', () => {
-    const detail = toPublicProfileDetail(rawProfile, [], false);
+    const detail = toPublicProfileDetail(rawProfile, [], undefined);
 
     expect(detail).not.toHaveProperty('dateOfBirth');
     expect(typeof detail.age).toBe('number');
   });
 
   it('still surfaces the fuller detail fields correctly', () => {
-    const detail = toPublicProfileDetail(rawProfile, [], false);
+    const detail = toPublicProfileDetail(rawProfile, [], undefined);
 
     expect(detail).toMatchObject({
       motherTongue: 'Tamil',
@@ -107,9 +114,10 @@ describe('toPublicProfileDetail', () => {
     });
   });
 
-  it('passes hasSentInterest through as given, both true and false', () => {
-    expect(toPublicProfileDetail(rawProfile, [], true).hasSentInterest).toBe(true);
-    expect(toPublicProfileDetail(rawProfile, [], false).hasSentInterest).toBe(false);
+  it('carries the relationship fields through to the detail response', () => {
+    const detail = toPublicProfileDetail(rawProfile, [], { status: 'CONNECTED', conversationId: 'conv-1' });
+
+    expect(detail).toMatchObject({ relationshipStatus: 'CONNECTED', conversationId: 'conv-1', hasSentInterest: true });
   });
 });
 
@@ -126,7 +134,7 @@ describe('ProfilesController — photo URLs are signed, not plain', () => {
       getMyProfile: vi.fn().mockResolvedValue(rawProfile),
       updateProfile: vi.fn().mockResolvedValue(rawProfile),
       listOtherProfiles: vi.fn().mockResolvedValue({ profiles: [rawProfile], total: 1 }),
-      getSentInterestTargetUserIds: vi.fn().mockResolvedValue(new Set()),
+      getRelationshipStates: vi.fn().mockResolvedValue(new Map()),
       getOtherProfile: vi.fn().mockResolvedValue(rawProfile),
     };
     const photosService = { getPhotosForProfile: vi.fn().mockResolvedValue(photos) };

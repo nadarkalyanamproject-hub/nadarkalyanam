@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { relationshipFieldsSchema } from './relationship.js';
 
 export const matchResultSchema = z.object({
   profileId: z.string(),
@@ -10,7 +11,7 @@ export const matchResultSchema = z.object({
   profession: z.string().nullable(),
   religion: z.string().nullable(),
   score: z.number(),
-});
+}).extend(relationshipFieldsSchema.shape);
 export type MatchResult = z.infer<typeof matchResultSchema>;
 
 export const listMatchesResponseSchema = z.object({

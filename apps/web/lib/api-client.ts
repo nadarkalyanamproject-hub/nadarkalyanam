@@ -4,6 +4,7 @@ import type {
   CreateProfileRequest,
   CreateProfileResponse,
   InitiateVerificationResponse,
+  ListConnectionsResponse,
   ListInterestsResponse,
   ListMatchesResponse,
   ListNotificationsResponse,
@@ -205,7 +206,24 @@ export function listInterests(accessToken: string): Promise<ListInterestsRespons
   });
 }
 
-export function acceptInterest(accessToken: string, interestId: string): Promise<{ id: string; status: string }> {
+// Members the caller is connected with (an accepted interest either way).
+export function listConnections(
+  accessToken: string,
+  params?: { offset?: number; limit?: number },
+): Promise<ListConnectionsResponse> {
+  const query = new URLSearchParams();
+  if (params?.offset) query.set('offset', String(params.offset));
+  if (params?.limit) query.set('limit', String(params.limit));
+  const qs = query.toString();
+  return request<ListConnectionsResponse>(`/interests/connections${qs ? `?${qs}` : ''}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function acceptInterest(
+  accessToken: string,
+  interestId: string,
+): Promise<{ id: string; status: string; conversationId: string }> {
   return request(`/interests/${interestId}/accept`, {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${accessToken}` },

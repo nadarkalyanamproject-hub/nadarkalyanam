@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { relationshipFieldsSchema } from './relationship.js';
 
 // APPROVAL REQUIRED (SRS §4.3): the final v1 filter list, sort options and
 // AND/OR combination behavior are still open. This is the filter set implied
@@ -28,7 +29,7 @@ export const searchProfileResultSchema = z.object({
   city: z.string().nullable(),
   primaryPhotoUrl: z.string().nullable(),
   isVerified: z.boolean(),
-});
+}).extend(relationshipFieldsSchema.shape);
 export type SearchProfileResult = z.infer<typeof searchProfileResultSchema>;
 
 export const searchProfilesResponseSchema = z.object({

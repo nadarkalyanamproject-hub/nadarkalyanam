@@ -1,12 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import type { PublicProfileSummary } from '@nadar-kalyanam/schemas';
 import { Button, Card } from '@nadar-kalyanam/ui';
 import { UserIcon } from '../app-header';
-import { ApiError, sendInterest } from '../../lib/api-client';
-import { useRegistration } from '../../app/providers/registration-provider';
+import { ConnectedBadge, RelationshipAction } from '../relationship/relationship-action';
 
 const MARITAL_STATUS_LABELS: Record<string, string> = {
   NEVER_MARRIED: 'Never Married',
@@ -16,24 +14,6 @@ const MARITAL_STATUS_LABELS: Record<string, string> = {
 };
 
 export function ProfileCard({ profile }: { profile: PublicProfileSummary }) {
-  const { data } = useRegistration();
-  const [sent, setSent] = useState(profile.hasSentInterest);
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | undefined>();
-
-  async function handleSendInterest() {
-    setSending(true);
-    setError(undefined);
-    try {
-      await sendInterest(data.accessToken!, { targetProfileId: profile.id });
-      setSent(true);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not send interest. Please try again.');
-    } finally {
-      setSending(false);
-    }
-  }
-
   return (
     <Card className="flex flex-col overflow-hidden rounded-2xl">
       <div className="relative aspect-[4/3] w-full bg-muted">
@@ -54,6 +34,7 @@ export function ProfileCard({ profile }: { profile: PublicProfileSummary }) {
         <h3 className="text-base font-bold text-foreground">
           {profile.fullName}, {profile.age}
         </h3>
+        {profile.relationshipStatus === 'CONNECTED' && <ConnectedBadge className="mt-1 self-start" />}
         <p className="mt-1 text-sm text-muted-foreground">
           {profile.location.city}, {profile.location.state}
         </p>
@@ -65,23 +46,18 @@ export function ProfileCard({ profile }: { profile: PublicProfileSummary }) {
           <span>{MARITAL_STATUS_LABELS[profile.maritalStatus] ?? profile.maritalStatus}</span>
         </dl>
 
-        {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
-
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex items-start gap-2">
           <Link href={`/browse/${profile.id}`} className="flex-1">
             <Button type="button" variant="outline" size="sm" className="w-full">
               View Profile
             </Button>
           </Link>
-          <Button
-            type="button"
-            size="sm"
+          <RelationshipAction
             className="flex-1"
-            disabled={sent || sending}
-            onClick={() => void handleSendInterest()}
-          >
-            {sent ? 'Interest Sent' : sending ? 'Sending...' : 'Send Interest'}
-          </Button>
+            profileId={profile.id}
+            relationshipStatus={profile.relationshipStatus}
+            conversationId={profile.conversationId}
+          />
         </div>
       </div>
     </Card>

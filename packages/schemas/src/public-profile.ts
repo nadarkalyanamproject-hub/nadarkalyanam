@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { additionalDetailsSchema, doshamEnum, genderEnum, maritalStatusEnum, physicalStatusEnum } from './profile.js';
 import { photoResponseSchema } from './photo.js';
+import { relationshipFieldsSchema } from './relationship.js';
 
 // Distinct from profileResponseSchema/profileDetailsSchema (packages/schemas/src/profile.ts)
 // on purpose: that shape includes email, which is only ever safe to return for
@@ -22,11 +23,11 @@ export const publicProfileSummarySchema = z.object({
   profession: z.string(),
   maritalStatus: maritalStatusEnum,
   primaryPhotoUrl: z.string().nullable(),
-  // True when the authenticated caller has already sent a still-pending or
-  // accepted interest to this profile — lets the frontend show "Interest
-  // Sent" on initial load, not just after an in-session click.
+  // Kept for backward compatibility; derived from relationshipStatus (true
+  // for INTEREST_SENT and CONNECTED). New code should read
+  // relationshipStatus, which also covers interests in the other direction.
   hasSentInterest: z.boolean(),
-});
+}).extend(relationshipFieldsSchema.shape);
 export type PublicProfileSummary = z.infer<typeof publicProfileSummarySchema>;
 
 export const publicProfileDetailSchema = publicProfileSummarySchema.extend({
@@ -53,3 +54,19 @@ export const profileListResponseSchema = z.object({
   nextOffset: z.number().nullable(),
 });
 export type ProfileListResponse = z.infer<typeof profileListResponseSchema>;
+
+// GET /interests/connections — members the caller is CONNECTED with (an
+// ACCEPTED interest in either direction). Same privacy-safe summary shape as
+// browse (no email, no dateOfBirth), plus when the connection was made.
+export const connectionSchema = publicProfileSummarySchema.extend({
+  conversationId: z.string(),
+  connectedAt: z.string(),
+});
+export type Connection = z.infer<typeof connectionSchema>;
+
+export const listConnectionsResponseSchema = z.object({
+  items: z.array(connectionSchema),
+  total: z.number(),
+  nextOffset: z.number().nullable(),
+});
+export type ListConnectionsResponse = z.infer<typeof listConnectionsResponseSchema>;

@@ -367,46 +367,26 @@ describe('ProfilesService.getOtherProfile', () => {
   });
 });
 
-describe('ProfilesService.getSentInterestTargetUserIds', () => {
-  it('queries scoped to the caller as sender, and returns only the matching target ids', async () => {
+describe('ProfilesService.getRelationshipStates', () => {
+  it('queries interests in BOTH directions in one batched query', async () => {
     const { service, prisma } = buildService();
-    prisma.interest.findMany.mockResolvedValueOnce([{ targetId: 'user-b' }, { targetId: 'user-c' }]);
 
-    const result = await service.getSentInterestTargetUserIds('caller-1', ['user-b', 'user-c', 'user-d']);
+    await service.getRelationshipStates('caller-1', ['user-b', 'user-c']);
 
-    expect(prisma.interest.findMany).toHaveBeenCalledWith({
-      where: {
-        senderId: 'caller-1',
-        targetId: { in: ['user-b', 'user-c', 'user-d'] },
-        status: { in: ['PENDING', 'ACCEPTED'] },
-      },
-      select: { targetId: true },
+    expect(prisma.interest.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.interest.findMany.mock.calls[0][0].where).toEqual({
+      status: { in: ['PENDING', 'ACCEPTED'] },
+      OR: [
+        { senderId: 'caller-1', targetId: { in: ['user-b', 'user-c'] } },
+        { targetId: 'caller-1', senderId: { in: ['user-b', 'user-c'] } },
+      ],
     });
-    expect(result).toEqual(new Set(['user-b', 'user-c']));
-    // user-d was queried for but never returned by the mock (no interest
-    // sent to them) -- confirms the result isn't just "everyone asked about".
-    expect(result.has('user-d')).toBe(false);
   });
 
-  it('never returns another caller\'s sent-interest state — only rows where senderId matches this caller are ever queried', async () => {
-    const { service, prisma } = buildService();
-    // Simulate the real DB behavior: this mock only "has" rows for the
-    // caller actually passed in the where clause it was called with.
-    prisma.interest.findMany.mockImplementation(({ where }: { where: { senderId: string } }) =>
-      Promise.resolve(where.senderId === 'caller-1' ? [{ targetId: 'user-b' }] : []),
-    );
-
-    const forCaller1 = await service.getSentInterestTargetUserIds('caller-1', ['user-b']);
-    const forCaller2 = await service.getSentInterestTargetUserIds('caller-2', ['user-b']);
-
-    expect(forCaller1.has('user-b')).toBe(true);
-    expect(forCaller2.has('user-b')).toBe(false);
-  });
-
-  it('returns an empty set without querying when there are no target ids', async () => {
+  it('returns an empty map without querying when there are no other users', async () => {
     const { service, prisma } = buildService();
 
-    const result = await service.getSentInterestTargetUserIds('caller-1', []);
+    const result = await service.getRelationshipStates('caller-1', []);
 
     expect(result.size).toBe(0);
     expect(prisma.interest.findMany).not.toHaveBeenCalled();

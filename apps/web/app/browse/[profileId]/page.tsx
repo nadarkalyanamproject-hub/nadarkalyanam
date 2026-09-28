@@ -6,7 +6,8 @@ import type { PublicProfileDetail } from '@nadar-kalyanam/schemas';
 import { Button, Card } from '@nadar-kalyanam/ui';
 import { AppHeader, UserIcon } from '../../../components/app-header';
 import { PhotoLightbox } from '../../../components/photo-lightbox';
-import { ApiError, getProfile, reportProfile, sendInterest } from '../../../lib/api-client';
+import { ApiError, getProfile, reportProfile } from '../../../lib/api-client';
+import { ConnectedBadge, RelationshipAction } from '../../../components/relationship/relationship-action';
 import { useRegistration } from '../../providers/registration-provider';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { DUMMY_PROFILES } from '../../../lib/mock-profiles';
@@ -59,9 +60,6 @@ export default function ViewProfilePage() {
   const [profile, setProfile] = useState<PublicProfileDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [sendError, setSendError] = useState<string | undefined>();
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [reporting, setReporting] = useState(false);
@@ -76,7 +74,6 @@ export default function ViewProfilePage() {
       .then((result) => {
         if (!cancelled) {
           setProfile(result);
-          setSent(result.hasSentInterest);
         }
       })
       .catch((err: unknown) => {
@@ -84,7 +81,6 @@ export default function ViewProfilePage() {
           const fallback = DUMMY_PROFILES.find((p) => p.id === params.profileId);
           if (fallback) {
             setProfile(fallback);
-            setSent(fallback.hasSentInterest);
             setError(null);
           } else {
             setError(err instanceof ApiError ? err.message : 'Could not load this profile.');
@@ -98,20 +94,6 @@ export default function ViewProfilePage() {
       cancelled = true;
     };
   }, [ready, data.accessToken, params.profileId]);
-
-  async function handleSendInterest() {
-    if (!profile) return;
-    setSending(true);
-    setSendError(undefined);
-    try {
-      await sendInterest(data.accessToken!, { targetProfileId: profile.id });
-      setSent(true);
-    } catch (err) {
-      setSendError(err instanceof ApiError ? err.message : 'Could not send interest. Please try again.');
-    } finally {
-      setSending(false);
-    }
-  }
 
   async function handleSubmitReport() {
     if (!profile || !reportReason.trim()) return;
@@ -168,17 +150,17 @@ export default function ViewProfilePage() {
                     <p className="mt-1 text-sm text-muted-foreground">
                       {profile.location.city}, {profile.location.state}
                     </p>
+                    {profile.relationshipStatus === 'CONNECTED' && <ConnectedBadge className="mt-2" />}
                   </div>
                 </div>
 
                 <div className="mt-6 flex flex-wrap items-center gap-3">
-                  <Button
-                    type="button"
-                    disabled={sent || sending}
-                    onClick={() => void handleSendInterest()}
-                  >
-                    {sent ? 'Interest Sent' : sending ? 'Sending...' : 'Send Interest'}
-                  </Button>
+                  <RelationshipAction
+                    className="min-w-40"
+                    profileId={profile.id}
+                    relationshipStatus={profile.relationshipStatus}
+                    conversationId={profile.conversationId}
+                  />
                   {!reportSubmitted && (
                     <Button
                       type="button"
@@ -192,7 +174,6 @@ export default function ViewProfilePage() {
                     <p className="text-xs text-muted-foreground">Report submitted — thank you.</p>
                   )}
                 </div>
-                {sendError ? <p className="mt-2 text-xs text-destructive">{sendError}</p> : null}
 
                 {showReportForm && (
                   <div className="mt-4 rounded-xl border border-border bg-muted/40 p-4">

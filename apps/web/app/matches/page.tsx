@@ -73,6 +73,8 @@ export default function MatchesPage() {
                   age={match.age}
                   city={match.city}
                   primaryPhotoUrl={match.primaryPhotoUrl}
+                  relationshipStatus={match.relationshipStatus}
+                  conversationId={match.conversationId}
                   badgeLabel={`${Math.round(match.score)}% match`}
                   badgeVariant="primary"
                 />

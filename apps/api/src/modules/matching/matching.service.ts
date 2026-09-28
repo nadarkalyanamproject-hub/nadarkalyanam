@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { ListMatchesResponse } from '@nadar-kalyanam/schemas';
 import { getBlockedUserIds } from '../../common/blocks.util.js';
+import { getRelationshipStates, relationshipFields } from '../../common/relationship.js';
 import { calculateAge } from '../../common/age.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -34,6 +35,12 @@ export class MatchingService {
     });
 
     const ranked = MatchingEngine.rankCandidates(viewerProfile, candidates).slice(0, limit);
+    // Connected members are kept in the ranking (labeled, not excluded).
+    const relationships = await getRelationshipStates(
+      this.prisma,
+      callerUserId,
+      ranked.map(({ profile }) => profile.userId),
+    );
 
     const items = await Promise.all(
       ranked.map(async ({ profile, score }) => {
@@ -54,6 +61,7 @@ export class MatchingService {
           profession: details?.education?.profession || null,
           religion: details?.religion || null,
           score,
+          ...relationshipFields(relationships.get(profile.userId)),
         };
       }),
     );

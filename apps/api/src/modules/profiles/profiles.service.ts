@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { CreateProfileRequest } from '@nadar-kalyanam/schemas';
 import { getBlockedUserIds, isBlockedEitherDirection } from '../../common/blocks.util.js';
+import { getRelationshipStates, type RelationshipState } from '../../common/relationship.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 function buildProfileData(input: CreateProfileRequest) {
@@ -101,24 +102,14 @@ export class ProfilesService {
     return profile;
   }
 
-  // Backs `hasSentInterest` on browse list/detail responses. Reads
-  // prisma.interest directly rather than depending on InterestsService,
-  // since InterestsModule already imports ProfilesModule — the reverse
-  // dependency would be circular. One batched query regardless of how many
-  // profiles are being mapped (the list endpoint passes every profile's
-  // userId at once; the detail endpoint passes a single-element array), so
-  // there's never an N+1 query per profile.
-  async getSentInterestTargetUserIds(callerUserId: string, targetUserIds: string[]): Promise<Set<string>> {
-    if (targetUserIds.length === 0) return new Set();
-    const rows = await this.prisma.interest.findMany({
-      where: {
-        senderId: callerUserId,
-        targetId: { in: targetUserIds },
-        status: { in: ['PENDING', 'ACCEPTED'] },
-      },
-      select: { targetId: true },
-    });
-    return new Set(rows.map((row) => row.targetId));
+  // Backs relationshipStatus (and the legacy hasSentInterest) on browse
+  // list/detail responses — interests in BOTH directions, one batched query
+  // per page. Delegates to the shared helper also used by discovery,
+  // matching and InterestsService; reads prisma.interest directly rather
+  // than depending on InterestsService, since InterestsModule already
+  // imports ProfilesModule (the reverse would be circular).
+  getRelationshipStates(callerUserId: string, otherUserIds: string[]): Promise<Map<string, RelationshipState>> {
+    return getRelationshipStates(this.prisma, callerUserId, otherUserIds);
   }
 
   // Used by InterestsService for the self-check ("your own profileId !==

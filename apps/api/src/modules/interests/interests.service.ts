@@ -5,12 +5,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import type { Connection, ListConnectionsResponse } from '@nadar-kalyanam/schemas';
 import { calculateAge } from '../../common/age.js';
-import { isBlockedEitherDirection } from '../../common/blocks.util.js';
+import { getBlockedUserIds, isBlockedEitherDirection } from '../../common/blocks.util.js';
+import { getRelationshipStates } from '../../common/relationship.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProfilesService } from '../profiles/profiles.service.js';
+import { toPublicProfileSummary } from '../profiles/public-profile.mapper.js';
 
 function isUniqueConstraintViolation(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
@@ -45,6 +48,25 @@ export class InterestsService {
 
     if (await isBlockedEitherDirection(this.prisma, callerUserId, targetProfile.userId)) {
       throw new NotFoundException('Profile not found');
+    }
+
+    // Relationship rules that look at BOTH directions (the per-direction
+    // rules below only ever saw the caller's own rows, which is how an
+    // already-connected pair could get a second, reverse interest):
+    //  - an ACCEPTED interest either way means the pair is already connected;
+    //  - a PENDING interest from them to the caller should be answered, not
+    //    crossed with a second pending one the other way. (Product
+    //    assumption — this could instead auto-accept theirs.)
+    const relationship = (await getRelationshipStates(this.prisma, callerUserId, [targetProfile.userId])).get(
+      targetProfile.userId,
+    );
+    if (relationship?.status === 'CONNECTED') {
+      throw new ConflictException('You are already connected with this member');
+    }
+    if (relationship?.status === 'INTEREST_RECEIVED') {
+      throw new ConflictException(
+        'This member has already sent you an interest - accept it from your Interests page',
+      );
     }
 
     // A prior WITHDRAWN interest between this pair does NOT block a new one —
@@ -187,6 +209,76 @@ export class InterestsService {
       sent: sentRows.map((row) => toResponse(row, parties.get(row.targetId))),
       received: receivedRows.map((row) => toResponse(row, parties.get(row.senderId))),
     };
+  }
+
+  // The caller's connections: every ACCEPTED interest in either direction,
+  // most recently connected first. Same exclusions as the other member
+  // lists (blocked in either direction, non-ACTIVE accounts, no profile),
+  // except HIDDEN visibility — hiding yourself from discovery doesn't hide
+  // you from someone you're already connected with. Mapped through the same
+  // privacy-safe public summary as browse (never email / dateOfBirth).
+  async listConnections(callerUserId: string, offset: number, limit: number): Promise<ListConnectionsResponse> {
+    const blockedUserIds = [...(await getBlockedUserIds(this.prisma, callerUserId))];
+    const eligibleOther: Prisma.UserWhereInput = {
+      status: 'ACTIVE',
+      id: { notIn: blockedUserIds },
+      profile: { isNot: null },
+    };
+    const where: Prisma.InterestWhereInput = {
+      status: 'ACCEPTED',
+      conversation: { isNot: null },
+      OR: [
+        { senderId: callerUserId, target: eligibleOther },
+        { targetId: callerUserId, sender: eligibleOther },
+      ],
+    };
+
+    const [rows, total] = await Promise.all([
+      this.prisma.interest.findMany({
+        where,
+        orderBy: [{ respondedAt: 'desc' }, { id: 'asc' }],
+        skip: offset,
+        take: limit,
+        select: {
+          senderId: true,
+          targetId: true,
+          createdAt: true,
+          respondedAt: true,
+          conversation: { select: { id: true } },
+        },
+      }),
+      this.prisma.interest.count({ where }),
+    ]);
+
+    const otherUserIds = rows.map((row) => (row.senderId === callerUserId ? row.targetId : row.senderId));
+    const profiles = otherUserIds.length
+      ? await this.prisma.profile.findMany({ where: { userId: { in: otherUserIds } } })
+      : [];
+    const profilesByUserId = new Map(profiles.map((profile) => [profile.userId, profile]));
+
+    const seen = new Set<string>();
+    const items: Connection[] = [];
+    for (const [index, row] of rows.entries()) {
+      const otherUserId = otherUserIds[index];
+      const profile = profilesByUserId.get(otherUserId);
+      // A pair connected by two ACCEPTED rows (possible only for data from
+      // before sendInterest refused reverse interests) is listed once.
+      if (!profile || !row.conversation || seen.has(otherUserId)) continue;
+      seen.add(otherUserId);
+      const photos = await this.photosService.getPhotosForProfile(profile.id);
+      const primaryPhotoUrl = photos.find((photo) => photo.isPrimary)?.url ?? photos[0]?.url ?? null;
+      items.push({
+        ...toPublicProfileSummary(profile, primaryPhotoUrl, {
+          status: 'CONNECTED',
+          conversationId: row.conversation.id,
+        }),
+        conversationId: row.conversation.id,
+        connectedAt: (row.respondedAt ?? row.createdAt).toISOString(),
+      });
+    }
+
+    const nextOffset = offset + rows.length < total ? offset + rows.length : null;
+    return { items, total, nextOffset };
   }
 
   private async getInterestOrThrow(interestId: string) {

@@ -25,7 +25,8 @@ import {
 } from 'lucide-react';
 import { AppHeader, UserIcon } from '../app-header';
 import { SponsoredBanner } from './sponsored-banner';
-import { ApiError, listInterests, listMatches, listNotifications, searchProfiles, sendInterest } from '../../lib/api-client';
+import { listInterests, listMatches, listNotifications, searchProfiles } from '../../lib/api-client';
+import { ConnectedBadge, RelationshipAction } from '../relationship/relationship-action';
 import { useProfile } from '../../lib/use-profile';
 import { useRegistration } from '../../app/providers/registration-provider';
 
@@ -120,9 +121,6 @@ export function AuthenticatedHome() {
   const [lookingFor, setLookingFor] = useState<'Nadar Bride' | 'Nadar Groom'>('Nadar Bride');
   const [ageRange, setAgeRange] = useState('25 – 32 yrs');
   const [locationCity, setLocationCity] = useState('Chennai');
-  const [sentMap, setSentMap] = useState<Record<string, boolean>>({});
-  const [sendingId, setSendingId] = useState<string | null>(null);
-  const [sendError, setSendError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!data.accessToken || !profile) return;
@@ -172,20 +170,6 @@ export function AuthenticatedHome() {
     }
     setLocationCity(tag);
     router.push(`/search?city=${encodeURIComponent(tag)}`);
-  }
-
-  async function handleSendInterest(matchId: string) {
-    if (!data.accessToken || sentMap[matchId]) return;
-    setSendingId(matchId);
-    setSendError(null);
-    try {
-      await sendInterest(data.accessToken, { targetProfileId: matchId });
-      setSentMap((prev) => ({ ...prev, [matchId]: true }));
-    } catch (err) {
-      setSendError(err instanceof ApiError ? err.message : 'Could not send interest. Please try again.');
-    } finally {
-      setSendingId(null);
-    }
   }
 
   const firstName = profile?.fullName ? profile.fullName.split(' ')[0] : 'ARJUN';
@@ -401,14 +385,9 @@ export function AuthenticatedHome() {
             </Link>
           </div>
 
-          {sendError && <p className="text-xs font-semibold text-destructive">{sendError}</p>}
-
           {matches && matches.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {matches.map((match) => {
-                const isSent = sentMap[match.profileId];
-                const isSending = sendingId === match.profileId;
-
                 return (
                   <div
                     key={match.profileId}
@@ -446,6 +425,8 @@ export function AuthenticatedHome() {
                           </h3>
                         </Link>
 
+                        {match.relationshipStatus === 'CONNECTED' && <ConnectedBadge />}
+
                         {match.city && (
                           <p className="text-xs text-[#73645C] flex items-center gap-1 truncate">
                             <MapPin className="h-3.5 w-3.5 shrink-0 text-[#9A3412]" />
@@ -469,25 +450,14 @@ export function AuthenticatedHome() {
                       </div>
                     </div>
 
-                    {/* Send Interest CTA */}
+                    {/* Interest action: Send / Sent / Respond / Message */}
                     <div className="p-3 pt-0">
-                      <button
-                        type="button"
-                        disabled={isSent || isSending}
-                        onClick={() => void handleSendInterest(match.profileId)}
-                        className={`w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                          isSent
-                            ? 'bg-[#F0FDF4] text-[#16A34A] border border-[#86EFAC]'
-                            : 'bg-white hover:bg-[#FFF8F0] text-[#7B1118] border border-[#E7CDAF]'
-                        }`}
-                      >
-                        <Heart
-                          className={`h-3.5 w-3.5 ${
-                            isSent ? 'fill-[#16A34A] text-[#16A34A]' : 'text-[#7B1118]'
-                          }`}
-                        />
-                        <span>{isSent ? 'Interest Sent' : isSending ? 'Sending…' : 'Send Interest'}</span>
-                      </button>
+                      <RelationshipAction
+                        appearance="home"
+                        profileId={match.profileId}
+                        relationshipStatus={match.relationshipStatus}
+                        conversationId={match.conversationId}
+                      />
                     </div>
                   </div>
                 );

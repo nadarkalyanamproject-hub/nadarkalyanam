@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
-import { Button, Card } from '@nadar-kalyanam/ui';
+import type { RelationshipStatus } from '@nadar-kalyanam/schemas';
 import { UserIcon } from '../app-header';
-import { ApiError, sendInterest } from '../../lib/api-client';
-import { useRegistration } from '../../app/providers/registration-provider';
+import { ConnectedBadge, RelationshipAction } from '../relationship/relationship-action';
 
 // Theme-token badges only (bg-primary / bg-accent), never a raw hex or
 // Tailwind palette color — keeps every result card on the same two-color
@@ -23,6 +21,8 @@ export function ResultCard({
   primaryPhotoUrl,
   badgeLabel,
   badgeVariant = 'primary',
+  relationshipStatus,
+  conversationId,
 }: {
   profileId: string;
   fullName: string;
@@ -31,25 +31,9 @@ export function ResultCard({
   primaryPhotoUrl: string | null;
   badgeLabel?: string;
   badgeVariant?: keyof typeof BADGE_STYLES;
+  relationshipStatus: RelationshipStatus;
+  conversationId: string | null;
 }) {
-  const { data } = useRegistration();
-  const [sent, setSent] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | undefined>();
-
-  async function handleSendInterest() {
-    setSending(true);
-    setError(undefined);
-    try {
-      await sendInterest(data.accessToken!, { targetProfileId: profileId });
-      setSent(true);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not send interest. Please try again.');
-    } finally {
-      setSending(false);
-    }
-  }
-
   return (
     <div className="group flex flex-col overflow-hidden rounded-2xl border border-[#E8DCC8] bg-[#FFFFFF] shadow-sm transition-all duration-200 hover:border-[#F59E0B] hover:shadow-md">
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#FAF6EF]">
@@ -79,10 +63,9 @@ export function ResultCard({
           {fullName}, {age}
         </h3>
         {city && <p className="mt-1 text-xs font-medium text-[#776B62]">{city}</p>}
+        {relationshipStatus === 'CONNECTED' && <ConnectedBadge className="mt-1.5 self-start" />}
 
-        {error ? <p className="mt-2 text-xs text-[#94151C]">{error}</p> : null}
-
-        <div className="mt-4 flex gap-2 pt-2 border-t border-[#F3EBDD]">
+        <div className="mt-4 flex items-start gap-2 pt-2 border-t border-[#F3EBDD]">
           <Link href={`/browse/${profileId}`} className="flex-1">
             <button
               type="button"
@@ -91,14 +74,13 @@ export function ResultCard({
               View Profile
             </button>
           </Link>
-          <button
-            type="button"
-            disabled={sent || sending}
-            onClick={() => void handleSendInterest()}
-            className="flex-1 rounded-lg bg-gradient-to-r from-[#94151C] to-[#7A0710] py-2 text-xs font-semibold text-white shadow-2xs transition-all hover:from-[#A81C24] hover:to-[#94151C] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {sent ? '✓ Interest Sent' : sending ? 'Sending…' : 'Send Interest'}
-          </button>
+          <RelationshipAction
+            className="flex-1"
+            appearance="discovery"
+            profileId={profileId}
+            relationshipStatus={relationshipStatus}
+            conversationId={conversationId}
+          />
         </div>
       </div>
     </div>

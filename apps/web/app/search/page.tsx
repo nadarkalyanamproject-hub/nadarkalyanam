@@ -45,6 +45,8 @@ function filterDummyProfiles(filters: Filters): SearchProfileResult[] {
     city: p.location.city,
     primaryPhotoUrl: p.primaryPhotoUrl,
     isVerified: true,
+    relationshipStatus: p.relationshipStatus,
+    conversationId: p.conversationId,
   }));
 }
 
@@ -185,6 +187,8 @@ export default function SearchPage() {
                     age={profile.age}
                     city={profile.city}
                     primaryPhotoUrl={profile.primaryPhotoUrl}
+                  relationshipStatus={profile.relationshipStatus}
+                  conversationId={profile.conversationId}
                     badgeLabel={profile.isVerified ? 'Verified' : undefined}
                     badgeVariant="accent"
                   />

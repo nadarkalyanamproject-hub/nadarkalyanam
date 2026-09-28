@@ -5,10 +5,8 @@ import {
   type ProfileListResponse,
   type ProfileResponse,
   type PublicProfileDetail,
-  type PublicProfileSummary,
   createProfileSchema,
 } from '@nadar-kalyanam/schemas';
-import { calculateAge } from '../../common/age.js';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -16,6 +14,10 @@ import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard.js';
 import type { Profile } from '../../generated/prisma/client.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { ProfilesService } from './profiles.service.js';
+import { toPublicProfileDetail, toPublicProfileSummary } from './public-profile.mapper.js';
+
+// Re-exported so existing imports of the public mappers keep working.
+export { toPublicProfileDetail, toPublicProfileSummary };
 
 function toProfileResponse(profile: Profile, photos: PhotoResponse[]): ProfileResponse {
   return {
@@ -25,51 +27,6 @@ function toProfileResponse(profile: Profile, photos: PhotoResponse[]): ProfileRe
     dateOfBirth: profile.dateOfBirth.toISOString().slice(0, 10),
     completionScore: profile.completionScore,
     details: profile.details as unknown as ProfileResponse['details'],
-    photos,
-  };
-}
-
-// Deliberately separate from toProfileResponse above: this is what any OTHER
-// user's request for this profile can see, so it must never be able to grow
-// an `email` (or full `dateOfBirth`) field just because someone later merges
-// it with the owner-facing mapper. Every field here is picked explicitly —
-// never spread the raw `details` blob into a response for someone else.
-export function toPublicProfileSummary(
-  profile: Profile,
-  primaryPhotoUrl: string | null,
-  hasSentInterest: boolean,
-): PublicProfileSummary {
-  const details = profile.details as unknown as ProfileResponse['details'];
-  return {
-    id: profile.id,
-    fullName: profile.fullName,
-    age: calculateAge(profile.dateOfBirth),
-    gender: profile.gender as PublicProfileSummary['gender'],
-    location: { city: details.location.city, state: details.location.state },
-    religion: details.religion,
-    profession: details.education.profession,
-    maritalStatus: details.maritalStatus,
-    primaryPhotoUrl,
-    hasSentInterest,
-  };
-}
-
-export function toPublicProfileDetail(
-  profile: Profile,
-  photos: PhotoResponse[],
-  hasSentInterest: boolean,
-): PublicProfileDetail {
-  const details = profile.details as unknown as ProfileResponse['details'];
-  const primaryPhotoUrl = photos.find((photo) => photo.isPrimary)?.url ?? photos[0]?.url ?? null;
-  return {
-    ...toPublicProfileSummary(profile, primaryPhotoUrl, hasSentInterest),
-    motherTongue: details.motherTongue,
-    height: details.height,
-    physicalStatus: details.physicalStatus,
-    casteCommunity: details.casteCommunity,
-    dosham: details.dosham,
-    education: details.education,
-    additional: details.additional,
     photos,
   };
 }
@@ -124,7 +81,7 @@ export class ProfilesController {
 
     const { profiles, total } = await this.profilesService.listOtherProfiles(user.userId, offset, limit);
     // One batched query for the whole page, not one per profile.
-    const sentTargetUserIds = await this.profilesService.getSentInterestTargetUserIds(
+    const relationships = await this.profilesService.getRelationshipStates(
       user.userId,
       profiles.map((profile) => profile.userId),
     );
@@ -132,7 +89,7 @@ export class ProfilesController {
       profiles.map(async (profile) => {
         const photos = await this.photosService.getPhotosForProfile(profile.id);
         const primaryPhotoUrl = photos.find((photo) => photo.isPrimary)?.url ?? photos[0]?.url ?? null;
-        return toPublicProfileSummary(profile, primaryPhotoUrl, sentTargetUserIds.has(profile.userId));
+        return toPublicProfileSummary(profile, primaryPhotoUrl, relationships.get(profile.userId));
       }),
     );
 
@@ -151,9 +108,7 @@ export class ProfilesController {
   ): Promise<PublicProfileDetail> {
     const profile = await this.profilesService.getOtherProfile(user.userId, id);
     const photos = await this.photosService.getPhotosForProfile(profile.id);
-    const sentTargetUserIds = await this.profilesService.getSentInterestTargetUserIds(user.userId, [
-      profile.userId,
-    ]);
-    return toPublicProfileDetail(profile, photos, sentTargetUserIds.has(profile.userId));
+    const relationships = await this.profilesService.getRelationshipStates(user.userId, [profile.userId]);
+    return toPublicProfileDetail(profile, photos, relationships.get(profile.userId));
   }
 }
