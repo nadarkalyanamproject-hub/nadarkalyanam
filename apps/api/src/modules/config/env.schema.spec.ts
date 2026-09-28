@@ -62,4 +62,29 @@ describe('validateEnv', () => {
       }),
     ).toThrow(/MINIO_ENDPOINT/);
   });
+
+  it('keeps the anonymization job and its dry-run mode OFF by default', () => {
+    const env = validateEnv({
+      DATABASE_URL: 'postgresql://user:pass@localhost:5439/db',
+      REDIS_URL: 'redis://localhost:6380',
+      JWT_ACCESS_TOKEN_SECRET: 'test-secret',
+      ...validMinioEnv,
+    });
+
+    expect(env.ENABLE_ANONYMIZATION_JOB).toBe(false);
+    expect(env.ANONYMIZATION_DRY_RUN).toBe(false);
+  });
+
+  it('parses the literal string "false" as false (not truthy) and rejects anything but true/false', () => {
+    const base = {
+      DATABASE_URL: 'postgresql://user:pass@localhost:5439/db',
+      REDIS_URL: 'redis://localhost:6380',
+      JWT_ACCESS_TOKEN_SECRET: 'test-secret',
+      ...validMinioEnv,
+    };
+
+    expect(validateEnv({ ...base, ENABLE_ANONYMIZATION_JOB: 'false' }).ENABLE_ANONYMIZATION_JOB).toBe(false);
+    expect(validateEnv({ ...base, ENABLE_ANONYMIZATION_JOB: 'true' }).ENABLE_ANONYMIZATION_JOB).toBe(true);
+    expect(() => validateEnv({ ...base, ENABLE_ANONYMIZATION_JOB: 'yes' })).toThrow(/ENABLE_ANONYMIZATION_JOB/);
+  });
 });

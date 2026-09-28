@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Button, Card, Input } from '@nadar-kalyanam/ui';
+import type { AccountStatus } from '@nadar-kalyanam/schemas';
+import { Button, Card, Input, Select } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../../components/admin-shell';
+import { StatusBadge } from '../../components/status-badge';
 import { ApiError, listMembers, type MemberSummary } from '../../lib/api-client';
 import { useAdminAuth } from '../providers/admin-auth-provider';
 import { useRequireAdminAuth } from '../../lib/use-require-admin-auth';
@@ -14,6 +16,9 @@ export default function MembersPage() {
   const { ready } = useRequireAdminAuth();
   const { data } = useAdminAuth();
   const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<AccountStatus | ''>('');
+  const [verified, setVerified] = useState<'true' | 'false' | ''>('');
+  const [sort, setSort] = useState<'newest' | 'oldest'>('newest');
   const [members, setMembers] = useState<MemberSummary[] | null>(null);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -27,7 +32,14 @@ export default function MembersPage() {
   useEffect(() => {
     if (!ready || !data.accessToken) return;
     let cancelled = false;
-    listMembers(data.accessToken, { offset, limit: PAGE_SIZE, search: search || undefined })
+    listMembers(data.accessToken, {
+      offset,
+      limit: PAGE_SIZE,
+      search: search || undefined,
+      status: status || undefined,
+      verified: verified || undefined,
+      sort,
+    })
       .then((result) => {
         if (!cancelled) {
           setMembers(result.items);
@@ -40,7 +52,7 @@ export default function MembersPage() {
     return () => {
       cancelled = true;
     };
-  }, [ready, data.accessToken, offset, search]);
+  }, [ready, data.accessToken, offset, search, status, verified, sort]);
 
   if (!ready) return null;
 
@@ -51,7 +63,7 @@ export default function MembersPage() {
           <h1 className="text-2xl font-bold text-foreground">Members</h1>
         </div>
 
-        <Card className="rounded-2xl p-4 shadow-sm">
+        <Card className="flex flex-col gap-3 rounded-2xl p-4 shadow-sm">
           <Input
             type="text"
             placeholder="Search by phone, name, or email…"
@@ -61,6 +73,45 @@ export default function MembersPage() {
               setOffset(0);
             }}
           />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Select
+              aria-label="Status"
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value as AccountStatus | '');
+                setOffset(0);
+              }}
+            >
+              <option value="">All statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="SUSPENDED">Suspended</option>
+              <option value="PENDING_DELETION">Pending deletion</option>
+              <option value="DELETED">Deleted</option>
+            </Select>
+            <Select
+              aria-label="Verification"
+              value={verified}
+              onChange={(e) => {
+                setVerified(e.target.value as 'true' | 'false' | '');
+                setOffset(0);
+              }}
+            >
+              <option value="">Verified or not</option>
+              <option value="true">Verified only</option>
+              <option value="false">Not verified</option>
+            </Select>
+            <Select
+              aria-label="Sort"
+              value={sort}
+              onChange={(e) => {
+                setSort(e.target.value as 'newest' | 'oldest');
+                setOffset(0);
+              }}
+            >
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+            </Select>
+          </div>
         </Card>
 
         {error && <Card className="rounded-2xl p-6 text-sm text-destructive">{error}</Card>}
@@ -88,7 +139,9 @@ export default function MembersPage() {
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{member.phoneNumber}</td>
-                    <td className="px-4 py-3">{member.status}</td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={member.status} />
+                    </td>
                     <td className="px-4 py-3">{member.completionScore ?? '—'}</td>
                     <td className="px-4 py-3">{member.isVerified ? 'Yes' : 'No'}</td>
                     <td className="px-4 py-3 text-muted-foreground">

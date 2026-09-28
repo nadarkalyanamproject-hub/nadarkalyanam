@@ -1,4 +1,12 @@
-import type { CreateProfileRequest, ReportResponse, SendOtpResponse } from '@nadar-kalyanam/schemas';
+import type {
+  AccountStatus,
+  CreateAdminRequest,
+  CreateProfileRequest,
+  ReportResponse,
+  ReportStatus,
+  SendOtpResponse,
+  UpdateAdminRequest,
+} from '@nadar-kalyanam/schemas';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
@@ -42,6 +50,15 @@ function authHeaders(accessToken: string): HeadersInit {
   return { Authorization: `Bearer ${accessToken}` };
 }
 
+function toQueryString(params: Record<string, string | number | undefined>): string {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== '' && value !== 0) query.set(key, String(value));
+  }
+  const qs = query.toString();
+  return qs ? `?${qs}` : '';
+}
+
 // --- Auth (same phone/OTP flow as the member web app — no separate admin
 // credential exists) --------------------------------------------------------
 
@@ -69,7 +86,7 @@ export function verifyOtp(phoneNumber: string, otp: string): Promise<AdminVerify
 
 export interface DashboardStats {
   totalMembers: number;
-  membersByStatus: { active: number; suspended: number; pendingDeletion: number };
+  membersByStatus: { active: number; suspended: number; pendingDeletion: number; deleted: number };
   newSignupsLast7Days: number;
   pendingReportsCount: number;
   verifiedProfilesCount: number;
@@ -93,16 +110,20 @@ export interface MemberSummary {
   isVerified: boolean;
 }
 
+export interface MemberListParams {
+  offset?: number;
+  limit?: number;
+  search?: string;
+  status?: AccountStatus;
+  verified?: 'true' | 'false';
+  sort?: 'newest' | 'oldest';
+}
+
 export function listMembers(
   accessToken: string,
-  params?: { offset?: number; limit?: number; search?: string },
+  params: MemberListParams = {},
 ): Promise<{ items: MemberSummary[]; total: number }> {
-  const query = new URLSearchParams();
-  if (params?.offset) query.set('offset', String(params.offset));
-  if (params?.limit) query.set('limit', String(params.limit));
-  if (params?.search) query.set('search', params.search);
-  const qs = query.toString();
-  return request(`/admin/members${qs ? `?${qs}` : ''}`, { headers: authHeaders(accessToken) });
+  return request(`/admin/members${toQueryString({ ...params })}`, { headers: authHeaders(accessToken) });
 }
 
 export interface MemberDetail {
@@ -171,25 +192,60 @@ export function removeMember(accessToken: string, userId: string, reason: string
   });
 }
 
-// --- Reports -------------------------------------------------------------
-
-export function listReports(accessToken: string, params?: { offset?: number; limit?: number }): Promise<{ items: ReportResponse[] }> {
-  const query = new URLSearchParams();
-  if (params?.offset) query.set('offset', String(params.offset));
-  if (params?.limit) query.set('limit', String(params.limit));
-  const qs = query.toString();
-  return request(`/admin/reports${qs ? `?${qs}` : ''}`, { headers: authHeaders(accessToken) });
+export function restoreMember(accessToken: string, userId: string): Promise<{ id: string; status: string }> {
+  return request(`/admin/members/${userId}/restore`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+  });
 }
 
-export function resolveReport(
+export function removeMemberPhoto(
+  accessToken: string,
+  userId: string,
+  photoId: string,
+  reason: string,
+): Promise<{ id: string; removed: boolean }> {
+  return request(`/admin/members/${userId}/photos/${photoId}`, {
+    method: 'DELETE',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ reason }),
+  });
+}
+
+// --- Reports -------------------------------------------------------------
+
+export interface ReportMemberSummary {
+  userId: string;
+  profileId: string | null;
+  fullName: string | null;
+  phoneNumber: string;
+  status: string;
+}
+
+export interface AdminReport extends ReportResponse {
+  reporter: ReportMemberSummary | null;
+  reportedMember: ReportMemberSummary | null;
+  reportedMessage: { id: string; body: string; createdAt: string } | null;
+  note: string | null;
+}
+
+export function listReports(
+  accessToken: string,
+  params: { offset?: number; limit?: number; status?: ReportStatus } = {},
+): Promise<{ items: AdminReport[]; total: number }> {
+  return request(`/admin/reports${toQueryString({ ...params })}`, { headers: authHeaders(accessToken) });
+}
+
+export function updateReport(
   accessToken: string,
   reportId: string,
-  status: 'RESOLVED' | 'DISMISSED',
+  status: 'IN_REVIEW' | 'RESOLVED' | 'DISMISSED',
+  note?: string,
 ): Promise<ReportResponse> {
   return request(`/admin/reports/${reportId}`, {
     method: 'PATCH',
     headers: authHeaders(accessToken),
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(note ? { status, note } : { status }),
   });
 }
 
@@ -198,6 +254,8 @@ export function resolveReport(
 export interface AuditLogEntry {
   id: string;
   adminId: string;
+  adminEmail: string;
+  adminPhoneNumber: string;
   action: string;
   targetType: string;
   targetId: string;
@@ -205,13 +263,71 @@ export interface AuditLogEntry {
   createdAt: string;
 }
 
+export interface AuditLogParams {
+  offset?: number;
+  limit?: number;
+  action?: string;
+  adminId?: string;
+  targetType?: string;
+  targetId?: string;
+  from?: string;
+  to?: string;
+}
+
 export function listAuditLogs(
   accessToken: string,
-  params?: { offset?: number; limit?: number },
-): Promise<AuditLogEntry[]> {
-  const query = new URLSearchParams();
-  if (params?.offset) query.set('offset', String(params.offset));
-  if (params?.limit) query.set('limit', String(params.limit));
-  const qs = query.toString();
-  return request(`/admin/audit-logs${qs ? `?${qs}` : ''}`, { headers: authHeaders(accessToken) });
+  params: AuditLogParams = {},
+): Promise<{ items: AuditLogEntry[]; total: number }> {
+  return request(`/admin/audit-logs${toQueryString({ ...params })}`, { headers: authHeaders(accessToken) });
+}
+
+// --- Admin users -------------------------------------------------------------
+
+export interface AdminSummary {
+  id: string;
+  userId: string;
+  email: string;
+  phoneNumber: string;
+  roleId: string;
+  roleName: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface CurrentAdmin extends AdminSummary {
+  permissions: string[];
+}
+
+export interface RoleSummary {
+  id: string;
+  name: string;
+  permissions: string[];
+}
+
+export function getCurrentAdmin(accessToken: string): Promise<CurrentAdmin> {
+  return request('/admin/me', { headers: authHeaders(accessToken) });
+}
+
+export function listAdmins(accessToken: string): Promise<{ items: AdminSummary[] }> {
+  return request('/admin/admins', { headers: authHeaders(accessToken) });
+}
+
+export function listRoles(accessToken: string): Promise<{ items: RoleSummary[] }> {
+  return request('/admin/roles', { headers: authHeaders(accessToken) });
+}
+
+export function createAdmin(accessToken: string, payload: CreateAdminRequest): Promise<AdminSummary> {
+  return request('/admin/admins', {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateAdmin(accessToken: string, adminId: string, payload: UpdateAdminRequest): Promise<AdminSummary> {
+  return request(`/admin/admins/${adminId}`, {
+    method: 'PATCH',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify(payload),
+  });
 }

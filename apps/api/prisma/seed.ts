@@ -1,25 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PERMISSIONS } from '../src/common/permissions.js';
+import { ROLE_PERMISSIONS } from '../src/common/role-permissions.js';
 import { PrismaClient } from '../src/generated/prisma/client.js';
-
-const ROLE_PERMISSIONS: Record<string, string[]> = {
-  SUPER_ADMIN: Object.values(PERMISSIONS),
-  OPERATIONS_ADMIN: [
-    PERMISSIONS.MEMBERS_VIEW,
-    PERMISSIONS.MEMBERS_SUSPEND,
-    PERMISSIONS.MEMBERS_REINSTATE,
-    PERMISSIONS.REPORTS_REVIEW,
-  ],
-  MODERATOR: [
-    PERMISSIONS.MEMBERS_VIEW,
-    PERMISSIONS.MEMBERS_SUSPEND,
-    PERMISSIONS.MEMBERS_REINSTATE,
-    PERMISSIONS.REPORTS_REVIEW,
-  ],
-  VERIFICATION_AGENT: [PERMISSIONS.VERIFICATION_REVIEW],
-  FINANCE_ADMIN: [PERMISSIONS.PAYMENTS_REFUND, PERMISSIONS.FINANCE_DASHBOARD_VIEW],
-  CONTENT_ADMIN: [PERMISSIONS.CMS_MANAGE],
-};
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -409,10 +391,10 @@ async function main() {
 
   console.log('Seeded roles, permissions, and membership plans.');
 
-  // First admin account — the only way to bootstrap admin access today,
-  // since there is deliberately no "admin invites another admin" flow yet.
-  // Logs in through the exact same phone/OTP flow as a regular member
-  // (POST /auth/otp/request, then POST /auth/otp/verify with
+  // First admin account — the bootstrap for admin access. Further admins
+  // are added by a SUPER_ADMIN from the admin app's Admins page
+  // (POST /admin/admins). Logs in through the exact same phone/OTP flow as
+  // a regular member (POST /auth/otp/request, then POST /auth/otp/verify with
   // intent: 'login') using ADMIN_PHONE_NUMBER below. Because a linked
   // AdminUser row exists for that User, auth.service.ts's verifyOtp() issues
   // an admin-scoped (typ: 'admin') token instead of a normal member token —

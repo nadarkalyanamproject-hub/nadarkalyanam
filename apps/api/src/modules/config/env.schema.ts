@@ -51,6 +51,21 @@ export const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
+  // FR-1.5's anonymization step for members whose 14-day removal grace
+  // period has elapsed (see modules/admin/anonymization). Destructive and
+  // irreversible, so OFF by default: when false no queue, scheduler or
+  // worker is created at all. Same safe-boolean pattern as above.
+  ENABLE_ANONYMIZATION_JOB: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  // Only meaningful when the job is enabled: logs which members WOULD be
+  // anonymized and writes nothing. Run a dry-run pass first on any new
+  // environment.
+  ANONYMIZATION_DRY_RUN: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
 });
 
 export type Env = z.infer<typeof envSchema>;

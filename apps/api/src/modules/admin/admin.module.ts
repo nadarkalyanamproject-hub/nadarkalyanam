@@ -4,7 +4,10 @@ import { ModerationModule } from '../moderation/moderation.module.js';
 import { PhotosModule } from '../photos/photos.module.js';
 import { ProfilesModule } from '../profiles/profiles.module.js';
 import { AdminController } from './admin.controller.js';
+import { AdminUsersService } from './admin-users.service.js';
 import { AdminService } from './admin.service.js';
+import { AnonymizationProcessor } from './anonymization/anonymization.processor.js';
+import { AnonymizationService } from './anonymization/anonymization.service.js';
 import { AuditLogService } from './audit-log.service.js';
 import { AdminAuthGuard } from './guards/admin-auth.guard.js';
 import { PermissionsGuard } from './guards/permissions.guard.js';
@@ -12,7 +15,15 @@ import { PermissionsGuard } from './guards/permissions.guard.js';
 @Module({
   imports: [AuthModule, ModerationModule, PhotosModule, ProfilesModule],
   controllers: [AdminController],
-  providers: [AdminService, AuditLogService, AdminAuthGuard, PermissionsGuard],
+  providers: [
+    AdminService,
+    AdminUsersService,
+    AuditLogService,
+    AnonymizationService,
+    AnonymizationProcessor,
+    AdminAuthGuard,
+    PermissionsGuard,
+  ],
   exports: [AuditLogService],
 })
 export class AdminModule {}

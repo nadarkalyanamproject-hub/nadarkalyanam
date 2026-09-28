@@ -12,6 +12,10 @@ const UPLOAD_URL_TTL_SECONDS = 300;
 // URL were ever shared or leaked.
 const GET_URL_TTL_SECONDS = 3600;
 
+function isExternalUrl(objectKey: string): boolean {
+  return objectKey.startsWith('http://') || objectKey.startsWith('https://');
+}
+
 @Injectable()
 export class StorageService {
   private readonly bucket: string;
@@ -32,7 +36,12 @@ export class StorageService {
     return getSignedUrl(this.s3, command, { expiresIn: UPLOAD_URL_TTL_SECONDS });
   }
 
+  // External-URL "keys" (seed/mock data, see getObjectUrl) aren't objects in
+  // this bucket, so there is nothing to delete for them.
   async deleteObject(objectKey: string): Promise<void> {
+    if (isExternalUrl(objectKey)) {
+      return;
+    }
     await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: objectKey }));
   }
 
@@ -45,7 +54,7 @@ export class StorageService {
   // external URL (e.g. a placeholder image) in place of a real object key,
   // which can't be (and doesn't need to be) signed — pass it through as-is.
   async getObjectUrl(objectKey: string): Promise<string> {
-    if (objectKey.startsWith('http://') || objectKey.startsWith('https://')) {
+    if (isExternalUrl(objectKey)) {
       return objectKey;
     }
     const command = new GetObjectCommand({ Bucket: this.bucket, Key: objectKey });

@@ -12,3 +12,65 @@ export const removeMemberRequestSchema = z.object({
   reason: z.string().min(1, 'reason is required'),
 });
 export type RemoveMemberRequest = z.infer<typeof removeMemberRequestSchema>;
+
+// Admin photo moderation — a reason is required for the audit trail, same
+// as suspend/remove.
+export const removeMemberPhotoRequestSchema = z.object({
+  reason: z.string().trim().min(1, 'reason is required'),
+});
+export type RemoveMemberPhotoRequest = z.infer<typeof removeMemberPhotoRequestSchema>;
+
+export const accountStatusEnum = z.enum(['ACTIVE', 'SUSPENDED', 'PENDING_DELETION', 'DELETED']);
+export type AccountStatus = z.infer<typeof accountStatusEnum>;
+
+// Query-string filters for GET /admin/members. Every value arrives as a
+// string, so `verified` is an enum of the two literal strings rather than a
+// coerced boolean (z.coerce.boolean() would turn "false" into true).
+export const adminMembersQuerySchema = z.object({
+  offset: z.string().optional(),
+  limit: z.string().optional(),
+  search: z.string().optional(),
+  status: accountStatusEnum.optional(),
+  verified: z.enum(['true', 'false']).optional(),
+  sort: z.enum(['newest', 'oldest']).optional(),
+});
+export type AdminMembersQuery = z.infer<typeof adminMembersQuerySchema>;
+
+const isoDate = z
+  .string()
+  .refine((value) => !Number.isNaN(Date.parse(value)), { message: 'must be an ISO date or date-time' });
+
+export const adminAuditLogsQuerySchema = z.object({
+  offset: z.string().optional(),
+  limit: z.string().optional(),
+  action: z.string().min(1).optional(),
+  adminId: z.string().min(1).optional(),
+  targetType: z.string().min(1).optional(),
+  targetId: z.string().min(1).optional(),
+  from: isoDate.optional(),
+  to: isoDate.optional(),
+});
+export type AdminAuditLogsQuery = z.infer<typeof adminAuditLogsQuerySchema>;
+
+// --- Admin user management ------------------------------------------------
+
+// AdminUser.email is a required, unique column, so creating an admin needs
+// one even though login itself is phone/OTP only.
+export const createAdminRequestSchema = z.object({
+  // Same E.164 rule as the OTP login request — this is the number the new
+  // admin will log in with.
+  phoneNumber: z.string().regex(/^\+[1-9]\d{7,14}$/, 'Must be E.164 format, e.g. +919876543210'),
+  email: z.string().trim().toLowerCase().email('Enter a valid email address'),
+  roleId: z.string().min(1, 'roleId is required'),
+});
+export type CreateAdminRequest = z.infer<typeof createAdminRequestSchema>;
+
+export const updateAdminRequestSchema = z
+  .object({
+    roleId: z.string().min(1).optional(),
+    isActive: z.boolean().optional(),
+  })
+  .refine((body) => body.roleId !== undefined || body.isActive !== undefined, {
+    message: 'Provide roleId and/or isActive',
+  });
+export type UpdateAdminRequest = z.infer<typeof updateAdminRequestSchema>;

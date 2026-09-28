@@ -100,7 +100,7 @@ export class PhotosService {
     return this.toPhotoResponse(updated);
   }
 
-  async deletePhoto(userId: string, photoId: string): Promise<void> {
+  async deletePhoto(userId: string, photoId: string): Promise<{ id: string; objectKey: string }> {
     const profile = await this.getOwnedProfile(userId);
     const photo = await this.getOwnedPhoto(profile.id, photoId);
 
@@ -109,6 +109,7 @@ export class PhotosService {
     // than the reverse order leaving a DB row that points at nothing.
     await this.prisma.profilePhoto.delete({ where: { id: photo.id } });
     await this.storage.deleteObject(photo.objectKey);
+    return { id: photo.id, objectKey: photo.objectKey };
   }
 
   async getPhotosForProfile(profileId: string): Promise<PhotoResponse[]> {

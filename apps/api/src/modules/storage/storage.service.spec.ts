@@ -1,4 +1,4 @@
-import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StorageService } from './storage.service.js';
 
@@ -63,6 +63,30 @@ describe('StorageService', () => {
         ContentType: 'image/jpeg',
       });
       expect(options).toEqual({ expiresIn: 300 });
+    });
+  });
+
+  describe('deleteObject', () => {
+    it('sends a DeleteObjectCommand for a real object key', async () => {
+      const send = vi.fn().mockResolvedValue({});
+      const configService = { get: vi.fn(() => 'nadar-kalyanam-photos') };
+      const service = new StorageService({ send } as never, configService as never);
+
+      await service.deleteObject('profiles/profile-1/photo.jpg');
+
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(send.mock.calls[0][0]).toBeInstanceOf(DeleteObjectCommand);
+      expect(send.mock.calls[0][0].input).toEqual({ Bucket: 'nadar-kalyanam-photos', Key: 'profiles/profile-1/photo.jpg' });
+    });
+
+    it('is a no-op for an external URL (seed/mock data), which is not an object in this bucket', async () => {
+      const send = vi.fn();
+      const configService = { get: vi.fn(() => 'nadar-kalyanam-photos') };
+      const service = new StorageService({ send } as never, configService as never);
+
+      await service.deleteObject('https://images.example/seed.jpg');
+
+      expect(send).not.toHaveBeenCalled();
     });
   });
 });

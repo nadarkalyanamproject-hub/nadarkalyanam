@@ -62,6 +62,10 @@ export default function AdminHome() {
                     <dt className="text-muted-foreground">Pending deletion</dt>
                     <dd className="font-semibold text-foreground">{stats.membersByStatus.pendingDeletion}</dd>
                   </div>
+                  <div className="flex items-center justify-between">
+                    <dt className="text-muted-foreground">Deleted (anonymized)</dt>
+                    <dd className="font-semibold text-foreground">{stats.membersByStatus.deleted}</dd>
+                  </div>
                 </dl>
               </Card>
 

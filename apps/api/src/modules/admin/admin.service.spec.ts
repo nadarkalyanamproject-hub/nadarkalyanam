@@ -182,6 +182,7 @@ describe('AdminService.getDashboardStats', () => {
         { status: 'ACTIVE', _count: { _all: 38 } },
         { status: 'SUSPENDED', _count: { _all: 3 } },
         { status: 'PENDING_DELETION', _count: { _all: 1 } },
+        { status: 'DELETED', _count: { _all: 2 } },
       ],
       reportCountResult: 4,
       profileCountResult: 30,
@@ -204,7 +205,7 @@ describe('AdminService.getDashboardStats', () => {
     const result = await service.getDashboardStats();
 
     expect(result.totalMembers).toBe(42);
-    expect(result.membersByStatus).toEqual({ active: 38, suspended: 3, pendingDeletion: 1 });
+    expect(result.membersByStatus).toEqual({ active: 38, suspended: 3, pendingDeletion: 1, deleted: 2 });
     expect(result.newSignupsLast7Days).toBe(5);
     expect(result.pendingReportsCount).toBe(4);
     expect(result.verifiedProfilesCount).toBe(30);
@@ -225,7 +226,7 @@ describe('AdminService.getDashboardStats', () => {
 
     const result = await service.getDashboardStats();
 
-    expect(result.membersByStatus).toEqual({ active: 10, suspended: 0, pendingDeletion: 0 });
+    expect(result.membersByStatus).toEqual({ active: 10, suspended: 0, pendingDeletion: 0, deleted: 0 });
   });
 
   it('queries new signups with a 7-day createdAt lower bound', async () => {

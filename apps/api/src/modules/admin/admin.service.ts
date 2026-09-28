@@ -1,18 +1,15 @@
-import { Injectable, NotFoundException, NotImplementedException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, NotImplementedException } from '@nestjs/common';
+import type { AccountStatus } from '@nadar-kalyanam/schemas';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditLogService } from './audit-log.service.js';
+import { scheduledAnonymizationDate } from './member-removal.js';
 
-// 14 days, matching FR-1.5's self-service account-deletion grace period —
-// admin-initiated removal is the same underlying mechanism, just triggered
-// by an admin instead of the member themselves. There is deliberately no
-// separate "scheduled anonymization" field: deletionRequestedAt + this
-// window IS the scheduled date, computed wherever it's needed.
-const DELETION_GRACE_PERIOD_DAYS = 14;
-
-function scheduledAnonymizationDate(deletionRequestedAt: Date): Date {
-  return new Date(deletionRequestedAt.getTime() + DELETION_GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
+export interface MemberListFilters {
+  status?: AccountStatus;
+  verified?: boolean;
+  sort?: 'newest' | 'oldest';
 }
 
 // FR-9.5 / FR-11.4: suspend/reinstate are reachable by both Moderator and
@@ -29,23 +26,36 @@ export class AdminService {
   // FR-11.1/11.2: basic search by phone, name, or email so an admin can
   // actually find someone to act on. Queries User (not Profile) as the base
   // entity — a member who registered but never finished onboarding still
-  // has no Profile row and must still be findable/actionable.
-  async listMembers(offset: number, limit: number, search?: string) {
-    const where: Prisma.UserWhereInput = search
-      ? {
-          OR: [
-            { phoneNumber: { contains: search, mode: 'insensitive' } },
-            { profile: { fullName: { contains: search, mode: 'insensitive' } } },
-            { profile: { details: { path: ['email'], string_contains: search } } },
-          ],
-        }
-      : {};
+  // has no Profile row and must still be findable/actionable. Filters AND
+  // together with the search; "not verified" deliberately includes members
+  // with no profile at all, since they aren't verified either.
+  async listMembers(offset: number, limit: number, search?: string, filters: MemberListFilters = {}) {
+    const conditions: Prisma.UserWhereInput[] = [];
+    if (search) {
+      conditions.push({
+        OR: [
+          { phoneNumber: { contains: search, mode: 'insensitive' } },
+          { profile: { fullName: { contains: search, mode: 'insensitive' } } },
+          { profile: { details: { path: ['email'], string_contains: search } } },
+        ],
+      });
+    }
+    if (filters.status) {
+      conditions.push({ status: filters.status });
+    }
+    if (filters.verified === true) {
+      conditions.push({ profile: { isVerified: true } });
+    } else if (filters.verified === false) {
+      conditions.push({ OR: [{ profile: null }, { profile: { isVerified: false } }] });
+    }
+    const where: Prisma.UserWhereInput =
+      conditions.length === 0 ? {} : conditions.length === 1 ? conditions[0] : { AND: conditions };
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
         include: { profile: { select: { id: true, fullName: true, completionScore: true, isVerified: true } } },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: filters.sort === 'oldest' ? 'asc' : 'desc' },
         skip: offset,
         take: limit,
       }),
@@ -112,10 +122,36 @@ export class AdminService {
     };
   }
 
-  async suspendMember(adminId: string, userId: string, reason: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+  // Member-state guard shared by every admin write on a member. DELETED is
+  // terminal (the account has been anonymized — there is nothing left to act
+  // on), and PENDING_DELETION can only be left via restoreMember: letting
+  // suspend/reinstate flip the status would silently cancel the scheduled
+  // anonymization without clearing deletionRequestedAt or leaving a
+  // "member.restore" audit entry.
+  private async getActionableMember(userId: string, action: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { adminUser: { select: { id: true } } },
+    });
     if (!user) {
       throw new NotFoundException('Member not found');
+    }
+    if (user.status === 'DELETED') {
+      throw new ConflictException(`Cannot ${action}: this account has already been anonymized`);
+    }
+    return user;
+  }
+
+  // Used by the profile-edit route, which calls ProfilesService directly —
+  // an anonymized profile must not be re-populated by an admin edit.
+  async assertMemberNotDeleted(userId: string, action: string): Promise<void> {
+    await this.getActionableMember(userId, action);
+  }
+
+  async suspendMember(adminId: string, userId: string, reason: string) {
+    const user = await this.getActionableMember(userId, 'suspend');
+    if (user.status === 'PENDING_DELETION') {
+      throw new ConflictException('Member is pending removal — cancel the removal first');
     }
     const updated = await this.prisma.user.update({ where: { id: userId }, data: { status: 'SUSPENDED' } });
     await this.auditLog.record(adminId, 'member.suspend', 'User', userId, { reason });
@@ -123,9 +159,9 @@ export class AdminService {
   }
 
   async reinstateMember(adminId: string, userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException('Member not found');
+    const user = await this.getActionableMember(userId, 'reinstate');
+    if (user.status === 'PENDING_DELETION') {
+      throw new ConflictException('Member is pending removal — use "Cancel removal" instead');
     }
     const updated = await this.prisma.user.update({ where: { id: userId }, data: { status: 'ACTIVE' } });
     await this.auditLog.record(adminId, 'member.reinstate', 'User', userId, {});
@@ -137,13 +173,20 @@ export class AdminService {
   // would use, not a separate mechanism. Setting status away from ACTIVE
   // already has a real, immediate effect: discovery/matching/messaging all
   // filter on user.status === 'ACTIVE', so this member drops out of search
-  // and recommendations right away. What's deliberately NOT built here: a
-  // background job that actually performs the anonymization once the grace
-  // period elapses — that's real, separate follow-up work, not a no-op.
+  // and recommendations right away. The anonymization itself is done by
+  // AnonymizationService once the grace period elapses (off unless
+  // ENABLE_ANONYMIZATION_JOB=true).
+  //
+  // A User linked to an AdminUser is refused: anonymizing it would replace
+  // the phone number that admin logs in with. Deactivate the admin account
+  // (Admins page) instead.
   async removeMember(adminId: string, userId: string, reason: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException('Member not found');
+    const user = await this.getActionableMember(userId, 'remove');
+    if (user.status === 'PENDING_DELETION') {
+      throw new ConflictException('Member is already pending removal');
+    }
+    if (user.adminUser) {
+      throw new ConflictException('This account is linked to an admin user — deactivate the admin instead');
     }
     const deletionRequestedAt = new Date();
     const updated = await this.prisma.user.update({
@@ -163,11 +206,54 @@ export class AdminService {
     };
   }
 
-  // Platform-overview landing page. Status breakdown deliberately covers
-  // only ACTIVE/SUSPENDED/PENDING_DELETION: DELETED exists in the
-  // AccountStatus enum but nothing in this codebase ever sets it yet (no
-  // anonymization job exists — see removeMember's comment above), so
-  // reporting a count for it would just always show zero, not a real signal.
+  // Cancels a pending removal. Only valid strictly before the scheduled
+  // anonymization date — from that instant on the member is eligible for
+  // the anonymization job (see anonymizationCutoff), and the two windows
+  // must not overlap. Status goes back to ACTIVE, not whatever it was before
+  // removal (that isn't recorded on User). The conditional updateMany
+  // re-checks the exact state read above, so a concurrent restore or job
+  // run can't be double-applied.
+  async restoreMember(adminId: string, userId: string) {
+    const user = await this.getActionableMember(userId, 'restore');
+    if (user.status !== 'PENDING_DELETION' || !user.deletionRequestedAt) {
+      throw new ConflictException('Member is not pending removal');
+    }
+    const scheduledAt = scheduledAnonymizationDate(user.deletionRequestedAt);
+    if (scheduledAt.getTime() <= Date.now()) {
+      throw new ConflictException('The grace period has already elapsed; this removal can no longer be cancelled');
+    }
+
+    const { count } = await this.prisma.user.updateMany({
+      where: { id: userId, status: 'PENDING_DELETION', deletionRequestedAt: user.deletionRequestedAt },
+      data: { status: 'ACTIVE', deletionRequestedAt: null },
+    });
+    if (count === 0) {
+      throw new ConflictException('Member state changed concurrently; reload and try again');
+    }
+    await this.auditLog.record(adminId, 'member.restore', 'User', userId, {
+      deletionRequestedAt: user.deletionRequestedAt.toISOString(),
+      scheduledAnonymizationAt: scheduledAt.toISOString(),
+    });
+    return { id: userId, status: 'ACTIVE' as const };
+  }
+
+  // Admin photo moderation. PhotosService.deletePhoto is already scoped to
+  // "this user's own profile", which is exactly the check needed here too
+  // (a photoId belonging to someone else 404s) — reused as-is, including
+  // its DB-row-then-storage-object ordering.
+  async removeMemberPhoto(adminId: string, userId: string, photoId: string, reason: string) {
+    await this.getActionableMember(userId, 'remove photo');
+    const removed = await this.photosService.deletePhoto(userId, photoId);
+    await this.auditLog.record(adminId, 'member.photo.remove', 'ProfilePhoto', photoId, {
+      reason,
+      userId,
+      objectKey: removed.objectKey,
+    });
+    return { id: photoId, removed: true };
+  }
+
+  // Platform-overview landing page. The status breakdown covers all four
+  // AccountStatus values (DELETED is set by the anonymization job).
   // totalMembers intentionally has no status filter, matching listMembers'
   // own definition of "member" (a User row, regardless of status/profile
   // completion). "Pending reports" uses the same OPEN/IN_REVIEW definition
@@ -190,11 +276,12 @@ export class AdminService {
         }),
       ]);
 
-    const membersByStatus = { active: 0, suspended: 0, pendingDeletion: 0 };
+    const membersByStatus = { active: 0, suspended: 0, pendingDeletion: 0, deleted: 0 };
     for (const group of statusGroups) {
       if (group.status === 'ACTIVE') membersByStatus.active = group._count._all;
       else if (group.status === 'SUSPENDED') membersByStatus.suspended = group._count._all;
       else if (group.status === 'PENDING_DELETION') membersByStatus.pendingDeletion = group._count._all;
+      else if (group.status === 'DELETED') membersByStatus.deleted = group._count._all;
     }
 
     return {

@@ -55,7 +55,13 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       return;
     }
     try {
-      const payload = await this.jwtService.verifyAsync<{ sub: string }>(token);
+      const payload = await this.jwtService.verifyAsync<{ sub: string; typ?: string }>(token);
+      // Same member/admin boundary as JwtAuthGuard: an admin token's sub is
+      // an AdminUser id, never a member.
+      if (payload.typ === 'admin') {
+        client.disconnect(true);
+        return;
+      }
       client.data.userId = payload.sub;
       await client.join(userRoom(payload.sub));
     } catch {

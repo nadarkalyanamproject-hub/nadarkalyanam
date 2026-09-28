@@ -37,4 +37,14 @@ describe('JwtAuthGuard', () => {
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(request.user).toEqual({ userId: 'user-1' });
   });
+
+  it('rejects a valid, correctly-signed ADMIN token (typ:"admin") on member routes', async () => {
+    const jwtService = { verifyAsync: vi.fn().mockResolvedValue({ sub: 'admin-1', typ: 'admin' }) };
+    const guard = new JwtAuthGuard(jwtService as never);
+    const request: AuthenticatedRequest = { headers: { authorization: 'Bearer admin-token' } };
+    const context = buildContext(request);
+
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(request.user).toBeUndefined();
+  });
 });

@@ -5,11 +5,14 @@ import { useParams, useRouter } from 'next/navigation';
 import type { CreateProfileRequest } from '@nadar-kalyanam/schemas';
 import { Button, Card, Field, Input, Select, Textarea } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../../../components/admin-shell';
+import { StatusBadge } from '../../../components/status-badge';
 import {
   ApiError,
   getMember,
   reinstateMember,
   removeMember,
+  removeMemberPhoto,
+  restoreMember,
   suspendMember,
   updateMemberProfile,
   type MemberDetail,
@@ -120,12 +123,20 @@ export default function MemberDetailPage() {
   const [actionMessage, setActionMessage] = useState<string | undefined>();
   const [showRemoveForm, setShowRemoveForm] = useState(false);
   const [removeReason, setRemoveReason] = useState('');
+  const [photoToRemove, setPhotoToRemove] = useState<string | null>(null);
+  const [photoReason, setPhotoReason] = useState('');
+  // Whether the removal can still be cancelled — evaluated when the member
+  // loads (the API re-checks on the actual request).
+  const [graceElapsed, setGraceElapsed] = useState(false);
 
   function reload() {
     if (!data.accessToken) return;
     getMember(data.accessToken, params.userId)
       .then((result) => {
         setMember(result);
+        setGraceElapsed(
+          result.scheduledAnonymizationAt !== null && new Date(result.scheduledAnonymizationAt).getTime() <= Date.now(),
+        );
         setForm(toFormState((result.profile?.details as Record<string, unknown>) ?? {}, result));
       })
       .catch((err: unknown) => setError(err instanceof ApiError ? err.message : 'Could not load member.'));
@@ -192,7 +203,43 @@ export default function MemberDetailPage() {
     }
   }
 
+  async function handleRestore() {
+    if (!data.accessToken) return;
+    if (!window.confirm('Cancel this removal? The member becomes ACTIVE again and will not be anonymized.')) return;
+    setActionPending(true);
+    setActionMessage(undefined);
+    try {
+      await restoreMember(data.accessToken, params.userId);
+      setActionMessage('Removal cancelled — member is active again.');
+      reload();
+    } catch (err) {
+      setActionMessage(err instanceof ApiError ? err.message : 'Could not cancel the removal.');
+    } finally {
+      setActionPending(false);
+    }
+  }
+
+  async function handleRemovePhoto(photoId: string) {
+    if (!data.accessToken || !photoReason.trim()) return;
+    setActionPending(true);
+    setActionMessage(undefined);
+    try {
+      await removeMemberPhoto(data.accessToken, params.userId, photoId, photoReason.trim());
+      setActionMessage('Photo removed.');
+      setPhotoToRemove(null);
+      setPhotoReason('');
+      reload();
+    } catch (err) {
+      setActionMessage(err instanceof ApiError ? err.message : 'Could not remove photo.');
+    } finally {
+      setActionPending(false);
+    }
+  }
+
   if (!ready) return null;
+
+  const isDeleted = member?.status === 'DELETED';
+  const isPendingDeletion = member?.status === 'PENDING_DELETION';
 
   return (
     <AdminShell>
@@ -215,34 +262,61 @@ export default function MemberDetailPage() {
                     {member.profile?.fullName ?? '(no profile yet)'}
                   </h1>
                   <p className="text-sm text-muted-foreground">{member.phoneNumber}</p>
-                  <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-primary">{member.status}</p>
-                  {member.deletionRequestedAt && (
-                    <p className="mt-1 text-xs text-destructive">
-                      Removal requested {new Date(member.deletionRequestedAt).toLocaleDateString()} — scheduled
-                      anonymization {new Date(member.scheduledAnonymizationAt!).toLocaleDateString()}.
-                    </p>
-                  )}
+                  <div className="mt-1">
+                    <StatusBadge status={member.status} />
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {member.profile && (
+                  {member.profile && !isDeleted && (
                     <Button type="button" variant="outline" size="sm" onClick={() => setEditing((e) => !e)}>
                       {editing ? 'Cancel edit' : 'Edit profile'}
                     </Button>
                   )}
-                  <Button type="button" variant="outline" size="sm" disabled={actionPending} onClick={() => void handleToggleActive()}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={actionPending || isDeleted || isPendingDeletion}
+                    onClick={() => void handleToggleActive()}
+                  >
                     {member.status === 'SUSPENDED' ? 'Activate' : 'Deactivate'}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={member.status === 'PENDING_DELETION'}
+                    disabled={isPendingDeletion || isDeleted}
                     onClick={() => setShowRemoveForm((s) => !s)}
                   >
                     Remove
                   </Button>
                 </div>
               </div>
+
+              {isPendingDeletion && member.scheduledAnonymizationAt && (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4">
+                  <div className="text-sm">
+                    <p className="font-semibold text-destructive">
+                      Scheduled for anonymization on {new Date(member.scheduledAnonymizationAt).toLocaleString()}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Removal requested {new Date(member.deletionRequestedAt!).toLocaleString()}.{' '}
+                      {graceElapsed
+                        ? 'The grace period has elapsed — this removal can no longer be cancelled.'
+                        : 'Hidden from search and matching until then.'}
+                    </p>
+                  </div>
+                  <Button type="button" size="sm" disabled={actionPending || graceElapsed} onClick={() => void handleRestore()}>
+                    Cancel removal
+                  </Button>
+                </div>
+              )}
+              {isDeleted && (
+                <p className="mt-4 rounded-xl border border-border bg-muted p-4 text-sm text-muted-foreground">
+                  This account has been anonymized. Personal data and photos were removed; no further actions are
+                  available.
+                </p>
+              )}
               {actionMessage && <p className="mt-3 text-sm text-muted-foreground">{actionMessage}</p>}
 
               {showRemoveForm && (
@@ -285,11 +359,63 @@ export default function MemberDetailPage() {
               <Card className="rounded-2xl p-6 shadow-sm">
                 <h2 className="mb-4 text-lg font-bold text-primary">Profile</h2>
                 {member.profile.photos.length > 0 && (
-                  <div className="mb-4 grid grid-cols-4 gap-3 sm:grid-cols-6">
+                  <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {member.profile.photos.map((photo) => (
-                      <div key={photo.id} className="aspect-square overflow-hidden rounded-lg border border-border">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={photo.url} alt="" className="h-full w-full object-cover" />
+                      <div key={photo.id} className="flex flex-col gap-2">
+                        <div className="relative aspect-square overflow-hidden rounded-lg border border-border">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={photo.url} alt="" className="h-full w-full object-cover" />
+                          {photo.isPrimary && (
+                            <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                              Primary
+                            </span>
+                          )}
+                        </div>
+                        {photoToRemove === photo.id ? (
+                          <div className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-2">
+                            <Textarea
+                              aria-label="Reason for removing this photo"
+                              placeholder="Reason (required)"
+                              rows={2}
+                              value={photoReason}
+                              onChange={(e) => setPhotoReason(e.target.value)}
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                disabled={!photoReason.trim() || actionPending}
+                                onClick={() => void handleRemovePhoto(photo.id)}
+                              >
+                                Confirm remove
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setPhotoToRemove(null);
+                                  setPhotoReason('');
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={isDeleted}
+                            onClick={() => {
+                              setPhotoToRemove(photo.id);
+                              setPhotoReason('');
+                            }}
+                          >
+                            Remove photo
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </div>
