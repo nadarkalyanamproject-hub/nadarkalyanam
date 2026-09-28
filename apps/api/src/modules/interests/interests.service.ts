@@ -10,6 +10,7 @@ import { calculateAge } from '../../common/age.js';
 import { getBlockedUserIds, isBlockedEitherDirection } from '../../common/blocks.util.js';
 import { getRelationshipStates } from '../../common/relationship.js';
 import { Prisma } from '../../generated/prisma/client.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProfilesService } from '../profiles/profiles.service.js';
@@ -32,6 +33,7 @@ export class InterestsService {
     private readonly prisma: PrismaService,
     private readonly profilesService: ProfilesService,
     private readonly photosService: PhotosService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async sendInterest(callerUserId: string, targetProfileId: string) {
@@ -95,6 +97,13 @@ export class InterestsService {
       const interest = await this.prisma.interest.create({
         data: { senderId: callerUserId, targetId: targetProfile.userId },
       });
+      this.notifications.notify({
+        recipientUserId: targetProfile.userId,
+        actorUserId: callerUserId,
+        type: 'INTEREST_RECEIVED',
+        targetType: 'Interest',
+        targetId: interest.id,
+      });
       return { id: interest.id, status: interest.status };
     } catch (error) {
       // Concurrency backstop: two near-simultaneous sends can both pass the
@@ -138,6 +147,16 @@ export class InterestsService {
         ],
       });
       return { interest: updated, conversationId: conversation.id };
+    });
+
+    // The accepter doesn't get a CONNECTED notice — they just did it; the
+    // original sender hears about it, pointed at the new conversation.
+    this.notifications.notify({
+      recipientUserId: interest.senderId,
+      actorUserId: callerUserId,
+      type: 'INTEREST_ACCEPTED',
+      targetType: 'Conversation',
+      targetId: result.conversationId,
     });
 
     return {

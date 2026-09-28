@@ -47,7 +47,7 @@ function buildService(overrides?: {
   const photosService = { getPhotosForProfile: vi.fn().mockResolvedValue([]) };
   const auditLog = { record: vi.fn().mockResolvedValue({ id: 'audit-1' }) };
 
-  const service = new AdminService(prisma as never, photosService as never, auditLog as never);
+  const service = new AdminService(prisma as never, photosService as never, auditLog as never, { notify: vi.fn() } as never);
   return { service, prisma, photosService, auditLog };
 }
 

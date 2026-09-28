@@ -47,7 +47,7 @@ function buildService(overrides?: {
   };
   const photosService = { getPhotosForProfile: vi.fn().mockResolvedValue([]) };
 
-  const service = new MessagesService(prisma as never, photosService as never);
+  const service = new MessagesService(prisma as never, photosService as never, { notify: vi.fn() } as never);
   return { service, prisma, photosService };
 }
 

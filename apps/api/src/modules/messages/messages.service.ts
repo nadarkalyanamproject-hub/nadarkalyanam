@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import type { ConversationSummary, MessageResponse } from '@nadar-kalyanam/schemas';
 import { isBlockedEitherDirection } from '../../common/blocks.util.js';
 import type { Message } from '../../generated/prisma/client.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -21,6 +22,7 @@ export class MessagesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly photosService: PhotosService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async listConversations(callerUserId: string): Promise<{ items: ConversationSummary[] }> {
@@ -103,11 +105,21 @@ export class MessagesService {
     // participant of this conversation AND that neither party has blocked
     // the other since — a block created after a conversation already exists
     // must still cut off messaging, not just new interests.
-    await this.assertCanAccessConversation(callerUserId, conversationId);
+    const otherUserId = await this.assertCanAccessConversation(callerUserId, conversationId);
 
     const message = await this.prisma.message.create({
       data: { conversationId, senderId: callerUserId, body },
     });
+    if (otherUserId) {
+      // Collapsed per conversation while unread (see NotificationsService).
+      this.notifications.notify({
+        recipientUserId: otherUserId,
+        actorUserId: callerUserId,
+        type: 'NEW_MESSAGE',
+        targetType: 'Conversation',
+        targetId: conversationId,
+      });
+    }
     return toMessageResponse(message);
   }
 
@@ -123,7 +135,9 @@ export class MessagesService {
     return { updatedCount: result.count };
   }
 
-  private async assertCanAccessConversation(callerUserId: string, conversationId: string): Promise<void> {
+  // Returns the other participant's user id (if any) so callers don't
+  // re-query it; the checks themselves are unchanged.
+  private async assertCanAccessConversation(callerUserId: string, conversationId: string): Promise<string | null> {
     const participants = await this.prisma.conversationParticipant.findMany({
       where: { conversationId },
     });
@@ -142,5 +156,6 @@ export class MessagesService {
     ) {
       throw new ForbiddenException('You cannot access this conversation');
     }
+    return otherParticipant?.userId ?? null;
   }
 }

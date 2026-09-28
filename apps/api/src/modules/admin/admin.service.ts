@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, NotFoundException, NotImplementedException } from '@nestjs/common';
 import type { AccountStatus } from '@nadar-kalyanam/schemas';
 import type { Prisma } from '../../generated/prisma/client.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditLogService } from './audit-log.service.js';
@@ -21,6 +22,7 @@ export class AdminService {
     private readonly prisma: PrismaService,
     private readonly photosService: PhotosService,
     private readonly auditLog: AuditLogService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // FR-11.1/11.2: basic search by phone, name, or email so an admin can
@@ -155,6 +157,7 @@ export class AdminService {
     }
     const updated = await this.prisma.user.update({ where: { id: userId }, data: { status: 'SUSPENDED' } });
     await this.auditLog.record(adminId, 'member.suspend', 'User', userId, { reason });
+    this.notifications.notify({ recipientUserId: userId, type: 'ACCOUNT_SUSPENDED', targetType: 'Account' });
     return { id: updated.id, status: updated.status };
   }
 
@@ -165,6 +168,7 @@ export class AdminService {
     }
     const updated = await this.prisma.user.update({ where: { id: userId }, data: { status: 'ACTIVE' } });
     await this.auditLog.record(adminId, 'member.reinstate', 'User', userId, {});
+    this.notifications.notify({ recipientUserId: userId, type: 'ACCOUNT_REINSTATED', targetType: 'Account' });
     return { id: updated.id, status: updated.status };
   }
 
@@ -198,6 +202,12 @@ export class AdminService {
       reason,
       scheduledAnonymizationAt: scheduledAt.toISOString(),
     });
+    this.notifications.notify({
+      recipientUserId: userId,
+      type: 'REMOVAL_SCHEDULED',
+      targetType: 'Account',
+      data: { scheduledAt: scheduledAt.toISOString() },
+    });
     return {
       id: updated.id,
       status: updated.status,
@@ -230,6 +240,7 @@ export class AdminService {
     if (count === 0) {
       throw new ConflictException('Member state changed concurrently; reload and try again');
     }
+    this.notifications.notify({ recipientUserId: userId, type: 'REMOVAL_CANCELLED', targetType: 'Account' });
     await this.auditLog.record(adminId, 'member.restore', 'User', userId, {
       deletionRequestedAt: user.deletionRequestedAt.toISOString(),
       scheduledAnonymizationAt: scheduledAt.toISOString(),
@@ -244,6 +255,7 @@ export class AdminService {
   async removeMemberPhoto(adminId: string, userId: string, photoId: string, reason: string) {
     await this.getActionableMember(userId, 'remove photo');
     const removed = await this.photosService.deletePhoto(userId, photoId);
+    this.notifications.notify({ recipientUserId: userId, type: 'ADMIN_PHOTO_REMOVED', targetType: 'Account' });
     await this.auditLog.record(adminId, 'member.photo.remove', 'ProfilePhoto', photoId, {
       reason,
       userId,

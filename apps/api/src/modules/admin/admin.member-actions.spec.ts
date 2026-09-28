@@ -23,7 +23,7 @@ function buildService(user: Record<string, unknown> | null = { id: USER_ID, stat
     deletePhoto: vi.fn().mockResolvedValue({ id: 'photo-1', objectKey: 'profiles/p1/photo-1.jpg' }),
   };
   const auditLog = { record: vi.fn().mockResolvedValue({ id: 'audit-1' }) };
-  const service = new AdminService(prisma as never, photosService as never, auditLog as never);
+  const service = new AdminService(prisma as never, photosService as never, auditLog as never, { notify: vi.fn() } as never);
   return { service, prisma, photosService, auditLog };
 }
 

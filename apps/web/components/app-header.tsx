@@ -4,7 +4,9 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement, typ
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useRegistration } from '../app/providers/registration-provider';
+import { getUnreadNotificationCount } from '../lib/api-client';
 import { claimAuthRedirect } from '../lib/auth-events';
+import { formatBadgeCount, NOTIFICATIONS_CHANGED_EVENT } from '../lib/notifications';
 import { useProfile } from '../lib/use-profile';
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -117,6 +119,11 @@ interface NavItem {
   icon: (props: IconProps) => ReactElement;
 }
 
+// How often the header re-checks the unread count (it also re-checks on
+// every route change and whenever the notifications page marks something
+// read). Polling only — no websocket dependency.
+const UNREAD_POLL_MS = 45_000;
+
 const NAV_ITEMS: NavItem[] = [
   { key: 'home', label: 'Home', href: '/', icon: HomeIcon },
   { key: 'matches', label: 'Matches', href: '/matches', icon: HeartIcon },
@@ -146,6 +153,7 @@ export function AppHeader() {
   const avatarMenuRef = useRef<HTMLDivElement>(null);
   const avatarButtonRef = useRef<HTMLButtonElement>(null);
   const isAuthenticated = hydrated && Boolean(data.accessToken);
+  const [unreadCount, setUnreadCount] = useState(0);
   const avatarUrl = profile?.photos?.find((photo) => photo.isPrimary)?.url ?? profile?.photos?.[0]?.url;
 
   function closeAvatarMenu() {
@@ -181,6 +189,31 @@ export function AppHeader() {
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [avatarMenuOpen]);
+
+  // Unread-notification badge. Failures are ignored (the badge just keeps
+  // its last value); a 401 is already handled by the api-client's
+  // unauthorized bridge.
+  useEffect(() => {
+    const token = data.accessToken;
+    if (!hydrated || !token) return;
+    let cancelled = false;
+    const refresh = () => {
+      getUnreadNotificationCount(token)
+        .then((result) => {
+          if (!cancelled) setUnreadCount(result.unreadCount);
+        })
+        .catch(() => {});
+    };
+    refresh();
+    const timer = window.setInterval(refresh, UNREAD_POLL_MS);
+    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, refresh);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, refresh);
+    };
+  }, [hydrated, data.accessToken, pathname]);
+  const unreadBadge = isAuthenticated ? formatBadgeCount(unreadCount) : null;
 
   // Arrow-key movement between the menu's items (role="menu" convention).
   function handleMenuKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -261,6 +294,15 @@ export function AppHeader() {
                         }`}
                       />
                       <span>{item.label}</span>
+                      {item.key === 'notifications' && unreadBadge && (
+                        <span
+                          aria-label={`${unreadCount} unread notifications`}
+                          data-testid="notifications-badge"
+                          className="ml-0.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#7A0710] px-1 text-[10px] font-bold leading-none text-white"
+                        >
+                          {unreadBadge}
+                        </span>
+                      )}
                       {/* Active gold/maroon indicator */}
                       {isActive && (
                         <span className="absolute bottom-0 left-2.5 right-2.5 h-[2.5px] rounded-full bg-[#D6A33A]" />
@@ -295,9 +337,12 @@ export function AppHeader() {
                 }}
                 aria-label={menuOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={menuOpen}
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-[#2B211C] transition-colors hover:bg-[#F9F3E7] md:hidden"
+                className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[#2B211C] transition-colors hover:bg-[#F9F3E7] md:hidden"
               >
                 {menuOpen ? <CloseIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
+                {!menuOpen && unreadBadge && (
+                  <span aria-hidden="true" className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#7A0710]" />
+                )}
               </button>
 
               {/* Account menu: the only profile entry point (desktop + mobile).
@@ -444,6 +489,14 @@ export function AppHeader() {
                     <div className="flex items-center gap-3">
                       <Icon className="h-5 w-5 text-[#7A0710]" />
                       <span>{item.label}</span>
+                      {item.key === 'notifications' && unreadBadge && (
+                        <span
+                          aria-label={`${unreadCount} unread notifications`}
+                          className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#7A0710] px-1 text-[10px] font-bold leading-none text-white"
+                        >
+                          {unreadBadge}
+                        </span>
+                      )}
                     </div>
                     {isActive && <span className="h-1.5 w-1.5 rounded-full bg-[#D6A33A]" />}
                   </Link>

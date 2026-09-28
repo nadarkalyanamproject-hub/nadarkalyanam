@@ -11,7 +11,6 @@ import type {
   MembershipPlanResponse,
   MessageListResponse,
   MessageResponse,
-  NotificationResponse,
   OrderResponse,
   PhotoResponse,
   ProfileListResponse,
@@ -23,6 +22,7 @@ import type {
   SendInterestRequest,
   SendOtpRequest,
   SendOtpResponse,
+  UnreadCountResponse,
   VerificationStatusResponse,
   VerifyOtpRequest,
   VerifyOtpResponse,
@@ -292,15 +292,36 @@ export function listMatches(accessToken: string, limit?: number): Promise<ListMa
   });
 }
 
-export function listNotifications(accessToken: string): Promise<ListNotificationsResponse> {
-  return request<ListNotificationsResponse>('/notifications', {
+export function listNotifications(
+  accessToken: string,
+  params?: { unreadOnly?: boolean; offset?: number; limit?: number },
+): Promise<ListNotificationsResponse> {
+  const query = new URLSearchParams();
+  if (params?.unreadOnly) query.set('unreadOnly', 'true');
+  if (params?.offset) query.set('offset', String(params.offset));
+  if (params?.limit) query.set('limit', String(params.limit));
+  const qs = query.toString();
+  return request<ListNotificationsResponse>(`/notifications${qs ? `?${qs}` : ''}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 }
 
-export function markNotificationRead(accessToken: string, id: string): Promise<NotificationResponse> {
-  return request<NotificationResponse>(`/notifications/${id}/read`, {
+export function getUnreadNotificationCount(accessToken: string): Promise<UnreadCountResponse> {
+  return request<UnreadCountResponse>('/notifications/unread-count', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function markNotificationRead(accessToken: string, id: string): Promise<{ id: string; isRead: true }> {
+  return request(`/notifications/${id}/read`, {
     method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function markAllNotificationsRead(accessToken: string): Promise<{ updatedCount: number }> {
+  return request('/notifications/read-all', {
+    method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 }

@@ -12,6 +12,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard.js';
 import type { Profile } from '../../generated/prisma/client.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { ProfilesService } from './profiles.service.js';
 import { toPublicProfileDetail, toPublicProfileSummary } from './public-profile.mapper.js';
@@ -36,6 +37,7 @@ export class ProfilesController {
   constructor(
     private readonly profilesService: ProfilesService,
     private readonly photosService: PhotosService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   @Post()
@@ -107,6 +109,16 @@ export class ProfilesController {
     @Param('id') id: string,
   ): Promise<PublicProfileDetail> {
     const profile = await this.profilesService.getOtherProfile(user.userId, id);
+    // Only the detail view counts as a "view" (never list/search). By this
+    // point getOtherProfile has already 404'd self-views, hidden profiles
+    // and blocked pairs; JwtAuthGuard rejects admin tokens outright. The
+    // 24h per-pair throttle is applied when the job is persisted.
+    this.notifications.notify({
+      recipientUserId: profile.userId,
+      actorUserId: user.userId,
+      type: 'PROFILE_VIEWED',
+      targetType: 'Profile',
+    });
     const photos = await this.photosService.getPhotosForProfile(profile.id);
     const relationships = await this.profilesService.getRelationshipStates(user.userId, [profile.userId]);
     return toPublicProfileDetail(profile, photos, relationships.get(profile.userId));

@@ -23,7 +23,7 @@ export class NotificationsProcessor implements OnModuleInit, OnModuleDestroy {
     this.worker = new Worker<NotifyJob>(
       NOTIFICATIONS_QUEUE,
       async (job) => {
-        await this.notificationsService.createAndPush(job.data);
+        await this.notificationsService.persist(job.data);
       },
       { connection: createBullConnection(this.configService) },
     );

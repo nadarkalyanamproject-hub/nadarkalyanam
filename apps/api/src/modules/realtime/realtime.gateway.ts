@@ -10,7 +10,6 @@ import {
 import type { Server, Socket } from 'socket.io';
 import { parseCorsOrigins } from '../../common/cors-origins.js';
 import { MessagesService } from '../messages/messages.service.js';
-import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 interface AuthenticatedSocket extends Socket {
@@ -44,7 +43,6 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   constructor(
     private readonly jwtService: JwtService,
     private readonly messagesService: MessagesService,
-    private readonly notificationsService: NotificationsService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -89,15 +87,13 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       return;
     }
 
+    // The in-app NEW_MESSAGE notification is created by
+    // MessagesService.sendMessage (for REST and socket sends alike); this
+    // only pushes the message live to a connected recipient.
     const recipientRoom = userRoom(participant.userId);
     const isOnline = (await this.server.in(recipientRoom).fetchSockets()).length > 0;
     if (isOnline) {
       this.server.to(recipientRoom).emit('new_message', message);
-    } else {
-      await this.notificationsService.enqueue(participant.userId, 'message.new', {
-        conversationId: payload.conversationId,
-        messageId: message.id,
-      });
     }
   }
 

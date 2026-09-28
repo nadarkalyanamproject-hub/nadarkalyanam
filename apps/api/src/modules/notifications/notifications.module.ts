@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module.js';
+import { PhotosModule } from '../photos/photos.module.js';
 import { QueueModule } from '../queue/queue.module.js';
 import {
   EMAIL_CHANNEL_ADAPTER,
@@ -12,8 +13,11 @@ import { NotificationsProcessor } from './notifications.processor.js';
 import { NotificationsService } from './notifications.service.js';
 
 @Module({
-  imports: [AuthModule, QueueModule],
+  imports: [AuthModule, QueueModule, PhotosModule],
   controllers: [NotificationsController],
+  // The channel adapters stay registered for when push/SMS/email are
+  // contracted, but nothing sends through them: notifications are in-app
+  // only (a persisted row is the delivery).
   providers: [
     NotificationsService,
     NotificationsProcessor,
