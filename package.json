@@ -6,11 +6,13 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm --filter @nadar-kalyanam/schemas build && pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test",
+    "turbo:dev": "turbo run dev",
+    "turbo:build": "turbo run build",
     "db:generate": "pnpm --filter @nadar-kalyanam/api prisma:generate",
     "db:migrate": "pnpm --filter @nadar-kalyanam/api prisma:migrate",
     "db:migrate:deploy": "pnpm --filter @nadar-kalyanam/api prisma:migrate:deploy"

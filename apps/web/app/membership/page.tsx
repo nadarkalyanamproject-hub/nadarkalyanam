@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { MembershipPlanResponse, OrderResponse } from '@nadar-kalyanam/schemas';
 import { Card } from '@/components/ui/card';
 import { AppHeader } from '../../components/app-header';
 import { ApiError, createOrder, listMembershipPlans } from '../../lib/api-client';
 import { useRegistration } from '../providers/registration-provider';
-import { useRequireAuth } from '../../lib/use-require-auth';
 import {
   Check,
   ShieldCheck,
@@ -14,6 +14,11 @@ import {
   EyeOff,
   Sparkles,
   CheckCircle2,
+  Crown,
+  Headphones,
+  PhoneCall,
+  UserCheck,
+  MessageCircle,
 } from 'lucide-react';
 
 interface PlanDetail {
@@ -66,60 +71,89 @@ const MEMBERSHIP_TIERS: PlanDetail[] = [
   },
 ];
 
+const VIP_PLAN: PlanDetail = {
+  id: 'plan-vip-assisted-6m',
+  name: 'VIP ASSISTED',
+  durationLabel: '6 MONTHS ASSISTANCE',
+  price: 14999,
+  features: [
+    'Dedicated Relationship Manager assigned exclusively to your family',
+    '75 Verified Contact Numbers directly coordinated on your behalf',
+    'End-to-end assistance: interest initiation, horoscope matching & follow-ups',
+    'Personal family introduction calls & meeting arrangement',
+    '100% confidential and discreet search handled by senior matchmakers',
+  ],
+};
+
 const COMPARISON_ROWS = [
   {
     feature: 'Plan Duration',
     gold: '3 Months',
     goldPlus: '3 Months',
     goldPremium: '12 Months',
+    vip: '6 Months Dedicated',
   },
   {
     feature: 'Verified Phone Numbers',
     gold: '50 Contacts',
     goldPlus: 'Unlimited*',
     goldPremium: 'Unlimited*',
+    vip: '75 Nos (Assisted)',
   },
   {
     feature: 'Direct Messaging & Chat',
     gold: 'Unlimited',
     goldPlus: 'Unlimited',
     goldPremium: 'Unlimited',
+    vip: 'Unlimited + Assisted',
   },
   {
     feature: 'Horoscope Compatibility Views',
     gold: 'Unlimited',
     goldPlus: 'Unlimited',
     goldPremium: 'Unlimited',
+    vip: 'Detailed Astrologer Match',
   },
   {
     feature: 'Profile Search Priority',
     gold: 'Standard',
     goldPlus: 'Priority Placement',
     goldPremium: 'Top Spot Spotlight',
+    vip: 'VIP Exclusive Showcase',
   },
   {
     feature: 'Dedicated Relationship Manager',
     gold: '—',
     goldPlus: '—',
     goldPremium: 'Dedicated Assistant',
+    vip: 'Personal Senior Matchmaker',
   },
   {
     feature: 'WhatsApp Direct Connect',
     gold: '—',
     goldPlus: 'Included',
     goldPremium: 'Priority Assistance',
+    vip: 'Dedicated VIP WhatsApp Desk',
+  },
+  {
+    feature: 'Family Call & Meeting Coordination',
+    gold: '—',
+    goldPlus: '—',
+    goldPremium: '—',
+    vip: 'Full Assisted Coordination',
   },
   {
     feature: 'Horoscope Compatibility Matchmaker',
     gold: 'Standard',
     goldPlus: 'Detailed Report',
     goldPremium: 'Handpicked Weekly',
+    vip: 'Handpicked & Pre-Screened',
   },
 ];
 
 export default function MembershipPage() {
-  const { ready } = useRequireAuth();
-  const { data } = useRegistration();
+  const router = useRouter();
+  const { data, hydrated } = useRegistration();
   const [plans, setPlans] = useState<MembershipPlanResponse[] | null>(null);
   const [orderingPlanId, setOrderingPlanId] = useState<string | null>(null);
   const [order, setOrder] = useState<OrderResponse | null>(null);
@@ -134,7 +168,11 @@ export default function MembershipPage() {
   }, []);
 
   async function handlePayNow(plan: PlanDetail) {
-    if (!data.accessToken) return;
+    if (!data.accessToken) {
+      // If not logged in, prompt user to log in or register on homepage
+      router.push('/?login=true');
+      return;
+    }
     setOrderingPlanId(plan.id);
     setOrderError(null);
     setOrder(null);
@@ -160,7 +198,7 @@ export default function MembershipPage() {
     }
   }
 
-  if (!ready) return null;
+  if (!hydrated) return null;
 
   return (
     <div className="min-h-screen bg-[#FFFDF9] text-[#2B1515] flex flex-col">
@@ -262,6 +300,147 @@ export default function MembershipPage() {
             );
           })}
         </div>
+
+        {/* =========================================================================
+            VIP ASSISTED MATCHMAKING SECTION
+            ========================================================================= */}
+        <section className="relative rounded-3xl bg-gradient-to-br from-[#2D0D12] via-[#3E1118] to-[#24080C] border-2 border-[#D4AF37]/50 shadow-xl p-6 sm:p-8 lg:p-10 text-white overflow-hidden">
+          {/* Subtle gold watermark ambiance */}
+          <div className="absolute -right-16 -bottom-16 w-80 h-80 rounded-full bg-[#D4AF37]/5 pointer-events-none" />
+          <div className="absolute -left-16 -top-16 w-64 h-64 rounded-full bg-[#D4AF37]/5 pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col lg:flex-row items-stretch justify-between gap-8">
+            {/* Left Content */}
+            <div className="space-y-4 max-w-2xl flex-1">
+              <div className="inline-flex items-center gap-2 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/40 px-3.5 py-1 text-xs font-bold text-[#FDE59C] uppercase tracking-widest shadow-xs">
+                <Crown className="h-4 w-4 text-[#D4AF37]" />
+                <span>VIP ASSISTED SERVICE</span>
+              </div>
+
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-white font-[family-name:var(--font-heading,serif)] tracking-tight">
+                  Personalized Matchmaking &amp; Family Assistance
+                </h2>
+                <p className="text-xs sm:text-sm text-[#E2D2C8] mt-1.5 leading-relaxed">
+                  Prefer an expert to hand-manage your search? Our senior relationship managers personally assist your family from discovery to introduction.
+                </p>
+              </div>
+
+              {/* 4 Feature Highlights */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3.5 border border-white/10 flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-lg bg-[#D4AF37]/20 border border-[#D4AF37]/40 flex items-center justify-center text-[#FDE59C] shrink-0">
+                    <UserCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xs sm:text-sm text-white">Dedicated Relationship Manager</h3>
+                    <p className="text-xs text-[#E2D2C8]/85 mt-0.5 leading-relaxed">
+                      Senior matchmaker directly discusses preferences, follows up, and handles family coordination.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3.5 border border-white/10 flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-lg bg-[#D4AF37]/20 border border-[#D4AF37]/40 flex items-center justify-center text-[#FDE59C] shrink-0">
+                    <PhoneCall className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xs sm:text-sm text-white">75 Verified Contact Numbers</h3>
+                    <p className="text-xs text-[#E2D2C8]/85 mt-0.5 leading-relaxed">
+                      75 direct phone numbers contacted, verified, and followed up on your behalf.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3.5 border border-white/10 flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-lg bg-[#D4AF37]/20 border border-[#D4AF37]/40 flex items-center justify-center text-[#FDE59C] shrink-0">
+                    <Headphones className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xs sm:text-sm text-white">End-to-End Assistance</h3>
+                    <p className="text-xs text-[#E2D2C8]/85 mt-0.5 leading-relaxed">
+                      Horoscope matching, mutual interest follow-ups, and arranging intro calls.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3.5 border border-white/10 flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-lg bg-[#D4AF37]/20 border border-[#D4AF37]/40 flex items-center justify-center text-[#FDE59C] shrink-0">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xs sm:text-sm text-white">Handpicked Pre-Screened Matches</h3>
+                    <p className="text-xs text-[#E2D2C8]/85 mt-0.5 leading-relaxed">
+                      Curated weekly profiles tailored strictly to your subsect, kulam, and lifestyle.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Action & Pricing Box */}
+            <div className="w-full lg:w-80 shrink-0 bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-[#D4AF37]/40 flex flex-col justify-between text-center space-y-4">
+              <div>
+                <span className="text-[11px] font-bold tracking-widest text-[#FDE59C] uppercase block mb-1">
+                  EXECUTIVE ASSISTANCE
+                </span>
+                <h3 className="text-xl font-bold text-white tracking-wide">VIP ASSISTED</h3>
+                <p className="text-[11px] text-[#E2D2C8]/80 uppercase tracking-wider font-semibold mt-0.5">
+                  6 MONTHS DEDICATED SERVICE
+                </p>
+
+                <div className="py-4 border-y border-white/15 my-3">
+                  <div className="text-3xl sm:text-4xl font-extrabold text-[#FDE59C] tracking-tight">
+                    ₹14,999
+                  </div>
+                  <p className="text-[11px] text-[#E2D2C8]/75 mt-1">
+                    Complete end-to-end matchmaking
+                  </p>
+                </div>
+
+                <ul className="text-xs text-left space-y-2 text-[#E2D2C8]">
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#D4AF37] font-bold">✓</span>
+                    <span><strong>75 Verified Contacts</strong> contacted</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#D4AF37] font-bold">✓</span>
+                    <span>Dedicated Personal Manager</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#D4AF37] font-bold">✓</span>
+                    <span>Family calls &amp; meeting setup</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#D4AF37] font-bold">✓</span>
+                    <span>100% Confidential search</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="space-y-2.5 pt-2">
+                <button
+                  type="button"
+                  disabled={orderingPlanId === VIP_PLAN.id}
+                  onClick={() => void handlePayNow(VIP_PLAN)}
+                  className="w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#D4AF37] to-[#F1D278] hover:opacity-95 text-[#2D0D12] shadow-md transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {orderingPlanId === VIP_PLAN.id ? 'Processing…' : 'Choose VIP Assistance'}
+                </button>
+
+                <a
+                  href="https://wa.me/919876543210?text=Hi%2C%20I%20am%20interested%20in%20Nadar%20Kalyanam%20VIP%20Assisted%20Service"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2 px-3 rounded-xl font-semibold text-xs text-white/90 hover:text-white border border-white/20 hover:border-white/40 bg-white/5 flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <MessageCircle className="h-3.5 w-3.5 text-[#25D366]" />
+                  <span>Enquire via WhatsApp</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Order Feedback & Error Messages */}
         {orderError && (
@@ -377,6 +556,10 @@ export default function MembershipPage() {
                       GOLD PREMIUM
                       <div className="text-xs font-bold text-[#680A0E]">₹5,999</div>
                     </th>
+                    <th className="py-3 px-4 font-bold text-center text-[#D4AF37] bg-[#2D0D12]">
+                      VIP ASSISTED
+                      <div className="text-xs font-bold text-[#FDE59C]">₹14,999</div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F6EFE9] text-[#2B1515]">
@@ -393,6 +576,9 @@ export default function MembershipPage() {
                       </td>
                       <td className="py-3 px-4 text-center font-bold text-[#680A0E] bg-[#FDF9F2]/60">
                         {row.goldPremium}
+                      </td>
+                      <td className="py-3 px-4 text-center font-bold text-[#680A0E] bg-[#FAF5EC]/70">
+                        {row.vip}
                       </td>
                     </tr>
                   ))}

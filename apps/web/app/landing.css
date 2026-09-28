@@ -1300,3 +1300,257 @@ html {
   .reg-card { padding: 20px 16px; max-width: 100%; }
   .trust-item { min-width: 45%; }
 }
+
+/* ==========================================================================
+   MEMBERSHIP PROMOTION SECTION (LANDING)
+   ========================================================================== */
+.membership-promo-section {
+  background-color: #FFFDF9;
+  border-top: 1px solid #EADBBD;
+  border-bottom: 1px solid #EADBBD;
+  padding: 64px 0 56px;
+  position: relative;
+}
+
+.membership-promo-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.membership-promo-section .section-header {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 40px;
+}
+
+.membership-promo-section .section-badge {
+  display: inline-block;
+  background-color: #FAF0DC;
+  border: 1px solid #EEDBCA;
+  color: #7B1118;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  padding: 4px 12px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.membership-promo-section .section-title {
+  font-family: var(--font-heading);
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: #2B1515;
+  line-height: 1.25;
+  margin-bottom: 10px;
+}
+
+.membership-promo-section .section-subtitle {
+  font-size: 0.92rem;
+  color: #73645C;
+  line-height: 1.6;
+}
+
+.membership-promo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.membership-card {
+  background: #ffffff;
+  border: 1px solid #E8DCCF;
+  border-radius: 20px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(110, 30, 30, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+}
+
+.membership-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(110, 30, 30, 0.08);
+  border-color: #D6A33A;
+}
+
+.membership-card.popular {
+  border: 2px solid #C89B3C;
+  box-shadow: 0 4px 14px rgba(200, 155, 60, 0.15);
+}
+
+.popular-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #C89B3C;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  padding: 3px 12px;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+}
+
+.tier-header {
+  text-align: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #F4ECE3;
+}
+
+.tier-name {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #2B1515;
+  letter-spacing: 0.04em;
+}
+
+.tier-duration {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #8C7B73;
+  letter-spacing: 0.12em;
+  margin-top: 2px;
+}
+
+.tier-price {
+  text-align: center;
+  padding: 16px 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+}
+
+.tier-price .currency {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #2B1515;
+}
+
+.tier-price .amount {
+  font-size: 2.3rem;
+  font-weight: 800;
+  color: #2B1515;
+  letter-spacing: -0.02em;
+}
+
+.tier-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.tier-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.84rem;
+  color: #443833;
+  line-height: 1.4;
+}
+
+.check-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #FAF5EC;
+  color: #C89B3C;
+  font-size: 0.72rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.tier-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 11px 16px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  background-color: #FDF9F3;
+  color: #680A0E;
+  border: 1px solid #DFC392;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.tier-btn:hover {
+  background-color: #F7EBDC;
+  border-color: #C89B3C;
+}
+
+.tier-btn.popular-btn {
+  background-color: #680A0E;
+  color: #ffffff;
+  border-color: #680A0E;
+  box-shadow: 0 2px 8px rgba(104, 10, 14, 0.25);
+}
+
+.tier-btn.popular-btn:hover {
+  background-color: #52070A;
+}
+
+.membership-promo-footer {
+  background-color: #FAF5EC;
+  border: 1px solid #E8DCCF;
+  border-radius: 16px;
+  padding: 16px 24px;
+}
+
+.footer-callout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.84rem;
+  color: #73645C;
+}
+
+.view-all-link {
+  font-weight: 700;
+  color: #680A0E;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s ease;
+}
+
+.view-all-link:hover {
+  color: #52070A;
+  text-decoration: underline;
+}
+
+@media (max-width: 960px) {
+  .membership-promo-grid {
+    grid-template-columns: 1fr;
+    max-width: 440px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .membership-promo-section .section-title {
+    font-size: 1.7rem;
+  }
+}
