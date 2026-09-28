@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { MembershipPlanResponse, OrderResponse } from '@nadar-kalyanam/schemas';
 import { Card } from '@/components/ui/card';
+import { ContactInfoCard } from '@/components/ui/contact-info-card';
 import { AppHeader } from '../../components/app-header';
 import { ApiError, createOrder, listMembershipPlans } from '../../lib/api-client';
 import { useRegistration } from '../providers/registration-provider';
@@ -21,13 +22,18 @@ import {
   MessageCircle,
 } from 'lucide-react';
 
+interface PlanFeature {
+  text: string;
+  infoPlan?: 'gold-plus' | 'gold-premium';
+}
+
 interface PlanDetail {
   id: string;
   name: string;
   durationLabel: string;
   price: number;
   popular?: boolean;
-  features: string[];
+  features: Array<string | PlanFeature>;
 }
 
 const MEMBERSHIP_TIERS: PlanDetail[] = [
@@ -49,7 +55,7 @@ const MEMBERSHIP_TIERS: PlanDetail[] = [
     durationLabel: '3 MONTHS',
     price: 2299,
     features: [
-      'Unlimited Phone Numbers*',
+      { text: 'Unlimited Phone Numbers', infoPlan: 'gold-plus' },
       'Send unlimited messages',
       'Unlimited horoscope views',
       'Priority profile listing in search',
@@ -62,7 +68,7 @@ const MEMBERSHIP_TIERS: PlanDetail[] = [
     price: 5999,
     popular: true,
     features: [
-      'Unlimited Phone Numbers*',
+      { text: 'Unlimited Phone Numbers', infoPlan: 'gold-premium' },
       'Send unlimited messages',
       'Unlimited horoscope views',
       'Dedicated Relationship Manager',
@@ -85,7 +91,15 @@ const VIP_PLAN: PlanDetail = {
   ],
 };
 
-const COMPARISON_ROWS = [
+interface ComparisonRow {
+  feature: string;
+  gold: React.ReactNode;
+  goldPlus: React.ReactNode;
+  goldPremium: React.ReactNode;
+  vip: React.ReactNode;
+}
+
+const COMPARISON_ROWS: ComparisonRow[] = [
   {
     feature: 'Plan Duration',
     gold: '3 Months',
@@ -96,8 +110,20 @@ const COMPARISON_ROWS = [
   {
     feature: 'Verified Phone Numbers',
     gold: '50 Contacts',
-    goldPlus: 'Unlimited*',
-    goldPremium: 'Unlimited*',
+    goldPlus: (
+      <ContactInfoCard
+        planType="gold-plus"
+        triggerText="Unlimited"
+        position="bottom"
+      />
+    ),
+    goldPremium: (
+      <ContactInfoCard
+        planType="gold-premium"
+        triggerText="Unlimited"
+        position="bottom"
+      />
+    ),
     vip: '75 Nos (Assisted)',
   },
   {
@@ -265,17 +291,32 @@ export default function MembershipPage() {
                     {/* Feature Checkpoints */}
                     <div className="pt-1 pb-4">
                       <ul className="space-y-2.5">
-                        {tier.features.map((feat, idx) => (
-                          <li
-                            key={idx}
-                            className="flex items-start gap-2.5 text-xs sm:text-sm text-[#443833]"
-                          >
-                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#FAF5EC] text-[#C89B3C] mt-0.5">
-                              <Check className="h-3 w-3 stroke-[2.5]" />
-                            </span>
-                            <span>{feat}</span>
-                          </li>
-                        ))}
+                        {tier.features.map((feat, idx) => {
+                          const isObj = typeof feat !== 'string';
+                          const text = isObj ? feat.text : feat;
+                          const infoPlan = isObj ? feat.infoPlan : undefined;
+
+                          return (
+                            <li
+                              key={idx}
+                              className="flex items-start gap-2.5 text-xs sm:text-sm text-[#443833]"
+                            >
+                              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#FAF5EC] text-[#C89B3C] mt-0.5">
+                                <Check className="h-3 w-3 stroke-[2.5]" />
+                              </span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span>{text}</span>
+                                {infoPlan && (
+                                  <ContactInfoCard
+                                    planType={infoPlan}
+                                    position="top"
+                                    align="left"
+                                  />
+                                )}
+                              </div>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   </div>
@@ -538,8 +579,8 @@ export default function MembershipPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-[#E8DCCF] bg-white shadow-xs overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="rounded-xl border border-[#E8DCCF] bg-white shadow-xs overflow-visible relative">
+            <div className="overflow-x-auto sm:overflow-visible">
               <table className="w-full text-left text-xs sm:text-sm">
                 <thead>
                   <tr className="border-b border-[#F4ECE3] bg-[#FAF5EC] text-[#443833]">

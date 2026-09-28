@@ -1,10 +1,17 @@
 import type { Metadata } from 'next';
-import { Cinzel, Cormorant_Garamond, Plus_Jakarta_Sans } from 'next/font/google';
+import { Cinzel, Cormorant_Garamond, Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
 import { RegistrationProvider } from './providers/registration-provider';
 import './globals.css';
 
 const cormorantGaramond = Cormorant_Garamond({
   variable: '--font-heading',
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  style: ['normal', 'italic'],
+});
+
+const playfairDisplay = Playfair_Display({
+  variable: '--font-playfair',
   subsets: ['latin'],
   weight: ['500', '600', '700'],
   style: ['normal', 'italic'],
@@ -36,7 +43,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cormorantGaramond.variable} ${cinzel.variable} ${plusJakartaSans.variable}`}
+      className={`${cormorantGaramond.variable} ${playfairDisplay.variable} ${cinzel.variable} ${plusJakartaSans.variable}`}
     >
       <body>
         <RegistrationProvider>{children}</RegistrationProvider>

@@ -345,7 +345,8 @@ async function main() {
       priceInPaise: 229900,
       durationDays: 90,
       entitlements: {
-        phoneNumbers: 'Unlimited*',
+        phoneNumbers: 'Unlimited',
+        newPhoneNumbersQuota: 75,
         unlimitedMessages: true,
         unlimitedHoroscopes: true,
         verifiedProfilesWithPhotos: true,
@@ -358,7 +359,8 @@ async function main() {
       priceInPaise: 599900,
       durationDays: 365,
       entitlements: {
-        phoneNumbers: 'Unlimited*',
+        phoneNumbers: 'Unlimited',
+        newPhoneNumbersQuota: 200,
         unlimitedMessages: true,
         unlimitedHoroscopes: true,
         verifiedProfilesWithPhotos: true,

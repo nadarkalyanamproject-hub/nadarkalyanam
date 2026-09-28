@@ -9,7 +9,7 @@ export const envSchema = z.object({
   // realtime.gateway.ts's WebSocket CORS. Defaults to the local Next.js dev
   // servers (web on 3002, admin on 3001) so this doesn't break local
   // development when unset.
-  CORS_ORIGIN: z.string().min(1).default('http://localhost:3002,http://localhost:3001'),
+  CORS_ORIGIN: z.string().min(1).default('http://localhost:3005,http://localhost:3002,http://localhost:3001'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   REDIS_URL: z.string().min(1, 'REDIS_URL is required'),
   JWT_ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900),

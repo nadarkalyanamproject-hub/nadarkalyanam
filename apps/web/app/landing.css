@@ -975,18 +975,21 @@ html {
 }
 
 .trust-value {
-  font-family: var(--font-heading);
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--color-maroon-primary);
-  line-height: 1.15;
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0F172A;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
 }
 
 .trust-sub {
-  font-size: 0.76rem;
-  color: #6E5454;
-  font-weight: 500;
-  line-height: 1.25;
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.8rem;
+  color: #4B5563;
+  font-weight: 400;
+  line-height: 1.35;
+  margin-top: 2px;
 }
 
 .trust-vertical-divider {
@@ -1002,11 +1005,12 @@ html {
 }
 
 .badge-title {
-  font-family: var(--font-heading);
-  font-size: 1.22rem;
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 1.02rem;
   font-weight: 700;
-  color: var(--color-maroon-primary);
-  line-height: 1.2;
+  color: #0F172A;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
 }
 
 .badge-flourish {
