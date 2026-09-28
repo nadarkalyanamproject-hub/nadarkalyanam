@@ -23,14 +23,23 @@ const EMPTY_FORM: FormState = {
   about: '',
 };
 
+// Mounts the step only once the saved draft has been loaded from
+// localStorage, so the form can start from it (see basic-details). The
+// guard and submit logic below are unchanged.
 export default function AdditionalDetailsPage() {
+  const { hydrated } = useRegistration();
+  return hydrated ? <AdditionalDetailsStep /> : null;
+}
+
+function AdditionalDetailsStep() {
   const router = useRouter();
   const { ready } = useRequireAuth();
-  const { data, saveStep, markProfileCreated, clearWizardDraft } = useRegistration();
+  const { data, saveStep, saveStepInput, markProfileCreated, clearWizardDraft } = useRegistration();
 
   const [form, setForm] = useState<FormState>(() => ({
     ...EMPTY_FORM,
     ...(data.additional as unknown as Partial<FormState>),
+    ...(data.stepInputs?.additional as Partial<FormState> | undefined),
   }));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>();
@@ -58,12 +67,25 @@ export default function AdditionalDetailsPage() {
     else if (!data.location) router.replace('/onboarding/location-professional-details');
   }, [ready, data.basicDetails, data.personal, data.location, router]);
 
+  // Raw input is kept in the draft on every edit (no validation). Writes
+  // only stepInputs, which the guard above doesn't read.
+  useEffect(() => {
+    saveStepInput('additional', form);
+  }, [form, saveStepInput]);
+
   if (!ready || !data.basicDetails || !data.personal || !data.location) return null;
 
   const activePercent = getOverallCompletionPercent(data, 4, form);
 
   function update<K extends keyof FormState>(key: K, value: string) {
     setForm((prev: FormState) => ({ ...prev, [key]: value }));
+  }
+
+  // Back keeps this step's input exactly as typed (no validation) and never
+  // touches the rest of the draft.
+  function handleBack() {
+    saveStepInput('additional', form);
+    router.push('/onboarding/location-professional-details');
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -108,9 +130,21 @@ export default function AdditionalDetailsPage() {
 
         {formError ? <FormError>{formError}</FormError> : null}
 
-        <Button type="submit" size="lg" disabled={submitting} className="mt-2">
-          {submitting ? 'Creating your profile...' : 'Finish & Create Profile'}
-        </Button>
+        <div className="mt-2 flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="flex-1"
+            disabled={submitting}
+            onClick={handleBack}
+          >
+            Back
+          </Button>
+          <Button type="submit" size="lg" disabled={submitting} className="flex-1">
+            {submitting ? 'Creating your profile...' : 'Finish & Create Profile'}
+          </Button>
+        </div>
       </form>
     </OnboardingShell>
   );

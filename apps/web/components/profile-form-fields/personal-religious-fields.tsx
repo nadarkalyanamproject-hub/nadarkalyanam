@@ -2,6 +2,7 @@
 
 import type { PersonalReligious } from '@nadar-kalyanam/schemas';
 import { Field, Input, Select } from '@nadar-kalyanam/ui';
+import { isRequired } from '../../lib/required-fields';
 
 export type PersonalReligiousFormState = Record<keyof PersonalReligious, string>;
 
@@ -25,7 +26,7 @@ export function PersonalReligiousFields({
   return (
     <>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Height" htmlFor="height" error={errors.height}>
+        <Field label="Height" htmlFor="height" required={isRequired('personal', 'height')} error={errors.height}>
           <Select
             id="height"
             invalid={Boolean(errors.height)}
@@ -41,7 +42,12 @@ export function PersonalReligiousFields({
           </Select>
         </Field>
 
-        <Field label="Physical status" htmlFor="physicalStatus" error={errors.physicalStatus}>
+        <Field
+          label="Physical status"
+          htmlFor="physicalStatus"
+          required={isRequired('personal', 'physicalStatus')}
+          error={errors.physicalStatus}
+        >
           <Select
             id="physicalStatus"
             invalid={Boolean(errors.physicalStatus)}
@@ -55,7 +61,12 @@ export function PersonalReligiousFields({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Marital status" htmlFor="maritalStatus" error={errors.maritalStatus}>
+        <Field
+          label="Marital status"
+          htmlFor="maritalStatus"
+          required={isRequired('personal', 'maritalStatus')}
+          error={errors.maritalStatus}
+        >
           <Select
             id="maritalStatus"
             invalid={Boolean(errors.maritalStatus)}
@@ -69,7 +80,7 @@ export function PersonalReligiousFields({
             <option value="AWAITING_DIVORCE">Awaiting divorce</option>
           </Select>
         </Field>
-        <Field label="Religion" htmlFor="religion" error={errors.religion}>
+        <Field label="Religion" htmlFor="religion" required={isRequired('personal', 'religion')} error={errors.religion}>
           <Input
             id="religion"
             invalid={Boolean(errors.religion)}
@@ -80,7 +91,12 @@ export function PersonalReligiousFields({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Community" htmlFor="casteCommunity" error={errors.casteCommunity}>
+        <Field
+          label="Community"
+          htmlFor="casteCommunity"
+          required={isRequired('personal', 'casteCommunity')}
+          error={errors.casteCommunity}
+        >
           <Input
             id="casteCommunity"
             invalid={Boolean(errors.casteCommunity)}
@@ -91,6 +107,7 @@ export function PersonalReligiousFields({
         <Field
           label="Dosham (optional)"
           htmlFor="dosham"
+          required={isRequired('personal', 'dosham')}
           error={errors.dosham}
           hint="Horoscope-related detail, if applicable"
         >

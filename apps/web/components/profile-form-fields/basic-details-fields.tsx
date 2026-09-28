@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { BasicDetails } from '@nadar-kalyanam/schemas';
 import { Field, Input, Select } from '@nadar-kalyanam/ui';
+import { isRequired } from '../../lib/required-fields';
 
 export type BasicDetailsFormState = Record<keyof BasicDetails, string>;
 
@@ -102,7 +103,7 @@ export function BasicDetailsFields({
 
   return (
     <>
-      <Field label="Full name" htmlFor="fullName" error={errors.fullName}>
+      <Field label="Full name" htmlFor="fullName" required={isRequired('basicDetails', 'fullName')} error={errors.fullName}>
         <Input
           id="fullName"
           invalid={Boolean(errors.fullName)}
@@ -111,7 +112,7 @@ export function BasicDetailsFields({
         />
       </Field>
 
-      <Field label="Gender" htmlFor="gender" error={errors.gender}>
+      <Field label="Gender" htmlFor="gender" required={isRequired('basicDetails', 'gender')} error={errors.gender}>
         <Select
           id="gender"
           invalid={Boolean(errors.gender)}
@@ -125,7 +126,13 @@ export function BasicDetailsFields({
         </Select>
       </Field>
 
-      <Field label="Date of birth" htmlFor="dobDay" error={errors.dateOfBirth}>
+      {/* One group label (and one "*") for the three date selects. */}
+      <Field
+        label="Date of birth"
+        htmlFor="dobDay"
+        required={isRequired('basicDetails', 'dateOfBirth')}
+        error={errors.dateOfBirth}
+      >
         <div className="grid grid-cols-3 gap-4">
           <Select
             id="dobDay"
@@ -173,7 +180,12 @@ export function BasicDetailsFields({
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Mother tongue" htmlFor="motherTongue" error={errors.motherTongue}>
+        <Field
+          label="Mother tongue"
+          htmlFor="motherTongue"
+          required={isRequired('basicDetails', 'motherTongue')}
+          error={errors.motherTongue}
+        >
           <Select
             id="motherTongue"
             invalid={Boolean(errors.motherTongue)}
@@ -189,7 +201,7 @@ export function BasicDetailsFields({
           </Select>
         </Field>
 
-        <Field label="Email" htmlFor="email" error={errors.email}>
+        <Field label="Email" htmlFor="email" required={isRequired('basicDetails', 'email')} error={errors.email}>
           <Input
             id="email"
             type="email"
@@ -205,6 +217,7 @@ export function BasicDetailsFields({
       {/*
         UI-only field — see comment above the `password` state declaration.
         Not part of BasicDetails/basicDetailsSchema, never persisted or transmitted.
+        Deliberately no required marker: it never blocks Next/Save.
       */}
       <Field
         label="Create password"

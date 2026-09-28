@@ -2,6 +2,7 @@
 
 import type { AdditionalDetails } from '@nadar-kalyanam/schemas';
 import { Field, Select, Textarea } from '@nadar-kalyanam/ui';
+import { isRequired } from '../../lib/required-fields';
 
 export type AdditionalDetailsFormState = Record<keyof AdditionalDetails, string>;
 
@@ -16,7 +17,12 @@ export function AdditionalDetailsFields({
 }) {
   return (
     <>
-      <Field label="Family status" htmlFor="familyType" error={errors.familyType}>
+      <Field
+        label="Family status"
+        htmlFor="familyType"
+        required={isRequired('additional', 'familyType')}
+        error={errors.familyType}
+      >
         <Select
           id="familyType"
           invalid={Boolean(errors.familyType)}
@@ -30,7 +36,13 @@ export function AdditionalDetailsFields({
         </Select>
       </Field>
 
-      <Field label="About you" htmlFor="about" error={errors.about} hint="At least 50 characters">
+      <Field
+        label="About you"
+        htmlFor="about"
+        required={isRequired('additional', 'about')}
+        error={errors.about}
+        hint="At least 50 characters"
+      >
         <Textarea
           id="about"
           invalid={Boolean(errors.about)}

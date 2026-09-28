@@ -2,6 +2,7 @@
 
 import type { LocationProfessional } from '@nadar-kalyanam/schemas';
 import { Field, Input, Select } from '@nadar-kalyanam/ui';
+import { isRequired } from '../../lib/required-fields';
 
 export type LocationProfessionalFormState = Record<keyof LocationProfessional, string>;
 
@@ -56,7 +57,7 @@ export function LocationProfessionalFields({
   return (
     <>
       <div className="grid grid-cols-3 gap-4">
-        <Field label="City" htmlFor="city" error={errors.city}>
+        <Field label="City" htmlFor="city" required={isRequired('location', 'city')} error={errors.city}>
           <Input
             id="city"
             invalid={Boolean(errors.city)}
@@ -64,7 +65,7 @@ export function LocationProfessionalFields({
             onChange={(e) => onChange('city', e.target.value)}
           />
         </Field>
-        <Field label="State" htmlFor="state" error={errors.state}>
+        <Field label="State" htmlFor="state" required={isRequired('location', 'state')} error={errors.state}>
           <Select
             id="state"
             invalid={Boolean(errors.state)}
@@ -79,7 +80,7 @@ export function LocationProfessionalFields({
             ))}
           </Select>
         </Field>
-        <Field label="Country" htmlFor="country" error={errors.country}>
+        <Field label="Country" htmlFor="country" required={isRequired('location', 'country')} error={errors.country}>
           <Select id="country" disabled value={form.country} onChange={(e) => onChange('country', e.target.value)}>
             <option value="India">India</option>
           </Select>
@@ -87,7 +88,12 @@ export function LocationProfessionalFields({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Educational details" htmlFor="educationLevel" error={errors.educationLevel}>
+        <Field
+          label="Educational details"
+          htmlFor="educationLevel"
+          required={isRequired('location', 'educationLevel')}
+          error={errors.educationLevel}
+        >
           <Input
             id="educationLevel"
             placeholder="e.g. Bachelors"
@@ -96,7 +102,12 @@ export function LocationProfessionalFields({
             onChange={(e) => onChange('educationLevel', e.target.value)}
           />
         </Field>
-        <Field label="Education detail" htmlFor="educationDetail" error={errors.educationDetail}>
+        <Field
+          label="Education detail"
+          htmlFor="educationDetail"
+          required={isRequired('location', 'educationDetail')}
+          error={errors.educationDetail}
+        >
           <Input
             id="educationDetail"
             placeholder="e.g. B.Tech Computer Science"
@@ -108,7 +119,12 @@ export function LocationProfessionalFields({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Occupation" htmlFor="profession" error={errors.profession}>
+        <Field
+          label="Occupation"
+          htmlFor="profession"
+          required={isRequired('location', 'profession')}
+          error={errors.profession}
+        >
           <Input
             id="profession"
             invalid={Boolean(errors.profession)}
@@ -116,7 +132,12 @@ export function LocationProfessionalFields({
             onChange={(e) => onChange('profession', e.target.value)}
           />
         </Field>
-        <Field label="Employment type" htmlFor="employedIn" error={errors.employedIn}>
+        <Field
+          label="Employment type"
+          htmlFor="employedIn"
+          required={isRequired('location', 'employedIn')}
+          error={errors.employedIn}
+        >
           <Input
             id="employedIn"
             placeholder="e.g. Private, Government"
@@ -128,7 +149,12 @@ export function LocationProfessionalFields({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Annual income" htmlFor="annualIncomeRange" error={errors.annualIncomeRange}>
+        <Field
+          label="Annual income"
+          htmlFor="annualIncomeRange"
+          required={isRequired('location', 'annualIncomeRange')}
+          error={errors.annualIncomeRange}
+        >
           <Input
             id="annualIncomeRange"
             placeholder="e.g. 10-15 LPA"
@@ -140,6 +166,7 @@ export function LocationProfessionalFields({
         <Field
           label="Annual income currency"
           htmlFor="annualIncomeCurrency"
+          required={isRequired('location', 'annualIncomeCurrency')}
           error={errors.annualIncomeCurrency}
         >
           <Select

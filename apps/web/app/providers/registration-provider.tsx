@@ -3,7 +3,11 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { claimAuthRedirect, onUnauthorized, releaseAuthRedirectClaim } from '../../lib/auth-events';
-import { REGISTRATION_STORAGE_KEY, type RegistrationDraft } from '../../lib/registration-types';
+import {
+  REGISTRATION_STORAGE_KEY,
+  type RegistrationDraft,
+  type WizardStepKey,
+} from '../../lib/registration-types';
 
 interface RegistrationContextValue {
   data: RegistrationDraft;
@@ -24,6 +28,7 @@ interface RegistrationContextValue {
     key: K,
     value: RegistrationDraft[K],
   ) => void;
+  saveStepInput: (key: WizardStepKey, values: Record<string, string>) => void;
   markProfileCreated: () => void;
   clearWizardDraft: () => void;
   clearAuth: () => void;
@@ -95,6 +100,12 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  // Raw step input (no validation) — see RegistrationDraft.stepInputs. Only
+  // ever adds/replaces one step's entry; never touches the validated keys.
+  const saveStepInput = useCallback((key: WizardStepKey, values: Record<string, string>) => {
+    setData((prev) => ({ ...prev, stepInputs: { ...prev.stepInputs, [key]: values } }));
+  }, []);
+
   const markProfileCreated = useCallback(() => {
     setData((prev) => ({ ...prev, hasProfile: true }));
   }, []);
@@ -142,6 +153,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
         setDevOtp,
         setAuth,
         saveStep,
+        saveStepInput,
         markProfileCreated,
         clearWizardDraft,
         clearAuth,
