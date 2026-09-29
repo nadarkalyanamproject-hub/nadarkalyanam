@@ -122,6 +122,8 @@ function AdditionalDetailsStep() {
     <OnboardingShell
       step={4}
       activePercent={activePercent}
+      onBack={handleBack}
+      backDisabled={submitting}
       title="Additional Details"
       subtitle="Your family status and a bit about you"
     >
@@ -130,21 +132,10 @@ function AdditionalDetailsStep() {
 
         {formError ? <FormError>{formError}</FormError> : null}
 
-        <div className="mt-2 flex gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            className="flex-1"
-            disabled={submitting}
-            onClick={handleBack}
-          >
-            Back
-          </Button>
-          <Button type="submit" size="lg" disabled={submitting} className="flex-1">
-            {submitting ? 'Creating your profile...' : 'Finish & Create Profile'}
-          </Button>
-        </div>
+        {/* The final action keeps its full-width, large treatment. */}
+        <Button type="submit" size="lg" disabled={submitting} className="mt-2">
+          {submitting ? 'Creating your profile...' : 'Finish & Create Profile'}
+        </Button>
       </form>
     </OnboardingShell>
   );

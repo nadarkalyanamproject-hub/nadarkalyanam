@@ -83,16 +83,14 @@ function LocationProfessionalStep() {
     <OnboardingShell
       step={3}
       activePercent={activePercent}
+      onBack={handleBack}
       title="Location & Professional Details"
       subtitle="Where you live and what you do"
     >
       <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
         <LocationProfessionalFields form={form} errors={errors} onChange={update} />
-        <div className="mt-2 flex gap-3">
-          <Button type="button" variant="outline" size="lg" className="flex-1" onClick={handleBack}>
-            Back
-          </Button>
-          <Button type="submit" size="lg" className="flex-1">
+        <div className="mt-2 flex justify-end">
+          <Button type="submit" size="md" className="min-w-32">
             Next
           </Button>
         </div>

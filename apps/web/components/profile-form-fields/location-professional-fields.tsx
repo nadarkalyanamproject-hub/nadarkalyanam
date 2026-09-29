@@ -87,7 +87,11 @@ export function LocationProfessionalFields({
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      {/* Education detail elaborates on the level, so it's only shown once a
+          level is entered (appearing right below it). Editing the level
+          keeps the detail — it's in plain view to correct — but emptying the
+          level hides it AND clears it, so no hidden value is ever saved. */}
+      <div className="flex flex-col gap-4">
         <Field
           label="Educational details"
           htmlFor="educationLevel"
@@ -99,23 +103,28 @@ export function LocationProfessionalFields({
             placeholder="e.g. Bachelors"
             invalid={Boolean(errors.educationLevel)}
             value={form.educationLevel}
-            onChange={(e) => onChange('educationLevel', e.target.value)}
+            onChange={(e) => {
+              onChange('educationLevel', e.target.value);
+              if (!e.target.value.trim() && form.educationDetail) onChange('educationDetail', '');
+            }}
           />
         </Field>
-        <Field
-          label="Education detail"
-          htmlFor="educationDetail"
-          required={isRequired('location', 'educationDetail')}
-          error={errors.educationDetail}
-        >
-          <Input
-            id="educationDetail"
-            placeholder="e.g. B.Tech Computer Science"
-            invalid={Boolean(errors.educationDetail)}
-            value={form.educationDetail}
-            onChange={(e) => onChange('educationDetail', e.target.value)}
-          />
-        </Field>
+        {form.educationLevel.trim() !== '' && (
+          <Field
+            label="Education detail"
+            htmlFor="educationDetail"
+            required={isRequired('location', 'educationDetail')}
+            error={errors.educationDetail}
+          >
+            <Input
+              id="educationDetail"
+              placeholder="e.g. B.Tech Computer Science"
+              invalid={Boolean(errors.educationDetail)}
+              value={form.educationDetail}
+              onChange={(e) => onChange('educationDetail', e.target.value)}
+            />
+          </Field>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">

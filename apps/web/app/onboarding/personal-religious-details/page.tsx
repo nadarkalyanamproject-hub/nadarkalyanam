@@ -80,16 +80,14 @@ function PersonalReligiousStep() {
     <OnboardingShell
       step={2}
       activePercent={activePercent}
+      onBack={handleBack}
       title="Personal & Religious Details"
       subtitle="A few more details about you"
     >
       <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
         <PersonalReligiousFields form={form} errors={errors} onChange={update} />
-        <div className="mt-2 flex gap-3">
-          <Button type="button" variant="outline" size="lg" className="flex-1" onClick={handleBack}>
-            Back
-          </Button>
-          <Button type="submit" size="lg" className="flex-1">
+        <div className="mt-2 flex justify-end">
+          <Button type="submit" size="md" className="min-w-32">
             Next
           </Button>
         </div>

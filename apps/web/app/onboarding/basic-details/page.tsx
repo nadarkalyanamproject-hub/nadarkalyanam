@@ -83,9 +83,11 @@ function BasicDetailsStep() {
     >
       <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
         <BasicDetailsFields form={form} errors={errors} onChange={update} />
-        <Button type="submit" size="lg" className="mt-2">
-          Next
-        </Button>
+        <div className="mt-2 flex justify-end">
+          <Button type="submit" size="md" className="min-w-32">
+            Next
+          </Button>
+        </div>
       </form>
     </OnboardingShell>
   );
