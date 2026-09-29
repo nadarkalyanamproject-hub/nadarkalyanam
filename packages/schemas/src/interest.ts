@@ -33,3 +33,8 @@ export const listInterestsResponseSchema = z.object({
   received: z.array(interestResponseSchema),
 });
 export type ListInterestsResponse = z.infer<typeof listInterestsResponseSchema>;
+
+// GET /interests/has-unread — true when a PENDING interest arrived for the
+// caller after they last opened the Interests page (the header's dot).
+export const interestsHasUnreadResponseSchema = z.object({ hasUnread: z.boolean() });
+export type InterestsHasUnreadResponse = z.infer<typeof interestsHasUnreadResponseSchema>;

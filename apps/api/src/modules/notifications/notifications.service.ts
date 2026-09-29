@@ -194,6 +194,21 @@ export class NotificationsService {
     return { id: notificationId, isRead: true };
   }
 
+  // Marks the recipient's notification about one specific thing read — e.g.
+  // accepting an interest clears its INTEREST_RECEIVED. Pass the caller's
+  // transaction client to make it part of that transaction. Matching nothing
+  // (already read, or no row) is a normal no-op, never an error.
+  async markTargetRead(
+    target: { userId: string; type: NotificationType; targetType: NotificationTargetType; targetId: string },
+    client: Pick<Prisma.TransactionClient, 'notification'> = this.prisma,
+  ): Promise<number> {
+    const { count } = await client.notification.updateMany({
+      where: { ...target, read: false },
+      data: { read: true },
+    });
+    return count;
+  }
+
   async markAllRead(userId: string): Promise<{ updatedCount: number }> {
     const { count } = await this.prisma.notification.updateMany({
       where: { userId, read: false, type: { not: 'NEW_MESSAGE' } },

@@ -115,8 +115,17 @@ export default function MessagesPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
-                        <p className="truncate text-base font-bold text-foreground">
-                          {conversation.otherParticipant.fullName}
+                        <p className="flex min-w-0 items-center gap-2 text-base font-bold text-foreground">
+                          {/* Unread dot: messages from them you haven't opened yet. */}
+                          {conversation.hasUnread && (
+                            <span
+                              role="status"
+                              aria-label="Unread messages"
+                              data-testid="conversation-unread-dot"
+                              className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-primary"
+                            />
+                          )}
+                          <span className="truncate">{conversation.otherParticipant.fullName}</span>
                         </p>
                         {conversation.lastMessage ? (
                           <span className="shrink-0 text-xs text-muted-foreground">

@@ -146,6 +146,12 @@ export class InterestsService {
           { conversationId: conversation.id, userId: interest.targetId },
         ],
       });
+      // Acting on the interest also clears the accepter's notification
+      // about it (same transaction; no row to clear is fine).
+      await this.notifications.markTargetRead(
+        { userId: callerUserId, type: 'INTEREST_RECEIVED', targetType: 'Interest', targetId: interestId },
+        tx,
+      );
       return { interest: updated, conversationId: conversation.id };
     });
 
@@ -200,6 +206,36 @@ export class InterestsService {
       data: { status: 'WITHDRAWN', respondedAt: new Date() },
     });
     return { id: updated.id, status: updated.status };
+  }
+
+  // The header's "new interests" dot: any PENDING interest to the caller
+  // that arrived after they last opened the Interests page (or ever, if they
+  // never have). Senders who are now blocked (either direction) or no longer
+  // active don't count — they aren't something to act on.
+  async hasUnread(callerUserId: string): Promise<{ hasUnread: boolean }> {
+    const [user, blocked] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: callerUserId }, select: { lastViewedInterestsAt: true } }),
+      getBlockedUserIds(this.prisma, callerUserId),
+    ]);
+    const lastViewed = user?.lastViewedInterestsAt ?? null;
+    const newer = await this.prisma.interest.findFirst({
+      where: {
+        targetId: callerUserId,
+        status: 'PENDING',
+        ...(lastViewed ? { createdAt: { gt: lastViewed } } : {}),
+        sender: { status: 'ACTIVE', id: { notIn: [...blocked] } },
+      },
+      select: { id: true },
+    });
+    return { hasUnread: Boolean(newer) };
+  }
+
+  // Recorded when the member opens /interests: everything pending right now
+  // counts as seen (whether or not it's been acted on).
+  async markViewed(callerUserId: string): Promise<{ viewedAt: string }> {
+    const viewedAt = new Date();
+    await this.prisma.user.update({ where: { id: callerUserId }, data: { lastViewedInterestsAt: viewedAt } });
+    return { viewedAt: viewedAt.toISOString() };
   }
 
   async listForUser(callerUserId: string) {

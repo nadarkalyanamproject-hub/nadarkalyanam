@@ -78,3 +78,11 @@ export const MESSAGES_CHANGED_EVENT = 'nk:messages-changed';
 export function announceMessagesChanged(): void {
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(MESSAGES_CHANGED_EVENT));
 }
+
+// Fired by the Interests page once it has recorded the visit, so the
+// header's Interests dot clears immediately.
+export const INTERESTS_CHANGED_EVENT = 'nk:interests-changed';
+
+export function announceInterestsChanged(): void {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(INTERESTS_CHANGED_EVENT));
+}

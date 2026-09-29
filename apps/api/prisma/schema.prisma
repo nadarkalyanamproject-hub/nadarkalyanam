@@ -17,12 +17,15 @@ enum AccountStatus {
 }
 
 model User {
-  id                  String        @id @default(uuid())
-  phoneNumber         String        @unique
-  status              AccountStatus @default(ACTIVE)
-  deletionRequestedAt DateTime?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  id                    String        @id @default(uuid())
+  phoneNumber           String        @unique
+  status                AccountStatus @default(ACTIVE)
+  deletionRequestedAt   DateTime?
+  // When the member last opened the Interests page. A PENDING interest
+  // received after this drives the "new interests" dot in the header.
+  lastViewedInterestsAt DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
   profile                    Profile?
   sessions                   Session[]

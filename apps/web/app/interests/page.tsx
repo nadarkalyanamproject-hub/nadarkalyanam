@@ -6,7 +6,15 @@ import type { Connection, InterestResponse, ListInterestsResponse } from '@nadar
 import { Button, Card } from '@nadar-kalyanam/ui';
 import { AppHeader, UserIcon } from '../../components/app-header';
 import { ConnectedBadge } from '../../components/relationship/relationship-action';
-import { ApiError, acceptInterest, declineInterest, listConnections, listInterests } from '../../lib/api-client';
+import {
+  ApiError,
+  acceptInterest,
+  declineInterest,
+  listConnections,
+  listInterests,
+  markInterestsViewed,
+} from '../../lib/api-client';
+import { announceInterestsChanged, announceNotificationsChanged } from '../../lib/notifications';
 import { useRegistration } from '../providers/registration-provider';
 import { useRequireAuth } from '../../lib/use-require-auth';
 
@@ -51,6 +59,13 @@ export default function InterestsPage() {
         if (!cancelled) {
           setError(err instanceof ApiError ? err.message : 'Could not load interests. Please try again.');
         }
+      });
+    // Opening this page counts as having seen everything pending right now:
+    // record it, then let the header drop its Interests dot immediately.
+    markInterestsViewed(data.accessToken)
+      .then(() => announceInterestsChanged())
+      .catch(() => {
+        // Best-effort; the dot just stays until the next visit.
       });
     listConnections(data.accessToken, { limit: CONNECTIONS_PAGE_SIZE })
       .then((result) => {
@@ -110,6 +125,9 @@ export default function InterestsPage() {
     setActionError((prev) => ({ ...prev, [id]: '' }));
     try {
       const accepted = await acceptInterest(data.accessToken!, id);
+      // Accepting also marked this interest's notification read (server
+      // side) — refresh the header's Notifications badge now.
+      announceNotificationsChanged();
       setInterests((prev) => (prev ? { ...prev, received: prev.received.filter((item) => item.id !== id) } : prev));
       if (interest) {
         const party = interest.sender;

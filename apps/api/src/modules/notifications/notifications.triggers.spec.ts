@@ -12,7 +12,7 @@ import { NotificationsService } from './notifications.service.js';
 const A = { userId: 'user-a', profileId: 'profile-a' };
 const B = { userId: 'user-b', profileId: 'profile-b' };
 
-const notifier = () => ({ notify: vi.fn() });
+const notifier = () => ({ notify: vi.fn(), markTargetRead: vi.fn().mockResolvedValue(0) });
 
 function interestsService(interestRow: Record<string, unknown> | null = null) {
   const prisma = {

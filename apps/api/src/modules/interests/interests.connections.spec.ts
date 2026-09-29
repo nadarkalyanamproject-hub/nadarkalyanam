@@ -72,7 +72,7 @@ function buildService(rows: Row[]) {
       return { id: u.profileId, userId: u.userId };
     }),
   };
-  const service = new InterestsService(prisma as never, profilesService as never, {} as never, { notify: vi.fn() } as never);
+  const service = new InterestsService(prisma as never, profilesService as never, {} as never, { notify: vi.fn(), markTargetRead: vi.fn().mockResolvedValue(0) } as never);
   return { service, prisma, store };
 }
 
@@ -170,7 +170,7 @@ describe('InterestsService.listConnections', () => {
         { id: 'p1', url: `https://signed.example/${profileId}?X-Amz-Signature=x`, isPrimary: true, sortOrder: 0 },
       ]),
     };
-    const service = new InterestsService(prisma as never, {} as never, photosService as never, { notify: vi.fn() } as never);
+    const service = new InterestsService(prisma as never, {} as never, photosService as never, { notify: vi.fn(), markTargetRead: vi.fn().mockResolvedValue(0) } as never);
     return { service, prisma };
   }
 

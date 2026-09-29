@@ -23,11 +23,13 @@ function buildService(overrides?: {
     },
     block: {
       findFirst: vi.fn().mockResolvedValue(overrides?.block ?? null),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     message: {
       findMany: vi.fn().mockResolvedValue(overrides?.messages ?? []),
       count: vi.fn().mockResolvedValue(overrides?.messages?.length ?? 0),
       updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      groupBy: vi.fn().mockResolvedValue([]),
       create: vi.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) =>
         Promise.resolve({
           id: 'message-1',

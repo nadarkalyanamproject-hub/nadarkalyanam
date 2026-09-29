@@ -5,6 +5,7 @@ import type {
   CreateProfileRequest,
   CreateProfileResponse,
   InitiateVerificationResponse,
+  InterestsHasUnreadResponse,
   ListConnectionsResponse,
   ListInterestsResponse,
   ListMatchesResponse,
@@ -206,6 +207,18 @@ export function listInterests(accessToken: string): Promise<ListInterestsRespons
   return request<ListInterestsResponse>('/interests', {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
+}
+
+// Header dot: has a pending interest arrived since the last Interests visit?
+export function getInterestsHasUnread(accessToken: string): Promise<InterestsHasUnreadResponse> {
+  return request<InterestsHasUnreadResponse>('/interests/has-unread', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// Records an Interests-page visit (clears the dot).
+export function markInterestsViewed(accessToken: string): Promise<{ viewedAt: string }> {
+  return request('/interests/viewed', { method: 'POST', headers: { Authorization: `Bearer ${accessToken}` } });
 }
 
 // Members the caller is connected with (an accepted interest either way).

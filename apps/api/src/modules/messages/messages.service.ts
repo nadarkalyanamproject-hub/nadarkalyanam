@@ -16,6 +16,13 @@ function toMessageResponse(message: Message): MessageResponse {
   };
 }
 
+// Unread conversations first; within each group, most recent activity first.
+export function sortConversations<T extends { hasUnread: boolean; lastActivityAt: string }>(items: T[]): T[] {
+  return [...items].sort(
+    (a, b) => Number(b.hasUnread) - Number(a.hasUnread) || b.lastActivityAt.localeCompare(a.lastActivityAt),
+  );
+}
+
 @Injectable()
 export class MessagesService {
   constructor(
@@ -42,6 +49,24 @@ export class MessagesService {
         : [];
     const profileByUserId = new Map(profiles.map((profile) => [profile.userId, profile]));
 
+    // Unread per conversation: messages from the other participant not yet
+    // READ (the same status the thread's read-on-open sets). One grouped
+    // query for all conversations. A blocked pair can't open the thread, so
+    // it never shows as unread — matching GET /messages/unread-count.
+    const blocked = await getBlockedUserIds(this.prisma, callerUserId);
+    const unreadGroups = conversations.length
+      ? await this.prisma.message.groupBy({
+          by: ['conversationId'],
+          where: {
+            conversationId: { in: conversations.map((c) => c.id) },
+            senderId: { not: callerUserId },
+            status: { not: 'READ' },
+          },
+          _count: { _all: true },
+        })
+      : [];
+    const unreadByConversation = new Map(unreadGroups.map((g) => [g.conversationId, g._count._all]));
+
     const items = await Promise.all(
       conversations.map(async (conversation) => {
         const otherParticipant = conversation.participants.find((p) => p.userId !== callerUserId);
@@ -49,6 +74,8 @@ export class MessagesService {
         const photos = otherProfile ? await this.photosService.getPhotosForProfile(otherProfile.id) : [];
         const primaryPhotoUrl = photos.find((photo) => photo.isPrimary)?.url ?? photos[0]?.url ?? null;
         const lastMessage = conversation.messages[0];
+        const isBlocked = otherParticipant ? blocked.has(otherParticipant.userId) : false;
+        const unreadCount = isBlocked ? 0 : (unreadByConversation.get(conversation.id) ?? 0);
 
         return {
           id: conversation.id,
@@ -66,11 +93,14 @@ export class MessagesService {
               }
             : null,
           createdAt: conversation.createdAt.toISOString(),
+          unreadCount,
+          hasUnread: unreadCount > 0,
+          lastActivityAt: (lastMessage?.createdAt ?? conversation.createdAt).toISOString(),
         };
       }),
     );
 
-    return { items };
+    return { items: sortConversations(items) };
   }
 
   async listMessages(

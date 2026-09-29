@@ -53,6 +53,12 @@ export const conversationSummarySchema = z.object({
     .object({ body: z.string(), senderId: z.string(), createdAt: z.string() })
     .nullable(),
   createdAt: z.string(),
+  // Messages from the other participant the caller hasn't opened yet (0 for
+  // a conversation with a blocked participant, which can't be opened).
+  unreadCount: z.number(),
+  hasUnread: z.boolean(),
+  // Last message time, or the conversation's creation time if it has none.
+  lastActivityAt: z.string(),
 });
 export type ConversationSummary = z.infer<typeof conversationSummarySchema>;
 

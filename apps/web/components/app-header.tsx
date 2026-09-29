@@ -4,9 +4,14 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement, typ
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useRegistration } from '../app/providers/registration-provider';
-import { getUnreadMessageCount, getUnreadNotificationCount } from '../lib/api-client';
+import { getInterestsHasUnread, getUnreadMessageCount, getUnreadNotificationCount } from '../lib/api-client';
 import { claimAuthRedirect } from '../lib/auth-events';
-import { formatBadgeCount, MESSAGES_CHANGED_EVENT, NOTIFICATIONS_CHANGED_EVENT } from '../lib/notifications';
+import {
+  formatBadgeCount,
+  INTERESTS_CHANGED_EVENT,
+  MESSAGES_CHANGED_EVENT,
+  NOTIFICATIONS_CHANGED_EVENT,
+} from '../lib/notifications';
 import { useProfile } from '../lib/use-profile';
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -155,6 +160,7 @@ export function AppHeader() {
   const isAuthenticated = hydrated && Boolean(data.accessToken);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [hasNewInterests, setHasNewInterests] = useState(false);
   const avatarUrl = profile?.photos?.find((photo) => photo.isPrimary)?.url ?? profile?.photos?.[0]?.url;
 
   function closeAvatarMenu() {
@@ -210,20 +216,29 @@ export function AppHeader() {
           if (!cancelled) setUnreadMessages(result.unreadCount);
         })
         .catch(() => {});
+      getInterestsHasUnread(token)
+        .then((result) => {
+          if (!cancelled) setHasNewInterests(result.hasUnread);
+        })
+        .catch(() => {});
     };
     refresh();
     const timer = window.setInterval(refresh, UNREAD_POLL_MS);
     window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, refresh);
     window.addEventListener(MESSAGES_CHANGED_EVENT, refresh);
+    window.addEventListener(INTERESTS_CHANGED_EVENT, refresh);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
       window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, refresh);
       window.removeEventListener(MESSAGES_CHANGED_EVENT, refresh);
+      window.removeEventListener(INTERESTS_CHANGED_EVENT, refresh);
     };
   }, [hydrated, data.accessToken, pathname]);
-  // Badge text per nav item (null = no badge; capped at "9+").
-  const navBadges: Record<string, { text: string; label: string } | null> = {
+  // Badge per nav item (null = none). Counts are capped at "9+"; Interests
+  // is a dot only ("something new since your last visit"), by design.
+  const navBadges: Record<string, { text: string; label: string; dot?: true } | null> = {
+    interests: isAuthenticated && hasNewInterests ? { text: '', label: 'New interests', dot: true } : null,
     notifications: isAuthenticated && formatBadgeCount(unreadCount)
       ? { text: formatBadgeCount(unreadCount)!, label: `${unreadCount} unread notifications` }
       : null,
@@ -231,7 +246,7 @@ export function AppHeader() {
       ? { text: formatBadgeCount(unreadMessages)!, label: `${unreadMessages} unread messages` }
       : null,
   };
-  const anyBadge = Boolean(navBadges.notifications || navBadges.messages);
+  const anyBadge = Boolean(navBadges.notifications || navBadges.messages || navBadges.interests);
 
   // Arrow-key movement between the menu's items (role="menu" convention).
   function handleMenuKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -312,15 +327,23 @@ export function AppHeader() {
                         }`}
                       />
                       <span>{item.label}</span>
-                      {navBadges[item.key] && (
-                        <span
-                          aria-label={navBadges[item.key]!.label}
-                          data-testid={`${item.key}-badge`}
-                          className="ml-0.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#7A0710] px-1 text-[10px] font-bold leading-none text-white"
-                        >
-                          {navBadges[item.key]!.text}
-                        </span>
-                      )}
+                      {navBadges[item.key] &&
+                        (navBadges[item.key]!.dot ? (
+                          <span
+                            role="status"
+                            aria-label={navBadges[item.key]!.label}
+                            data-testid={`${item.key}-badge`}
+                            className="ml-0.5 inline-block h-2 w-2 rounded-full bg-[#7A0710]"
+                          />
+                        ) : (
+                          <span
+                            aria-label={navBadges[item.key]!.label}
+                            data-testid={`${item.key}-badge`}
+                            className="ml-0.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#7A0710] px-1 text-[10px] font-bold leading-none text-white"
+                          >
+                            {navBadges[item.key]!.text}
+                          </span>
+                        ))}
                       {/* Active gold/maroon indicator */}
                       {isActive && (
                         <span className="absolute bottom-0 left-2.5 right-2.5 h-[2.5px] rounded-full bg-[#D6A33A]" />
@@ -507,14 +530,21 @@ export function AppHeader() {
                     <div className="flex items-center gap-3">
                       <Icon className="h-5 w-5 text-[#7A0710]" />
                       <span>{item.label}</span>
-                      {navBadges[item.key] && (
-                        <span
-                          aria-label={navBadges[item.key]!.label}
-                          className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#7A0710] px-1 text-[10px] font-bold leading-none text-white"
-                        >
-                          {navBadges[item.key]!.text}
-                        </span>
-                      )}
+                      {navBadges[item.key] &&
+                        (navBadges[item.key]!.dot ? (
+                          <span
+                            role="status"
+                            aria-label={navBadges[item.key]!.label}
+                            className="inline-block h-2 w-2 rounded-full bg-[#7A0710]"
+                          />
+                        ) : (
+                          <span
+                            aria-label={navBadges[item.key]!.label}
+                            className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#7A0710] px-1 text-[10px] font-bold leading-none text-white"
+                          >
+                            {navBadges[item.key]!.text}
+                          </span>
+                        ))}
                     </div>
                     {isActive && <span className="h-1.5 w-1.5 rounded-full bg-[#D6A33A]" />}
                   </Link>

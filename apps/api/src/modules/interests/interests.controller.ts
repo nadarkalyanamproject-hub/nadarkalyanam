@@ -37,6 +37,18 @@ export class InterestsController {
     return this.interestsService.listConnections(user.userId, offset, limit);
   }
 
+  // Header dot: a pending interest arrived since the last Interests visit.
+  @Get('has-unread')
+  hasUnread(@CurrentUser() user: AuthenticatedUser) {
+    return this.interestsService.hasUnread(user.userId);
+  }
+
+  // Called by the Interests page on open; clears the dot.
+  @Post('viewed')
+  markViewed(@CurrentUser() user: AuthenticatedUser) {
+    return this.interestsService.markViewed(user.userId);
+  }
+
   @Patch(':id/accept')
   accept(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.interestsService.accept(user.userId, id);
