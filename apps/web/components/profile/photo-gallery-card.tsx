@@ -117,16 +117,17 @@ export function PhotoGalleryCard({
           type="button"
           disabled={uploading || photos.length >= MAX_PHOTOS}
           onClick={() => fileInputRef.current?.click()}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[#D6A33A]/60 bg-[#FFF9ED] px-3 py-1.5 text-xs font-semibold text-[#7A0710] shadow-sm transition-all hover:bg-[#FBEED1] hover:border-[#D6A33A] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-[#D6A33A]/60 bg-[#FFF9ED] px-3 py-1.5 text-xs font-semibold text-[#7A0710] shadow-sm transition-all hover:bg-[#FBEED1] hover:border-[#D6A33A] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {uploading ? (
             <span>Uploading…</span>
           ) : (
             <>
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
+              {/* The icon is the button's only "+" (the label used to repeat it). */}
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5" aria-hidden="true">
                 <path d="M8 3v10M3 8h10" />
               </svg>
-              <span>+ Add Photos</span>
+              <span>Add Photos</span>
             </>
           )}
         </button>
@@ -147,7 +148,7 @@ export function PhotoGalleryCard({
             <div
               key={photo.id}
               onClick={() => setEnlargedPhotoUrl(photo.url)}
-              className="group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-[#E8DCC8] bg-[#FAF6EF]"
+              className="@container group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-[#E8DCC8] bg-[#FAF6EF]"
             >
               {/* Primary Badge */}
               {isPrimary && (
@@ -164,9 +165,14 @@ export function PhotoGalleryCard({
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
 
-              {/* Overlay Actions on Hover */}
-              <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/75 via-black/20 to-transparent p-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                <div className="flex gap-1.5">
+              {/* Overlay actions: shown on hover, and always on touch screens
+                  (no hover there, so they'd otherwise be unreachable). Sized
+                  against the TILE's width (container query), not the
+                  screen's: in the narrow desktop side column tiles are
+                  ~85-100px, so the pills stack full-width; on wider tiles
+                  they sit side by side. */}
+              <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/75 via-black/20 to-transparent p-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 [@media(hover:none)]:opacity-100 @[140px]:p-2">
+                <div className="flex flex-col gap-1 @[140px]:flex-row @[140px]:gap-1.5">
                   {!isPrimary && (
                     <button
                       type="button"
@@ -175,7 +181,7 @@ export function PhotoGalleryCard({
                         event.stopPropagation();
                         void handleSetPrimary(photo.id);
                       }}
-                      className="flex-1 rounded bg-[#FFFDF9]/90 px-1.5 py-1 text-[10px] font-semibold text-[#7A0710] backdrop-blur-sm transition-colors hover:bg-[#FFFFFF]"
+                      className="flex-1 whitespace-nowrap rounded bg-[#FFFDF9]/90 px-1.5 py-1 text-[10px] font-semibold text-[#7A0710] backdrop-blur-sm transition-colors hover:bg-[#FFFFFF]"
                     >
                       Make Primary
                     </button>
@@ -187,7 +193,7 @@ export function PhotoGalleryCard({
                       event.stopPropagation();
                       void handleDelete(photo.id);
                     }}
-                    className="rounded bg-red-600/90 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-sm transition-colors hover:bg-red-700"
+                    className="whitespace-nowrap rounded bg-red-600/90 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-sm transition-colors hover:bg-red-700"
                     title="Delete photo"
                   >
                     Delete
