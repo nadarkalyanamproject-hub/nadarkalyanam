@@ -16,6 +16,8 @@ const validPayload: CreateProfileRequest = {
     religion: 'Hindu',
     casteCommunity: 'Nadar',
     dosham: 'NO',
+    previousMarriageDetails: '',
+    doshamDetails: '',
   },
   location: {
     city: 'Chennai',
@@ -153,6 +155,40 @@ describe('createProfileSchema', () => {
     }
   });
 
+  it('treats previousMarriageDetails and doshamDetails as optional (defaulting to empty)', () => {
+    const personal: Record<string, unknown> = { ...validPayload.personal };
+    delete personal.previousMarriageDetails;
+    delete personal.doshamDetails;
+    const result = createProfileSchema.safeParse({ ...validPayload, personal });
+    expect(result.success).toBe(true);
+    expect(result.success && result.data.personal.previousMarriageDetails).toBe('');
+    expect(result.success && result.data.personal.doshamDetails).toBe('');
+  });
+
+  it('accepts previousMarriageDetails and doshamDetails up to 500 characters', () => {
+    const result = createProfileSchema.safeParse({
+      ...validPayload,
+      personal: {
+        ...validPayload.personal,
+        maritalStatus: 'DIVORCED',
+        previousMarriageDetails: 'x'.repeat(500),
+        dosham: 'YES',
+        doshamDetails: 'Chevvai dosham',
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects over-length previousMarriageDetails and doshamDetails', () => {
+    for (const key of ['previousMarriageDetails', 'doshamDetails']) {
+      const result = createProfileSchema.safeParse({
+        ...validPayload,
+        personal: { ...validPayload.personal, [key]: 'x'.repeat(501) },
+      });
+      expect(result.success).toBe(false);
+    }
+  });
+
   it('defaults country to India when omitted', () => {
     const locationWithoutCountry: Record<string, unknown> = { ...validPayload.location };
     delete locationWithoutCountry.country;
@@ -182,6 +218,8 @@ describe('ProfilesService', () => {
           religion: 'Hindu',
           casteCommunity: 'Nadar',
           dosham: 'NO',
+          previousMarriageDetails: '',
+          doshamDetails: '',
           location: { city: 'Chennai', state: 'Tamil Nadu', country: 'India' },
           education: {
             educationLevel: 'Bachelors',
@@ -195,6 +233,41 @@ describe('ProfilesService', () => {
         },
       },
     });
+  });
+
+  it('stores the detail fields when their parent calls for them', async () => {
+    const { service, prisma } = buildService();
+    const personal = {
+      ...validPayload.personal,
+      maritalStatus: 'WIDOWED' as const,
+      previousMarriageDetails: 'Widowed in 2020, one child',
+      dosham: 'YES' as const,
+      doshamDetails: 'Chevvai dosham',
+    };
+
+    await service.createProfile('user-1', { ...validPayload, personal });
+
+    const details = prisma.profile.create.mock.calls[0][0].data.details;
+    expect(details.previousMarriageDetails).toBe('Widowed in 2020, one child');
+    expect(details.doshamDetails).toBe('Chevvai dosham');
+  });
+
+  it('drops the detail fields when their parent no longer calls for them', async () => {
+    const { service, prisma } = buildService();
+    prisma.profile.findUnique.mockResolvedValueOnce({ id: 'profile-1' });
+    const personal = {
+      ...validPayload.personal,
+      maritalStatus: 'NEVER_MARRIED' as const,
+      previousMarriageDetails: 'stale',
+      dosham: 'DONT_KNOW' as const,
+      doshamDetails: 'stale',
+    };
+
+    await service.updateProfile('user-1', { ...validPayload, personal });
+
+    const details = prisma.profile.update.mock.calls[0][0].data.details;
+    expect(details.previousMarriageDetails).toBe('');
+    expect(details.doshamDetails).toBe('');
   });
 
   it('rejects creating a second profile for the same user', async () => {
@@ -257,6 +330,8 @@ describe('ProfilesService.updateProfile', () => {
           religion: 'Christian',
           casteCommunity: 'Nadar',
           dosham: 'NO',
+          previousMarriageDetails: '',
+          doshamDetails: '',
           location: { city: 'Chennai', state: 'Tamil Nadu', country: 'India' },
           education: {
             educationLevel: 'Bachelors',

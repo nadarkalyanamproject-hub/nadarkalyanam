@@ -32,6 +32,8 @@ export function toCreateProfileRequest(profile: ProfileResponse): CreateProfileR
       religion: profile.details?.religion ?? '',
       casteCommunity: profile.details?.casteCommunity ?? '',
       dosham: profile.details?.dosham,
+      previousMarriageDetails: profile.details?.previousMarriageDetails ?? '',
+      doshamDetails: profile.details?.doshamDetails ?? '',
     },
     location: {
       city: profile.details?.location?.city ?? '',
@@ -69,6 +71,8 @@ export function profileToPersonalReligiousForm(profile: ProfileResponse): Person
     religion: profile.details?.religion ?? '',
     casteCommunity: profile.details?.casteCommunity ?? '',
     dosham: profile.details?.dosham ?? '',
+    previousMarriageDetails: profile.details?.previousMarriageDetails ?? '',
+    doshamDetails: profile.details?.doshamDetails ?? '',
   };
 }
 

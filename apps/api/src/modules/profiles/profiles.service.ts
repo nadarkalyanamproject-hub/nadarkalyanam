@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import type { CreateProfileRequest } from '@nadar-kalyanam/schemas';
+import { PRIOR_MARRIAGE_STATUSES, type CreateProfileRequest } from '@nadar-kalyanam/schemas';
 import { getBlockedUserIds, isBlockedEitherDirection } from '../../common/blocks.util.js';
 import { getRelationshipStates, type RelationshipState } from '../../common/relationship.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -7,6 +7,12 @@ import { PrismaService } from '../prisma/prisma.service.js';
 function buildProfileData(input: CreateProfileRequest) {
   const { fullName, gender, dateOfBirth, motherTongue, email, personal, location, additional } = input;
   const { height, physicalStatus, maritalStatus, religion, casteCommunity, dosham } = personal;
+  // The detail fields only mean something while their parent says so; drop
+  // them otherwise so no client can leave a stale, hidden value behind.
+  const previousMarriageDetails = PRIOR_MARRIAGE_STATUSES.includes(maritalStatus)
+    ? (personal.previousMarriageDetails ?? '')
+    : '';
+  const doshamDetails = dosham === 'YES' ? (personal.doshamDetails ?? '') : '';
   const { city, state, country, educationLevel, educationDetail, profession, employedIn, annualIncomeRange, annualIncomeCurrency } =
     location;
 
@@ -23,6 +29,8 @@ function buildProfileData(input: CreateProfileRequest) {
       religion,
       casteCommunity,
       dosham,
+      previousMarriageDetails,
+      doshamDetails,
       location: { city, state, country },
       education: { educationLevel, educationDetail, profession, employedIn, annualIncomeRange, annualIncomeCurrency },
       additional,

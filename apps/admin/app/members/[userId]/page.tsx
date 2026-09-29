@@ -32,6 +32,9 @@ type FormState = {
   religion: string;
   casteCommunity: string;
   dosham: string;
+  // Not editable here; carried through so an admin save doesn't erase them.
+  previousMarriageDetails: string;
+  doshamDetails: string;
   city: string;
   state: string;
   country: string;
@@ -61,6 +64,8 @@ function toFormState(details: Record<string, unknown>, member: MemberDetail): Fo
     religion: (details.religion as string) ?? '',
     casteCommunity: (details.casteCommunity as string) ?? '',
     dosham: (details.dosham as string) ?? '',
+    previousMarriageDetails: (details.previousMarriageDetails as string) ?? '',
+    doshamDetails: (details.doshamDetails as string) ?? '',
     city: (location.city as string) ?? '',
     state: (location.state as string) ?? '',
     country: (location.country as string) ?? 'India',
@@ -89,6 +94,8 @@ function toCreateProfileRequest(form: FormState): CreateProfileRequest {
       religion: form.religion,
       casteCommunity: form.casteCommunity,
       dosham: (form.dosham || undefined) as CreateProfileRequest['personal']['dosham'],
+      previousMarriageDetails: form.previousMarriageDetails,
+      doshamDetails: form.doshamDetails,
     },
     location: {
       city: form.city,

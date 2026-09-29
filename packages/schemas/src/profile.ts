@@ -12,6 +12,10 @@ export const maritalStatusEnum = z.enum([
 ]);
 export type MaritalStatus = z.infer<typeof maritalStatusEnum>;
 
+// Every status other than NEVER_MARRIED implies a prior marriage, so these are
+// the ones that reveal (and keep) "Previous marriage details".
+export const PRIOR_MARRIAGE_STATUSES: readonly string[] = ['DIVORCED', 'WIDOWED', 'AWAITING_DIVORCE'];
+
 export const physicalStatusEnum = z.enum(['NORMAL', 'PHYSICALLY_CHALLENGED']);
 export type PhysicalStatus = z.infer<typeof physicalStatusEnum>;
 
@@ -43,6 +47,9 @@ export const personalReligiousSchema = z.object({
   religion: z.string().trim().min(1, 'Religion is required'),
   casteCommunity: z.string().trim().min(1, 'Community is required'),
   dosham: z.preprocess((value) => (value === '' ? undefined : value), doshamEnum.optional()),
+  // Only shown when maritalStatus is in PRIOR_MARRIAGE_STATUSES / dosham is YES.
+  previousMarriageDetails: z.string().trim().max(500).optional().default(''),
+  doshamDetails: z.string().trim().max(500).optional().default(''),
 });
 export type PersonalReligious = z.infer<typeof personalReligiousSchema>;
 
@@ -95,6 +102,9 @@ export const profileDetailsSchema = z.object({
   religion: z.string(),
   casteCommunity: z.string(),
   dosham: doshamEnum.optional(),
+  // Absent on profiles saved before these fields existed.
+  previousMarriageDetails: z.string().optional(),
+  doshamDetails: z.string().optional(),
   location: z.object({
     city: z.string(),
     state: z.string(),

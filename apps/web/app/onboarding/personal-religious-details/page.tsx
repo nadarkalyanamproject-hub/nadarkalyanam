@@ -23,6 +23,8 @@ const EMPTY_FORM: FormState = {
   religion: '',
   casteCommunity: '',
   dosham: '',
+  previousMarriageDetails: '',
+  doshamDetails: '',
 };
 
 // Mounts the step only once the saved draft has been loaded from

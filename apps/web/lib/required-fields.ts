@@ -62,6 +62,8 @@ export const STEP_FIELD_IDS: Record<FormStep, Record<string, string>> = {
     religion: 'religion',
     casteCommunity: 'casteCommunity',
     dosham: 'dosham',
+    previousMarriageDetails: 'previousMarriageDetails',
+    doshamDetails: 'doshamDetails',
   },
   location: {
     city: 'city',
