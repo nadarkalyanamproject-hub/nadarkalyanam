@@ -19,6 +19,26 @@ const POLL_INTERVAL_MS = 4000;
 // scrolled up to read older messages, polling leaves their position alone.
 const STICK_TO_BOTTOM_PX = 80;
 
+// Two states only: sent (muted, the bubble's own text colour at low opacity)
+// and read (the theme's accent colour — there is no blue token, and accent
+// stays legible on the primary-coloured own-message bubble). The status
+// comes from the regular message poll, so a flip to READ shows up on the
+// next refresh without any extra request.
+function ReadTicks({ read }: { read: boolean }) {
+  return (
+    <span
+      className={`ml-1.5 inline-flex translate-y-[3px] align-baseline ${read ? 'text-accent' : 'text-primary-foreground/55'}`}
+      data-receipt={read ? 'read' : 'sent'}
+    >
+      <svg viewBox="0 0 18 12" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-3 w-4" aria-hidden="true">
+        <path d="M1 6.5 4.5 10 11 2.5" />
+        <path d="M7.5 9 8.5 10 15 2.5" />
+      </svg>
+      <span className="sr-only">{read ? 'Read' : 'Sent'}</span>
+    </span>
+  );
+}
+
 export default function ConversationThreadPage() {
   const { ready } = useRequireAuth();
   const params = useParams<{ conversationId: string }>();
@@ -192,6 +212,9 @@ export default function ConversationThreadPage() {
                         }`}
                       >
                         {message.body}
+                        {/* Read receipt: only on the current user's own
+                            messages, never on the other person's. */}
+                        {isOwn && <ReadTicks read={message.status === 'READ'} />}
                       </div>
                     </div>
                   );
