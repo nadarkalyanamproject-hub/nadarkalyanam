@@ -45,18 +45,17 @@ export const notificationResponseSchema = z.object({
 });
 export type NotificationResponse = z.infer<typeof notificationResponseSchema>;
 
-// The Notifications page tabs. profile/messages/interests map to types via
+// The Notifications page tabs. profile/interests map to types via
 // NOTIFICATION_CATEGORY_TYPES; 'all' and 'unread' aren't type filters.
 // Admin/account notices belong to no category — they show under All and
-// Unread only.
-export const notificationCategoryEnum = z.enum(['all', 'unread', 'profile', 'messages', 'interests']);
+// Unread only. There is deliberately no 'messages' category: messages have
+// their own inbox and badge, and an unrecognized category (including an
+// old ?category=messages link) is rejected with 400 by query validation.
+export const notificationCategoryEnum = z.enum(['all', 'unread', 'profile', 'interests']);
 export type NotificationCategory = z.infer<typeof notificationCategoryEnum>;
 
-export const NOTIFICATION_CATEGORY_TYPES: Record<'profile' | 'messages' | 'interests', NotificationType[]> = {
+export const NOTIFICATION_CATEGORY_TYPES: Record<'profile' | 'interests', NotificationType[]> = {
   profile: ['PROFILE_VIEWED'],
-  // NEW_MESSAGE is no longer created and old rows are hidden (messages have
-  // their own badge/inbox), so this tab is always empty today.
-  messages: ['NEW_MESSAGE'],
   interests: ['INTEREST_RECEIVED', 'INTEREST_ACCEPTED'],
 };
 

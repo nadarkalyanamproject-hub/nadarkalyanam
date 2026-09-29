@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, type ReactNode, type SVGProps } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { NotificationCategory, NotificationResponse } from '@nadar-kalyanam/schemas';
 import { Button, Card } from '@nadar-kalyanam/ui';
@@ -45,7 +44,6 @@ const TABS: { key: NotificationCategory; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'unread', label: 'Unread' },
   { key: 'profile', label: 'Profile' },
-  { key: 'messages', label: 'Messages' },
   { key: 'interests', label: 'Interests' },
 ];
 
@@ -276,14 +274,7 @@ export default function NotificationsPage() {
 
           {notifications && notifications.length === 0 && (
             <Card className="rounded-2xl p-8 text-center text-sm text-muted-foreground">
-              {tab === 'messages' ? (
-                <>
-                  New messages aren&apos;t listed here — they have their own inbox and badge.{' '}
-                  <Link href="/messages" className="font-semibold text-primary hover:underline">
-                    Open Messages
-                  </Link>
-                </>
-              ) : tab === 'unread' ? (
+              {tab === 'unread' ? (
                 'No unread notifications.'
               ) : tab === 'all' ? (
                 'No notifications yet.'

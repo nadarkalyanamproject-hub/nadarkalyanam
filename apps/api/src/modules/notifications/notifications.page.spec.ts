@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { listNotificationsQuerySchema } from '@nadar-kalyanam/schemas';
 import { describe, expect, it, vi } from 'vitest';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { NotificationsController } from './notifications.controller.js';
@@ -113,8 +114,8 @@ describe('Category filter', () => {
     expect((await typesFor(['INTEREST_RECEIVED', 'INTEREST_ACCEPTED'])).types).toEqual(['INTEREST_ACCEPTED', 'INTEREST_RECEIVED']);
   });
 
-  it('Messages -> empty (NEW_MESSAGE rows stay hidden)', async () => {
-    expect((await typesFor(['NEW_MESSAGE'])).types).toEqual([]);
+  it('there is no Messages category, and legacy NEW_MESSAGE rows never show under All', async () => {
+    expect((await typesFor()).types).not.toContain('NEW_MESSAGE');
   });
 
   it('All -> everything visible, including admin/account notices, never NEW_MESSAGE', async () => {
@@ -127,7 +128,7 @@ describe('Category filter', () => {
 
   it('unreadCount is the caller\'s overall unread total on every tab (the page header)', async () => {
     expect((await typesFor(['PROFILE_VIEWED'])).unreadCount).toBe(3);
-    expect((await typesFor(['NEW_MESSAGE'])).unreadCount).toBe(3);
+    expect((await typesFor(['INTEREST_RECEIVED', 'INTEREST_ACCEPTED'])).unreadCount).toBe(3);
   });
 });
 
@@ -139,17 +140,23 @@ describe('controller', () => {
 
     await controller.list(me, { category: 'profile' });
     await controller.list(me, { category: 'interests' });
-    await controller.list(me, { category: 'messages' });
     await controller.list(me, { category: 'unread' });
     await controller.list(me, {});
 
     const calls = svc.list.mock.calls.map((c) => c[1]);
     expect(calls[0]).toMatchObject({ unreadOnly: false, types: ['PROFILE_VIEWED'] });
     expect(calls[1]).toMatchObject({ unreadOnly: false, types: ['INTEREST_RECEIVED', 'INTEREST_ACCEPTED'] });
-    expect(calls[2]).toMatchObject({ types: ['NEW_MESSAGE'] });
-    expect(calls[3]).toMatchObject({ unreadOnly: true, types: undefined });
-    expect(calls[4]).toMatchObject({ unreadOnly: false, types: undefined });
+    expect(calls[2]).toMatchObject({ unreadOnly: true, types: undefined });
+    expect(calls[3]).toMatchObject({ unreadOnly: false, types: undefined });
     expect(svc.list.mock.calls.every((c) => c[0] === ME)).toBe(true);
+  });
+
+  it('?category=messages (or any unknown category) is rejected by query validation -> 400', () => {
+    expect(listNotificationsQuerySchema.safeParse({ category: 'messages' }).success).toBe(false);
+    expect(listNotificationsQuerySchema.safeParse({ category: 'bogus' }).success).toBe(false);
+    for (const ok of ['all', 'unread', 'profile', 'interests']) {
+      expect(listNotificationsQuerySchema.safeParse({ category: ok }).success).toBe(true);
+    }
   });
 
   it('DELETE /notifications is behind JwtAuthGuard (401 without a token) and passes only the caller\'s id', async () => {
