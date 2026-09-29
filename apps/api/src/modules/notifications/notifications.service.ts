@@ -116,12 +116,17 @@ export class NotificationsService {
     };
   }
 
+  // `types` narrows to one tab's notification types; unreadCount is always
+  // the caller's overall unread total (the page header shows it on every tab).
   async list(
     userId: string,
-    options: { offset: number; limit: number; unreadOnly: boolean },
+    options: { offset: number; limit: number; unreadOnly: boolean; types?: string[] },
   ): Promise<ListNotificationsResponse> {
-    const where = await this.visibleWhere(userId, options.unreadOnly);
-    const unreadWhere = options.unreadOnly ? where : await this.visibleWhere(userId, true);
+    const visible = await this.visibleWhere(userId, options.unreadOnly);
+    const where: Prisma.NotificationWhereInput = options.types
+      ? { AND: [visible, { type: { in: options.types } }] }
+      : visible;
+    const unreadWhere = await this.visibleWhere(userId, true);
     const [rows, total, unreadCount] = await Promise.all([
       this.prisma.notification.findMany({
         where,
@@ -207,6 +212,14 @@ export class NotificationsService {
       data: { read: true },
     });
     return count;
+  }
+
+  // "Clear all": permanently deletes every notification row the caller owns
+  // (including hidden legacy NEW_MESSAGE rows). No undo, no soft delete.
+  // Scoped by userId only, so another member's rows can never be touched.
+  async clearAll(userId: string): Promise<{ deletedCount: number }> {
+    const { count } = await this.prisma.notification.deleteMany({ where: { userId } });
+    return { deletedCount: count };
   }
 
   async markAllRead(userId: string): Promise<{ updatedCount: number }> {

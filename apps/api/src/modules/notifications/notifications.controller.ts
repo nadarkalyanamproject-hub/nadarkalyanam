@@ -1,5 +1,9 @@
-import { Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { type ListNotificationsQuery, listNotificationsQuerySchema } from '@nadar-kalyanam/schemas';
+import { Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  type ListNotificationsQuery,
+  listNotificationsQuerySchema,
+  NOTIFICATION_CATEGORY_TYPES,
+} from '@nadar-kalyanam/schemas';
 import { parseOffsetLimit } from '../../common/pagination.js';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
@@ -20,13 +24,25 @@ export class NotificationsController {
     @Query(new ZodValidationPipe(listNotificationsQuerySchema)) query: ListNotificationsQuery,
   ) {
     const { offset, limit } = parseOffsetLimit(query.offset, query.limit ?? '20', 50);
-    return this.notificationsService.list(user.userId, { offset, limit, unreadOnly: query.unreadOnly === 'true' });
+    const category = query.category ?? 'all';
+    return this.notificationsService.list(user.userId, {
+      offset,
+      limit,
+      unreadOnly: query.unreadOnly === 'true' || category === 'unread',
+      types: category === 'all' || category === 'unread' ? undefined : NOTIFICATION_CATEGORY_TYPES[category],
+    });
   }
 
   // Cheap count for the header badge (polled).
   @Get('unread-count')
   unreadCount(@CurrentUser() user: AuthenticatedUser) {
     return this.notificationsService.unreadCount(user.userId);
+  }
+
+  // Clear all — permanent, caller's rows only.
+  @Delete()
+  clearAll(@CurrentUser() user: AuthenticatedUser) {
+    return this.notificationsService.clearAll(user.userId);
   }
 
   @Post('read-all')

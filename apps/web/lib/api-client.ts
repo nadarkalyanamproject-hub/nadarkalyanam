@@ -13,6 +13,7 @@ import type {
   MembershipPlanResponse,
   MessageListResponse,
   MessageResponse,
+  NotificationCategory,
   OrderResponse,
   PhotoResponse,
   ProfileListResponse,
@@ -323,10 +324,11 @@ export function listMatches(accessToken: string, limit?: number): Promise<ListMa
 
 export function listNotifications(
   accessToken: string,
-  params?: { unreadOnly?: boolean; offset?: number; limit?: number },
+  params?: { unreadOnly?: boolean; category?: NotificationCategory; offset?: number; limit?: number },
 ): Promise<ListNotificationsResponse> {
   const query = new URLSearchParams();
   if (params?.unreadOnly) query.set('unreadOnly', 'true');
+  if (params?.category && params.category !== 'all') query.set('category', params.category);
   if (params?.offset) query.set('offset', String(params.offset));
   if (params?.limit) query.set('limit', String(params.limit));
   const qs = query.toString();
@@ -346,6 +348,11 @@ export function markNotificationRead(accessToken: string, id: string): Promise<{
     method: 'PATCH',
     headers: { Authorization: `Bearer ${accessToken}` },
   });
+}
+
+// "Clear all": permanently deletes all of the caller's notifications.
+export function clearAllNotifications(accessToken: string): Promise<{ deletedCount: number }> {
+  return request('/notifications', { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } });
 }
 
 export function markAllNotificationsRead(accessToken: string): Promise<{ updatedCount: number }> {
