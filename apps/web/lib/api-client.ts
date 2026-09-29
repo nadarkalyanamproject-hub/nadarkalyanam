@@ -1,4 +1,5 @@
 import type {
+  ConversationDetail,
   ConversationListResponse,
   CreateOrderRequest,
   CreateProfileRequest,
@@ -23,6 +24,7 @@ import type {
   SendOtpRequest,
   SendOtpResponse,
   UnreadCountResponse,
+  UnreadMessagesCountResponse,
   VerificationStatusResponse,
   VerifyOtpRequest,
   VerifyOtpResponse,
@@ -239,6 +241,20 @@ export function declineInterest(accessToken: string, interestId: string): Promis
 
 export function listConversations(accessToken: string): Promise<ConversationListResponse> {
   return request<ConversationListResponse>('/conversations', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// The thread header: who you're talking to (with a fallback if unavailable).
+export function getConversation(accessToken: string, conversationId: string): Promise<ConversationDetail> {
+  return request<ConversationDetail>(`/conversations/${conversationId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// Total unread messages for the header's Messages badge.
+export function getUnreadMessageCount(accessToken: string): Promise<UnreadMessagesCountResponse> {
+  return request<UnreadMessagesCountResponse>('/messages/unread-count', {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 }

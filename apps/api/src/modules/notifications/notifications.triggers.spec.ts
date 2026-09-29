@@ -1,4 +1,4 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { AdminService } from '../admin/admin.service.js';
 import { InterestsService } from '../interests/interests.service.js';
@@ -158,8 +158,8 @@ describe('profile view trigger', () => {
   });
 });
 
-describe('message trigger', () => {
-  function messages(blocked = false) {
+describe('messages never create notifications', () => {
+  function messages() {
     const prisma = {
       conversationParticipant: {
         findMany: vi.fn().mockResolvedValue([
@@ -167,37 +167,30 @@ describe('message trigger', () => {
           { userId: B.userId, conversationId: 'conv-1' },
         ]),
       },
-      block: { findFirst: vi.fn().mockResolvedValue(blocked ? { id: 'blk' } : null) },
+      block: { findFirst: vi.fn().mockResolvedValue(null) },
       message: {
         create: vi.fn().mockResolvedValue({
           id: 'm-1', conversationId: 'conv-1', senderId: A.userId, body: 'hi', status: 'SENT', createdAt: new Date(),
         }),
       },
+      notification: { create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     };
-    const notifications = notifier();
-    return { service: new MessagesService(prisma as never, {} as never, notifications as never), notifications };
+    return { service: new MessagesService(prisma as never, {} as never), prisma };
   }
 
-  it('sendMessage -> one NEW_MESSAGE for the other participant, target = the conversation', async () => {
-    const { service, notifications } = messages();
+  it('sendMessage persists the message and writes no notification row', async () => {
+    const { service, prisma } = messages();
 
     await service.sendMessage(A.userId, 'conv-1', 'hi');
 
-    expect(notifications.notify).toHaveBeenCalledTimes(1);
-    expect(notifications.notify).toHaveBeenCalledWith({
-      recipientUserId: B.userId,
-      actorUserId: A.userId,
-      type: 'NEW_MESSAGE',
-      targetType: 'Conversation',
-      targetId: 'conv-1',
-    });
+    expect(prisma.message.create).toHaveBeenCalledTimes(1);
+    expect(prisma.notification.create).not.toHaveBeenCalled();
+    expect(prisma.notification.update).not.toHaveBeenCalled();
+    expect(prisma.notification.updateMany).not.toHaveBeenCalled();
   });
 
-  it('a blocked pair cannot message, so nothing is notified', async () => {
-    const { service, notifications } = messages(true);
-
-    await expect(service.sendMessage(A.userId, 'conv-1', 'hi')).rejects.toBeInstanceOf(ForbiddenException);
-    expect(notifications.notify).not.toHaveBeenCalled();
+  it('MessagesService no longer depends on NotificationsService at all', () => {
+    expect(MessagesService.length).toBe(2);
   });
 });
 

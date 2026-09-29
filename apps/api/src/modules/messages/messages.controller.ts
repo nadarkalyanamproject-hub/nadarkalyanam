@@ -16,6 +16,13 @@ export class MessagesController {
     return this.messagesService.listConversations(user.userId);
   }
 
+  // Thread header: the other participant (with a fallback if unavailable).
+  @Get(':id')
+  getConversation(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.messagesService.getConversation(user.userId, id);
+  }
+
+  // Also marks the other participant's messages in this thread as READ.
   @Get(':id/messages')
   listMessages(
     @CurrentUser() user: AuthenticatedUser,
@@ -35,5 +42,18 @@ export class MessagesController {
     @Body(new ZodValidationPipe(sendMessageRequestSchema)) body: SendMessageRequest,
   ) {
     return this.messagesService.sendMessage(user.userId, id, body.body);
+  }
+}
+
+// GET /messages/unread-count — total unread messages for the caller (the
+// header's Messages badge polls this).
+@Controller('messages')
+@UseGuards(JwtAuthGuard)
+export class MessagesUnreadController {
+  constructor(private readonly messagesService: MessagesService) {}
+
+  @Get('unread-count')
+  unreadCount(@CurrentUser() user: AuthenticatedUser) {
+    return this.messagesService.unreadCount(user.userId);
   }
 }

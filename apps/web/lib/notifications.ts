@@ -70,3 +70,11 @@ export const NOTIFICATIONS_CHANGED_EVENT = 'nk:notifications-changed';
 export function announceNotificationsChanged(): void {
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
 }
+
+// Fired by a conversation thread once opening it has marked messages read,
+// so the header's Messages badge refreshes immediately too.
+export const MESSAGES_CHANGED_EVENT = 'nk:messages-changed';
+
+export function announceMessagesChanged(): void {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(MESSAGES_CHANGED_EVENT));
+}

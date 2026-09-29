@@ -32,6 +32,20 @@ const conversationParticipantSummarySchema = z.object({
 });
 export type ConversationParticipantSummary = z.infer<typeof conversationParticipantSummarySchema>;
 
+// GET /conversations/:id — the thread header. `available` is false when the
+// other member is suspended, pending deletion or deleted (or has no profile);
+// fullName is then a neutral fallback and there is no photo.
+export const conversationDetailSchema = z.object({
+  id: z.string(),
+  otherParticipant: conversationParticipantSummarySchema.extend({ available: z.boolean() }),
+});
+export type ConversationDetail = z.infer<typeof conversationDetailSchema>;
+
+// GET /messages/unread-count — messages sent TO the caller that they haven't
+// opened yet, across all their conversations (blocked pairs excluded).
+export const unreadMessagesCountResponseSchema = z.object({ unreadCount: z.number() });
+export type UnreadMessagesCountResponse = z.infer<typeof unreadMessagesCountResponseSchema>;
+
 export const conversationSummarySchema = z.object({
   id: z.string(),
   otherParticipant: conversationParticipantSummarySchema,

@@ -27,6 +27,7 @@ function buildService(overrides?: {
     message: {
       findMany: vi.fn().mockResolvedValue(overrides?.messages ?? []),
       count: vi.fn().mockResolvedValue(overrides?.messages?.length ?? 0),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
       create: vi.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) =>
         Promise.resolve({
           id: 'message-1',
@@ -47,7 +48,7 @@ function buildService(overrides?: {
   };
   const photosService = { getPhotosForProfile: vi.fn().mockResolvedValue([]) };
 
-  const service = new MessagesService(prisma as never, photosService as never, { notify: vi.fn() } as never);
+  const service = new MessagesService(prisma as never, photosService as never);
   return { service, prisma, photosService };
 }
 

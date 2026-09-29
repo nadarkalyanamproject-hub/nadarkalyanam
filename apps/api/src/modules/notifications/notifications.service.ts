@@ -98,24 +98,6 @@ export class NotificationsService {
       return;
     }
 
-    if (job.type === 'NEW_MESSAGE' && job.targetId) {
-      // Collapse: while a NEW_MESSAGE for this conversation is still unread,
-      // bump it (and its count) instead of stacking one row per message.
-      const unread = await this.prisma.notification.findFirst({
-        where: { userId: job.recipientUserId, type: 'NEW_MESSAGE', targetId: job.targetId, read: false },
-      });
-      if (unread) {
-        const previous = Number((unread.payload as { count?: unknown } | null)?.count ?? 1) || 1;
-        await this.prisma.notification.update({
-          where: { id: unread.id },
-          data: { createdAt: now, actorUserId: job.actorUserId ?? null, payload: { count: previous + 1 } },
-        });
-        return;
-      }
-      await this.prisma.notification.create({ data: { ...base, payload: { count: 1 } } });
-      return;
-    }
-
     await this.prisma.notification.create({ data: base });
   }
 
@@ -126,6 +108,9 @@ export class NotificationsService {
     const blocked = [...(await getBlockedUserIds(this.prisma, userId))];
     return {
       userId,
+      // New messages have their own unread badge; NEW_MESSAGE rows (only
+      // older data — nothing creates them now) never show here.
+      type: { not: 'NEW_MESSAGE' },
       ...(unreadOnly ? { read: false } : {}),
       OR: [{ actorUserId: null }, { actor: { status: 'ACTIVE', id: { notIn: blocked } } }],
     };
@@ -200,7 +185,7 @@ export class NotificationsService {
   // nonexistent one (404), and nothing is written.
   async markRead(userId: string, notificationId: string): Promise<{ id: string; isRead: true }> {
     const { count } = await this.prisma.notification.updateMany({
-      where: { id: notificationId, userId },
+      where: { id: notificationId, userId, type: { not: 'NEW_MESSAGE' } },
       data: { read: true },
     });
     if (count === 0) {
@@ -211,7 +196,7 @@ export class NotificationsService {
 
   async markAllRead(userId: string): Promise<{ updatedCount: number }> {
     const { count } = await this.prisma.notification.updateMany({
-      where: { userId, read: false },
+      where: { userId, read: false, type: { not: 'NEW_MESSAGE' } },
       data: { read: true },
     });
     return { updatedCount: count };

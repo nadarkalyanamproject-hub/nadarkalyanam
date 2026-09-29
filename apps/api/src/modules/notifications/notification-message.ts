@@ -11,10 +11,6 @@ export function notificationMessage(type: string, actorName: string, data: Recor
       return `${actorName} accepted your interest — you're now connected`;
     case 'PROFILE_VIEWED':
       return `${actorName} viewed your profile`;
-    case 'NEW_MESSAGE': {
-      const count = Number(data.count ?? 1);
-      return count > 1 ? `${actorName} sent you ${count} new messages` : `${actorName} sent you a message`;
-    }
     case 'ADMIN_PHOTO_REMOVED':
       return 'A photo was removed from your profile by our moderation team';
     case 'ACCOUNT_SUSPENDED':

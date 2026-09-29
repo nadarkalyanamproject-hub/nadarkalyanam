@@ -1,8 +1,7 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import type { ConversationSummary, MessageResponse } from '@nadar-kalyanam/schemas';
-import { isBlockedEitherDirection } from '../../common/blocks.util.js';
+import type { ConversationDetail, ConversationSummary, MessageResponse } from '@nadar-kalyanam/schemas';
+import { getBlockedUserIds, isBlockedEitherDirection } from '../../common/blocks.util.js';
 import type { Message } from '../../generated/prisma/client.js';
-import { NotificationsService } from '../notifications/notifications.service.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -22,7 +21,6 @@ export class MessagesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly photosService: PhotosService,
-    private readonly notifications: NotificationsService,
   ) {}
 
   async listConversations(callerUserId: string): Promise<{ items: ConversationSummary[] }> {
@@ -84,6 +82,10 @@ export class MessagesService {
     // Reading messages is authorized exactly the same as sending them — see
     // the identical check (and its comment) in sendMessage below.
     await this.assertCanAccessConversation(callerUserId, conversationId);
+    // Opening (or polling) a thread is what "reading" means in this UI, so
+    // the other side's messages become READ here — before the fetch below,
+    // so the returned statuses and the unread badge agree immediately.
+    await this.markOthersMessagesRead(callerUserId, conversationId);
 
     const [messages, total] = await Promise.all([
       this.prisma.message.findMany({
@@ -105,21 +107,13 @@ export class MessagesService {
     // participant of this conversation AND that neither party has blocked
     // the other since — a block created after a conversation already exists
     // must still cut off messaging, not just new interests.
-    const otherUserId = await this.assertCanAccessConversation(callerUserId, conversationId);
+    await this.assertCanAccessConversation(callerUserId, conversationId);
 
+    // No notification: new messages are surfaced by the Messages unread
+    // badge (unreadCount below), not the Notifications feed.
     const message = await this.prisma.message.create({
       data: { conversationId, senderId: callerUserId, body },
     });
-    if (otherUserId) {
-      // Collapsed per conversation while unread (see NotificationsService).
-      this.notifications.notify({
-        recipientUserId: otherUserId,
-        actorUserId: callerUserId,
-        type: 'NEW_MESSAGE',
-        targetType: 'Conversation',
-        targetId: conversationId,
-      });
-    }
     return toMessageResponse(message);
   }
 
@@ -127,12 +121,70 @@ export class MessagesService {
   // message read, and only messages not already sent by them.
   async markRead(callerUserId: string, conversationId: string): Promise<{ updatedCount: number }> {
     await this.assertCanAccessConversation(callerUserId, conversationId);
+    return { updatedCount: await this.markOthersMessagesRead(callerUserId, conversationId) };
+  }
 
+  private async markOthersMessagesRead(callerUserId: string, conversationId: string): Promise<number> {
     const result = await this.prisma.message.updateMany({
       where: { conversationId, senderId: { not: callerUserId }, status: { not: 'READ' } },
       data: { status: 'READ' },
     });
-    return { updatedCount: result.count };
+    return result.count;
+  }
+
+  // The thread header: who the caller is talking to. Same access rule as
+  // reading/sending (participant, not blocked either way — a blocked pair
+  // gets 403 here too). A member who is no longer active, or has no
+  // profile, gets a neutral fallback name and no photo.
+  async getConversation(callerUserId: string, conversationId: string): Promise<ConversationDetail> {
+    const otherUserId = await this.assertCanAccessConversation(callerUserId, conversationId);
+    const other = otherUserId
+      ? await this.prisma.user.findUnique({
+          where: { id: otherUserId },
+          select: { id: true, status: true, profile: { select: { id: true, fullName: true } } },
+        })
+      : null;
+
+    if (!other || other.status !== 'ACTIVE' || !other.profile) {
+      const deleted = !other || other.status === 'DELETED' || !other.profile;
+      return {
+        id: conversationId,
+        otherParticipant: {
+          userId: otherUserId ?? '',
+          profileId: null,
+          fullName: deleted ? 'Deleted user' : 'Member unavailable',
+          primaryPhotoUrl: null,
+          available: false,
+        },
+      };
+    }
+
+    const photos = await this.photosService.getPhotosForProfile(other.profile.id);
+    return {
+      id: conversationId,
+      otherParticipant: {
+        userId: other.id,
+        profileId: other.profile.id,
+        fullName: other.profile.fullName,
+        primaryPhotoUrl: photos.find((photo) => photo.isPrimary)?.url ?? photos[0]?.url ?? null,
+        available: true,
+      },
+    };
+  }
+
+  // Messages sent TO the caller, in any of their conversations, that they
+  // haven't opened yet. A conversation with a blocked participant (either
+  // direction) is excluded — the caller can't open it anyway.
+  async unreadCount(callerUserId: string): Promise<{ unreadCount: number }> {
+    const blocked = [...(await getBlockedUserIds(this.prisma, callerUserId))];
+    const unreadCount = await this.prisma.message.count({
+      where: {
+        status: { not: 'READ' },
+        AND: [{ senderId: { not: callerUserId } }, { senderId: { notIn: blocked } }],
+        conversation: { participants: { some: { userId: callerUserId } } },
+      },
+    });
+    return { unreadCount };
   }
 
   // Returns the other participant's user id (if any) so callers don't

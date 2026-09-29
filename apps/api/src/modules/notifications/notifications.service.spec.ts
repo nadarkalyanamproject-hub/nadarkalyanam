@@ -39,6 +39,9 @@ function buildService(opts: { users?: Record<string, { status: string; fullName:
         const c = cond as { status: string; id: { notIn: string[] } };
         return users[r.actorUserId]?.status === c.status && !c.id.notIn.includes(r.actorUserId);
       }
+      if (cond && typeof cond === 'object' && 'not' in (cond as object)) {
+        return (r as unknown as Record<string, unknown>)[key] !== (cond as { not: unknown }).not;
+      }
       return (r as unknown as Record<string, unknown>)[key] === cond;
     });
 
@@ -209,31 +212,6 @@ describe('NotificationsService.persist', () => {
 
     expect(rows).toHaveLength(0);
   });
-
-  it('NEW_MESSAGE collapses while unread (one row, count increments), then starts fresh once read', async () => {
-    const { service, rows } = buildService();
-    const msg = job({ type: 'NEW_MESSAGE', targetType: 'Conversation', targetId: 'conv-1' });
-
-    await service.persist(msg);
-    await service.persist(msg);
-    await service.persist(msg);
-    expect(rows).toHaveLength(1);
-    expect(rows[0].payload).toEqual({ count: 3 });
-
-    rows[0].read = true;
-    await service.persist(msg);
-    expect(rows).toHaveLength(2);
-    expect(rows[1].payload).toEqual({ count: 1 });
-  });
-
-  it('NEW_MESSAGE for a different conversation is its own row', async () => {
-    const { service, rows } = buildService();
-
-    await service.persist(job({ type: 'NEW_MESSAGE', targetType: 'Conversation', targetId: 'conv-1' }));
-    await service.persist(job({ type: 'NEW_MESSAGE', targetType: 'Conversation', targetId: 'conv-2' }));
-
-    expect(rows).toHaveLength(2);
-  });
 });
 
 describe('NotificationsService.list / unreadCount', () => {
@@ -320,6 +298,38 @@ describe('NotificationsService.list / unreadCount', () => {
     const [item] = (await service.list(B, { offset: 0, limit: 20, unreadOnly: false })).items;
 
     expect(item.targetAvailable).toBe(false);
+  });
+});
+
+describe('legacy NEW_MESSAGE rows (messages now use their own unread badge)', () => {
+  // Seeded directly, as rows from before the change would be.
+  async function withLegacyRow() {
+    const ctx = buildService();
+    await ctx.service.persist(job({ targetId: 'i-1' })); // n-1 INTEREST_RECEIVED (visible)
+    await ctx.prisma.notification.create({
+      data: { userId: B, actorUserId: A, type: 'NEW_MESSAGE', targetType: 'Conversation', targetId: 'c-1', payload: { count: 3 } },
+    }); // n-2 legacy, unread
+    return ctx;
+  }
+
+  it('never appears in GET /notifications and does not count toward unreadCount', async () => {
+    const { service } = await withLegacyRow();
+
+    const result = await service.list(B, { offset: 0, limit: 20, unreadOnly: false });
+
+    expect(result.items.map((i) => i.type)).toEqual(['INTEREST_RECEIVED']);
+    expect(result.total).toBe(1);
+    expect(result.unreadCount).toBe(1);
+    expect((await service.unreadCount(B)).unreadCount).toBe(1);
+    expect((await service.list(B, { offset: 0, limit: 20, unreadOnly: true })).items).toHaveLength(1);
+  });
+
+  it('cannot be marked read individually (404) and read-all leaves it untouched', async () => {
+    const { service, rows } = await withLegacyRow();
+
+    await expect(service.markRead(B, 'n-2')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.markAllRead(B)).resolves.toEqual({ updatedCount: 1 });
+    expect(rows.find((r) => r.id === 'n-2')?.read).toBe(false);
   });
 });
 

@@ -4,9 +4,9 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement, typ
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useRegistration } from '../app/providers/registration-provider';
-import { getUnreadNotificationCount } from '../lib/api-client';
+import { getUnreadMessageCount, getUnreadNotificationCount } from '../lib/api-client';
 import { claimAuthRedirect } from '../lib/auth-events';
-import { formatBadgeCount, NOTIFICATIONS_CHANGED_EVENT } from '../lib/notifications';
+import { formatBadgeCount, MESSAGES_CHANGED_EVENT, NOTIFICATIONS_CHANGED_EVENT } from '../lib/notifications';
 import { useProfile } from '../lib/use-profile';
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -154,6 +154,7 @@ export function AppHeader() {
   const avatarButtonRef = useRef<HTMLButtonElement>(null);
   const isAuthenticated = hydrated && Boolean(data.accessToken);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const avatarUrl = profile?.photos?.find((photo) => photo.isPrimary)?.url ?? profile?.photos?.[0]?.url;
 
   function closeAvatarMenu() {
@@ -190,9 +191,10 @@ export function AppHeader() {
     };
   }, [avatarMenuOpen]);
 
-  // Unread-notification badge. Failures are ignored (the badge just keeps
-  // its last value); a 401 is already handled by the api-client's
-  // unauthorized bridge.
+  // Unread badges for Notifications and Messages — one poll for both, also
+  // re-run on route change and whenever a page announces it just marked
+  // something read. Failures are ignored (a badge keeps its last value); a
+  // 401 is already handled by the api-client's unauthorized bridge.
   useEffect(() => {
     const token = data.accessToken;
     if (!hydrated || !token) return;
@@ -203,17 +205,33 @@ export function AppHeader() {
           if (!cancelled) setUnreadCount(result.unreadCount);
         })
         .catch(() => {});
+      getUnreadMessageCount(token)
+        .then((result) => {
+          if (!cancelled) setUnreadMessages(result.unreadCount);
+        })
+        .catch(() => {});
     };
     refresh();
     const timer = window.setInterval(refresh, UNREAD_POLL_MS);
     window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, refresh);
+    window.addEventListener(MESSAGES_CHANGED_EVENT, refresh);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
       window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, refresh);
+      window.removeEventListener(MESSAGES_CHANGED_EVENT, refresh);
     };
   }, [hydrated, data.accessToken, pathname]);
-  const unreadBadge = isAuthenticated ? formatBadgeCount(unreadCount) : null;
+  // Badge text per nav item (null = no badge; capped at "9+").
+  const navBadges: Record<string, { text: string; label: string } | null> = {
+    notifications: isAuthenticated && formatBadgeCount(unreadCount)
+      ? { text: formatBadgeCount(unreadCount)!, label: `${unreadCount} unread notifications` }
+      : null,
+    messages: isAuthenticated && formatBadgeCount(unreadMessages)
+      ? { text: formatBadgeCount(unreadMessages)!, label: `${unreadMessages} unread messages` }
+      : null,
+  };
+  const anyBadge = Boolean(navBadges.notifications || navBadges.messages);
 
   // Arrow-key movement between the menu's items (role="menu" convention).
   function handleMenuKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -294,13 +312,13 @@ export function AppHeader() {
                         }`}
                       />
                       <span>{item.label}</span>
-                      {item.key === 'notifications' && unreadBadge && (
+                      {navBadges[item.key] && (
                         <span
-                          aria-label={`${unreadCount} unread notifications`}
-                          data-testid="notifications-badge"
+                          aria-label={navBadges[item.key]!.label}
+                          data-testid={`${item.key}-badge`}
                           className="ml-0.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#7A0710] px-1 text-[10px] font-bold leading-none text-white"
                         >
-                          {unreadBadge}
+                          {navBadges[item.key]!.text}
                         </span>
                       )}
                       {/* Active gold/maroon indicator */}
@@ -340,7 +358,7 @@ export function AppHeader() {
                 className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[#2B211C] transition-colors hover:bg-[#F9F3E7] md:hidden"
               >
                 {menuOpen ? <CloseIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
-                {!menuOpen && unreadBadge && (
+                {!menuOpen && anyBadge && (
                   <span aria-hidden="true" className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#7A0710]" />
                 )}
               </button>
@@ -489,12 +507,12 @@ export function AppHeader() {
                     <div className="flex items-center gap-3">
                       <Icon className="h-5 w-5 text-[#7A0710]" />
                       <span>{item.label}</span>
-                      {item.key === 'notifications' && unreadBadge && (
+                      {navBadges[item.key] && (
                         <span
-                          aria-label={`${unreadCount} unread notifications`}
+                          aria-label={navBadges[item.key]!.label}
                           className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#7A0710] px-1 text-[10px] font-bold leading-none text-white"
                         >
-                          {unreadBadge}
+                          {navBadges[item.key]!.text}
                         </span>
                       )}
                     </div>
