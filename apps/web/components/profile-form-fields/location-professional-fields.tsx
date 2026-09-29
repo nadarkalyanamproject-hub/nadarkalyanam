@@ -56,35 +56,47 @@ export function LocationProfessionalFields({
 }) {
   return (
     <>
-      <div className="grid grid-cols-3 gap-4">
-        <Field label="City" htmlFor="city" required={isRequired('location', 'city')} error={errors.city}>
-          <Input
-            id="city"
-            invalid={Boolean(errors.city)}
-            value={form.city}
-            onChange={(e) => onChange('city', e.target.value)}
-          />
-        </Field>
-        <Field label="State" htmlFor="state" required={isRequired('location', 'state')} error={errors.state}>
-          <Select
-            id="state"
-            invalid={Boolean(errors.state)}
-            value={form.state}
-            onChange={(e) => onChange('state', e.target.value)}
-          >
-            <option value="">Select</option>
-            {INDIA_STATES_AND_UTS.map((state) => (
-              <option key={state} value={state}>
-                {state}
-              </option>
-            ))}
-          </Select>
-        </Field>
+      {/* Country is fixed to India (single option by design) and always has a
+          value, so State needs no reveal gate. City is revealed once a State
+          is chosen, directly below it, and cleared if State is emptied. */}
+      <div className="grid grid-cols-2 items-start gap-4">
         <Field label="Country" htmlFor="country" required={isRequired('location', 'country')} error={errors.country}>
-          <Select id="country" disabled value={form.country} onChange={(e) => onChange('country', e.target.value)}>
+          {/* Single-option select, deliberately not `disabled`: it opens and
+              shows its one value like any dropdown, but can't change. */}
+          <Select id="country" value={form.country || 'India'} onChange={(e) => onChange('country', e.target.value)}>
             <option value="India">India</option>
           </Select>
         </Field>
+        <div className="flex flex-col gap-4">
+          <Field label="State" htmlFor="state" required={isRequired('location', 'state')} error={errors.state}>
+            <Select
+              id="state"
+              invalid={Boolean(errors.state)}
+              value={form.state}
+              onChange={(e) => {
+                onChange('state', e.target.value);
+                if (!e.target.value && form.city) onChange('city', '');
+              }}
+            >
+              <option value="">Select</option>
+              {INDIA_STATES_AND_UTS.map((state) => (
+                <option key={state} value={state}>
+                  {state}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          {form.state !== '' && (
+            <Field label="City" htmlFor="city" required={isRequired('location', 'city')} error={errors.city}>
+              <Input
+                id="city"
+                invalid={Boolean(errors.city)}
+                value={form.city}
+                onChange={(e) => onChange('city', e.target.value)}
+              />
+            </Field>
+          )}
+        </div>
       </div>
 
       {/* Education detail elaborates on the level, so it's only shown once a
@@ -138,7 +150,12 @@ export function LocationProfessionalFields({
             id="profession"
             invalid={Boolean(errors.profession)}
             value={form.profession}
-            onChange={(e) => onChange('profession', e.target.value)}
+            onChange={(e) => {
+              onChange('profession', e.target.value);
+              // Currency is fixed (INR), not user data, so only the income
+              // amount is reset when Occupation is emptied.
+              if (!e.target.value.trim() && form.annualIncomeRange) onChange('annualIncomeRange', '');
+            }}
           />
         </Field>
         <Field
@@ -157,38 +174,43 @@ export function LocationProfessionalFields({
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Field
-          label="Annual income"
-          htmlFor="annualIncomeRange"
-          required={isRequired('location', 'annualIncomeRange')}
-          error={errors.annualIncomeRange}
-        >
-          <Input
-            id="annualIncomeRange"
-            placeholder="e.g. 10-15 LPA"
-            invalid={Boolean(errors.annualIncomeRange)}
-            value={form.annualIncomeRange}
-            onChange={(e) => onChange('annualIncomeRange', e.target.value)}
-          />
-        </Field>
-        <Field
-          label="Annual income currency"
-          htmlFor="annualIncomeCurrency"
-          required={isRequired('location', 'annualIncomeCurrency')}
-          error={errors.annualIncomeCurrency}
-        >
-          <Select
-            id="annualIncomeCurrency"
-            disabled
-            invalid={Boolean(errors.annualIncomeCurrency)}
-            value={form.annualIncomeCurrency}
-            onChange={(e) => onChange('annualIncomeCurrency', e.target.value)}
-          >
-            <option value="INR">INR - Indian Rupee</option>
-          </Select>
-        </Field>
-      </div>
+      {form.profession.trim() !== '' && (
+        <fieldset data-testid="income-details">
+          <legend className="mb-3 text-sm font-semibold text-[#8E1B24]">Income details</legend>
+          <div className="grid grid-cols-2 gap-4">
+            <Field
+              label="Annual income"
+              htmlFor="annualIncomeRange"
+              required={isRequired('location', 'annualIncomeRange')}
+              error={errors.annualIncomeRange}
+            >
+              <Input
+                id="annualIncomeRange"
+                placeholder="e.g. 10-15 LPA"
+                invalid={Boolean(errors.annualIncomeRange)}
+                value={form.annualIncomeRange}
+                onChange={(e) => onChange('annualIncomeRange', e.target.value)}
+              />
+            </Field>
+            <Field
+              label="Annual income currency"
+              htmlFor="annualIncomeCurrency"
+              required={isRequired('location', 'annualIncomeCurrency')}
+              error={errors.annualIncomeCurrency}
+            >
+              {/* Single-option select, not `disabled` (see Country above). */}
+              <Select
+                id="annualIncomeCurrency"
+                invalid={Boolean(errors.annualIncomeCurrency)}
+                value={form.annualIncomeCurrency || 'INR'}
+                onChange={(e) => onChange('annualIncomeCurrency', e.target.value)}
+              >
+                <option value="INR">INR - Indian Rupee</option>
+              </Select>
+            </Field>
+          </div>
+        </fieldset>
+      )}
     </>
   );
 }

@@ -42,10 +42,11 @@ export function OnboardingShell({
                 onClick={onBack}
                 disabled={backDisabled}
                 data-testid="onboarding-back"
-                className="-ml-1.5 mb-3 inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-sm font-semibold text-[#8E1B24] transition-colors hover:bg-[#8E1B24]/5 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Back"
+                title="Back"
+                className="-ml-1.5 mb-3 inline-flex items-center rounded-md p-1.5 text-[#8E1B24] transition-colors hover:bg-[#8E1B24]/5 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                Back
+                <ArrowLeft className="h-5 w-5" aria-hidden="true" />
               </button>
             )}
             <h1 className="text-2xl font-bold text-[#8E1B24]">{title}</h1>
