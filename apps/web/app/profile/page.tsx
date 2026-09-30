@@ -329,7 +329,7 @@ export default function ProfilePage() {
                   <DetailItem label="Full Name" value={profile.fullName} />
                   <DetailItem label="Gender" value={GENDER_LABELS[profile.gender] ?? profile.gender} />
                   <DetailItem label="Date of Birth" value={formatDisplayDate(profile.dateOfBirth)} />
-                  <DetailItem label="Mother Tongue" value={profile.details?.motherTongue || 'Telugu'} />
+                  <DetailItem label="Mother Tongue" value={profile.details?.motherTongue} />
                   <DetailItem label="Email" value={profile.details?.email} className="sm:col-span-2" />
                 </dl>
               </AccordionSection>
@@ -452,7 +452,7 @@ export default function ProfilePage() {
                 }
               >
                 <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
-                  <DetailItem label="City" value={profile.details?.location?.city || 'Chennai'} />
+                  <DetailItem label="City" value={profile.details?.location?.city} />
                   <DetailItem label="State" value={profile.details?.location?.state || 'Tamil Nadu'} />
                   <DetailItem label="Country" value={profile.details?.location?.country || 'India'} />
                   <DetailItem label="Citizenship / Residence" value="Indian Citizen (Resident)" />

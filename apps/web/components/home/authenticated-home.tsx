@@ -28,6 +28,7 @@ import { SponsoredBanner } from './sponsored-banner';
 import { listInterests, listMatches, listNotifications, searchProfiles } from '../../lib/api-client';
 import { ConnectedBadge, RelationshipAction } from '../relationship/relationship-action';
 import { useProfile } from '../../lib/use-profile';
+import { useRequireAuth } from '../../lib/use-require-auth';
 import { useRegistration } from '../../app/providers/registration-provider';
 
 // One real avatar stack + honest count, reused by all four "More Profiles
@@ -112,6 +113,8 @@ const POPULAR_TAGS = [
 export function AuthenticatedHome() {
   const router = useRouter();
   const { data } = useRegistration();
+  // Sends a signed-in user without a profile back to onboarding.
+  const { ready } = useRequireAuth();
   const { profile } = useProfile();
   const [interests, setInterests] = useState<ListInterestsResponse | null>(null);
   const [notifications, setNotifications] = useState<ListNotificationsResponse | null>(null);
@@ -172,7 +175,9 @@ export function AuthenticatedHome() {
     router.push(`/search?city=${encodeURIComponent(tag)}`);
   }
 
-  const firstName = profile?.fullName ? profile.fullName.split(' ')[0] : 'ARJUN';
+  // Never a placeholder name: until the user's own profile has loaded the
+  // greeting simply has no name.
+  const firstName = profile?.fullName ? profile.fullName.split(' ')[0] : '';
   const completionScore = profile?.completionScore && profile.completionScore > 0 ? profile.completionScore : 60;
 
   // Real, derived from the same fetched pool — never hardcoded stock photos
@@ -181,6 +186,8 @@ export function AuthenticatedHome() {
   const newMembers = discoverPool ?? [];
   const verifiedMembers = (discoverPool ?? []).filter((p) => p.isVerified);
   const nearbyMembers = ownCity ? (discoverPool ?? []).filter((p) => p.city === ownCity) : [];
+
+  if (!ready) return null;
 
   return (
     <>
@@ -204,7 +211,7 @@ export function AuthenticatedHome() {
             {/* Hero Text */}
             <div className="space-y-2 max-w-2xl">
               <p className="text-xs sm:text-sm font-bold tracking-[0.2em] text-[#9A3412] uppercase">
-                WELCOME BACK, {firstName?.toUpperCase()}
+                {firstName ? `WELCOME BACK, ${firstName.toUpperCase()}` : 'WELCOME BACK'}
               </p>
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#5A121A] tracking-tight font-[family-name:var(--font-heading,serif)] leading-tight">
                 Find someone who <br className="hidden sm:inline" />

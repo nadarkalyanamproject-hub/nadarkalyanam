@@ -69,12 +69,18 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
 
   const setPhoneNumber = useCallback(
     (phoneNumber: string, fullNamePrefill?: string, genderPrefill?: 'MALE' | 'FEMALE') => {
-      setData((prev) => ({
-        ...prev,
-        phoneNumber,
-        fullNamePrefill: fullNamePrefill ?? prev.fullNamePrefill,
-        genderPrefill: genderPrefill ?? prev.genderPrefill,
-      }));
+      setData((prev) =>
+        prev.accessToken
+          ? {
+              ...prev,
+              phoneNumber,
+              fullNamePrefill: fullNamePrefill ?? prev.fullNamePrefill,
+              genderPrefill: genderPrefill ?? prev.genderPrefill,
+            }
+          : // No active session: this is a brand-new registration attempt, so
+            // nothing left in storage (another account's draft) carries over.
+            { phoneNumber, fullNamePrefill, genderPrefill },
+      );
     },
     [],
   );
@@ -85,7 +91,10 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
 
   const setAuth = useCallback(
     (auth: { accessToken: string; refreshToken: string; userId: string; hasProfile: boolean }) => {
-      setData((prev) => ({ ...prev, ...auth }));
+      // The same user signing back in resumes their own draft. A different
+      // user never inherits whatever an earlier account left in storage
+      // (e.g. a wizard abandoned without logging out on a shared browser).
+      setData((prev) => (prev.userId && prev.userId !== auth.userId ? { ...auth } : { ...prev, ...auth }));
     },
     [],
   );
