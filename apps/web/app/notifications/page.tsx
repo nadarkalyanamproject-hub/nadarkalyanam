@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState, type ReactNode, type SVGProps } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { NotificationCategory, NotificationResponse } from '@nadar-kalyanam/schemas';
-import { Button, Card } from '@nadar-kalyanam/ui';
 import { AppHeader, UserIcon } from '../../components/app-header';
 import {
   ApiError,
@@ -15,37 +14,28 @@ import {
 import { announceNotificationsChanged, formatRelativeTime, notificationDestination } from '../../lib/notifications';
 import { useRegistration } from '../providers/registration-provider';
 import { useRequireAuth } from '../../lib/use-require-auth';
+import { BotanicalSprig } from '../../components/search/partner-search-bar';
+import {
+  Bell,
+  Check,
+  ChevronRight,
+  Eye,
+  Heart,
+  LayoutGrid,
+  Mail,
+  MessageSquare,
+  Star,
+  Trash2,
+  User,
+} from 'lucide-react';
 
-type IconProps = SVGProps<SVGSVGElement>;
-const svg = (props: IconProps, children: ReactNode) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
-    {children}
-  </svg>
-);
-const EyeIcon = (p: IconProps) => svg(p, <><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>);
-const StarIcon = (p: IconProps) => svg(p, <path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" />);
-const HeartIcon = (p: IconProps) =>
-  svg({ ...p, fill: 'currentColor', stroke: 'none' }, <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />);
-const ChatIcon = (p: IconProps) => svg(p, <path d="M4 5.5h16a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H9l-4.5 3.5V16H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z" />);
-const BellIcon = (p: IconProps) => svg(p, <><path d="M6 9.5a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5h-15S6 13.5 6 9.5Z" /><path d="M10 18a2 2 0 0 0 4 0" /></>);
-const ChevronIcon = (p: IconProps) => svg(p, <path d="m9 6 6 6-6 6" />);
-
-// The coloured circle per type — colours already used across the app
-// (primary maroon, the amber/green used on member cards), nothing new.
-const TYPE_STYLE: Record<string, { icon: (p: IconProps) => ReactNode; className: string; label: string }> = {
-  PROFILE_VIEWED: { icon: EyeIcon, className: 'bg-[#FEF3C7] text-[#B45309]', label: 'Profile view' },
-  INTEREST_RECEIVED: { icon: StarIcon, className: 'bg-primary/10 text-primary', label: 'Interest received' },
-  INTEREST_ACCEPTED: { icon: HeartIcon, className: 'bg-[#F0FDF4] text-[#16A34A]', label: 'Interest accepted' },
-  NEW_MESSAGE: { icon: ChatIcon, className: 'bg-accent/15 text-[#92400E]', label: 'Message' },
+const TYPE_STYLE: Record<string, { icon: typeof Eye; className: string; label: string }> = {
+  PROFILE_VIEWED: { icon: Eye, className: 'bg-[#FEF3C7] text-[#B45309]', label: 'Profile view' },
+  INTEREST_RECEIVED: { icon: Star, className: 'bg-[#FDF2F2] text-[#7A1118]', label: 'Interest received' },
+  INTEREST_ACCEPTED: { icon: Heart, className: 'bg-[#F0FDF4] text-[#16A34A]', label: 'Interest accepted' },
+  NEW_MESSAGE: { icon: MessageSquare, className: 'bg-amber-50 text-[#92400E]', label: 'Message' },
 };
-const SYSTEM_STYLE = { icon: BellIcon, className: 'bg-muted text-muted-foreground', label: 'Account update' };
-
-const TABS: { key: NotificationCategory; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'unread', label: 'Unread' },
-  { key: 'profile', label: 'Profile' },
-  { key: 'interests', label: 'Interests' },
-];
+const SYSTEM_STYLE = { icon: Bell, className: 'bg-[#FAF7F2] text-[#73645C]', label: 'Account update' };
 
 const PAGE_SIZE = 20;
 
@@ -56,14 +46,12 @@ interface ListState {
   nextOffset: number | null;
 }
 
-// "Priya Soundararajan sent you an interest" -> bold name + the rest. System
-// notices (no member actor) don't start with the name and render as-is.
 function MessageText({ notification }: { notification: NotificationResponse }) {
   const { message, actor } = notification;
   if (actor.name && message.startsWith(actor.name)) {
     return (
       <>
-        <span className="font-bold text-foreground">{actor.name}</span>
+        <span className="font-bold text-[#241C1A]">{actor.name}</span>
         {message.slice(actor.name.length)}
       </>
     );
@@ -82,7 +70,6 @@ export default function NotificationsPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [busy, setBusy] = useState<'mark' | 'clear' | null>(null);
 
-  // (Re)load whenever the tab changes — in place, no page reload.
   useEffect(() => {
     if (!ready || !data.accessToken) return;
     let cancelled = false;
@@ -123,8 +110,6 @@ export default function NotificationsPage() {
     });
   }
 
-  // Unchanged behaviour: mark read, then go where the notification points
-  // (or explain why it can't open).
   async function handleOpen(notification: NotificationResponse) {
     if (!data.accessToken) return;
     setNotice(null);
@@ -133,7 +118,7 @@ export default function NotificationsPage() {
       try {
         await markNotificationRead(data.accessToken, notification.id);
       } catch {
-        // Best-effort; the next list load reconciles the true state.
+        // Best-effort
       }
       announceNotificationsChanged();
     }
@@ -147,7 +132,11 @@ export default function NotificationsPage() {
     setBusy('mark');
     try {
       await markAllNotificationsRead(data.accessToken);
-      setList({ ...list, unreadCount: 0, items: tab === 'unread' ? [] : list.items.map((n) => ({ ...n, isRead: true })) });
+      setList({
+        ...list,
+        unreadCount: 0,
+        items: tab === 'unread' ? [] : list.items.map((n) => ({ ...n, isRead: true })),
+      });
       announceNotificationsChanged();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not mark notifications as read.');
@@ -156,11 +145,10 @@ export default function NotificationsPage() {
     }
   }
 
-  // Permanent: deletes every notification the member has (all tabs).
   async function handleClearAll() {
     if (!data.accessToken) return;
     const ok = window.confirm(
-      'Clear all notifications?\n\nThis permanently deletes every notification (on every tab). It cannot be undone.',
+      'Clear all notifications?\n\nThis permanently deletes every notification. It cannot be undone.',
     );
     if (!ok) return;
     setBusy('clear');
@@ -180,7 +168,11 @@ export default function NotificationsPage() {
     if (!data.accessToken || !list || list.nextOffset === null) return;
     setLoadingMore(true);
     try {
-      const more = await listNotifications(data.accessToken, { category: tab, offset: list.nextOffset, limit: PAGE_SIZE });
+      const more = await listNotifications(data.accessToken, {
+        category: tab,
+        offset: list.nextOffset,
+        limit: PAGE_SIZE,
+      });
       setList({ ...more, items: [...list.items, ...more.items] });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not load more notifications.');
@@ -194,111 +186,157 @@ export default function NotificationsPage() {
   const notifications = list?.items ?? null;
   const unread = list?.unreadCount ?? 0;
 
+  const CATEGORY_TABS: { key: NotificationCategory; label: string; icon: typeof LayoutGrid }[] = [
+    { key: 'all', label: 'All', icon: LayoutGrid },
+    { key: 'unread', label: `Unread (${unread})`, icon: Mail },
+    { key: 'profile', label: 'Profile', icon: User },
+    { key: 'interests', label: 'Interests', icon: Heart },
+  ];
+
   return (
     <>
       <AppHeader />
-      <main className="min-h-screen bg-secondary px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
-          {/* Title + unread badge, and the two actions */}
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
-                Notifications
-                {unread > 0 && (
-                  <span
-                    aria-label={`${unread} unread`}
-                    data-testid="page-unread-badge"
-                    className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-bold text-destructive-foreground"
-                  >
-                    {unread > 99 ? '99+' : unread}
-                  </span>
-                )}
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {unread > 0 ? 'Stay up to date with who’s interested in you.' : 'You’re all caught up.'}
-              </p>
+      <main className="relative min-h-screen bg-[#FAF7F2] text-[#241C1A] overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
+        {/* Decorative corner foliage flourishes matching design theme */}
+        <BotanicalSprig className="pointer-events-none absolute -top-4 -right-4 w-44 h-44 sm:w-64 sm:h-64 text-[#C4A882] opacity-40 z-0" />
+        <BotanicalSprig className="pointer-events-none absolute -bottom-4 -left-4 w-44 h-44 sm:w-64 sm:h-64 text-[#C4A882] opacity-35 rotate-180 z-0" />
+
+        <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-6">
+          {/* Header row: Bell Icon + Title & Subtitle on Left | Action Buttons on Right */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-full bg-[#FDF2F2] border border-[#F8D7DA] flex items-center justify-center text-[#7A1118] shrink-0 shadow-2xs">
+                <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-[#7A1118]" />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-[#241C1A] font-[family-name:var(--font-heading,serif)] tracking-tight">
+                  Notifications
+                </h1>
+                <p className="text-xs sm:text-sm text-[#73645C] mt-0.5">
+                  {unread > 0 ? 'Stay up to date with who’s interested in you.' : 'You’re all caught up.'}
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-2.5 self-end sm:self-auto">
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
                 disabled={busy !== null || unread === 0}
                 onClick={() => void handleMarkAll()}
+                className="px-4 py-2 rounded-full bg-white hover:bg-[#FAF7F2] active:scale-[0.99] border border-[#DECDBB] text-[#4A3D36] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {busy === 'mark' ? 'Marking…' : 'Mark all as read'}
-              </Button>
-              <Button
+                <Check className="h-3.5 w-3.5 text-[#4A3D36]" />
+                <span>{busy === 'mark' ? 'Marking…' : 'Mark all as read'}</span>
+              </button>
+
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
-                className="border-destructive/40 text-destructive hover:bg-destructive/10"
                 disabled={busy !== null || (list !== null && list.total === 0 && tab === 'all')}
                 onClick={() => void handleClearAll()}
+                className="px-4 py-2 rounded-full bg-[#7A1118] hover:bg-[#620D13] active:scale-[0.99] text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {busy === 'clear' ? 'Clearing…' : 'Clear all'}
-              </Button>
+                <Trash2 className="h-3.5 w-3.5 text-white" />
+                <span>{busy === 'clear' ? 'Clearing…' : 'Clear all'}</span>
+              </button>
             </div>
           </div>
 
-          {/* Tabs (scroll sideways on narrow screens) */}
-          <div role="tablist" aria-label="Filter notifications" className="-mx-1 flex gap-1 overflow-x-auto border-b border-border px-1">
-            {TABS.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                role="tab"
-                aria-selected={tab === t.key}
-                onClick={() => selectTab(t.key)}
-                className={`shrink-0 whitespace-nowrap px-3 py-2 text-sm font-semibold transition-colors ${
-                  tab === t.key ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {t.label}
-                {t.key === 'unread' && list ? ` (${unread})` : ''}
-              </button>
-            ))}
+          {/* Filter Pills Row */}
+          <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto pb-1">
+            {CATEGORY_TABS.map(({ key, label, icon: TabIcon }) => {
+              const isActive = tab === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => selectTab(key)}
+                  className={`px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer shadow-2xs ${
+                    isActive
+                      ? 'bg-[#7A1118] text-white border border-[#7A1118] shadow-xs'
+                      : 'bg-white text-[#4A3D36] border border-[#EADBBD] hover:border-[#C4B2A0] hover:bg-[#FAF7F2]'
+                  }`}
+                >
+                  <TabIcon className="h-3.5 w-3.5" />
+                  <span>{label}</span>
+                </button>
+              );
+            })}
           </div>
 
+          {/* Status Message notice */}
           {notice && (
-            <Card role="status" className="rounded-2xl border-primary/30 bg-primary/5 p-4 text-sm text-primary">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-xs sm:text-sm text-amber-900">
               {notice}
-            </Card>
+            </div>
           )}
 
-          {!notifications && !error && (
-            <Card className="rounded-2xl p-8 text-center text-sm text-muted-foreground">Loading notifications…</Card>
+          {/* Error Message */}
+          {error && (
+            <div className="rounded-2xl border border-red-200 bg-red-50/90 p-4 text-xs sm:text-sm font-medium text-[#7A1118]">
+              {error}
+            </div>
           )}
 
-          {error && <Card className="rounded-2xl p-8 text-center text-sm text-destructive">{error}</Card>}
-
+          {/* Empty State Card matching the reference design */}
           {notifications && notifications.length === 0 && (
-            <Card className="rounded-2xl p-8 text-center text-sm text-muted-foreground">
-              {tab === 'unread' ? (
-                'No unread notifications.'
-              ) : tab === 'all' ? (
-                'No notifications yet.'
-              ) : (
-                'Nothing here yet.'
-              )}
-            </Card>
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EADBBD]/80 p-12 sm:p-16 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)] flex flex-col items-center justify-center text-center w-full min-h-[300px]">
+              {/* Emblem with delicate burst/sparkle doodle around bell */}
+              <div className="relative mb-5 flex items-center justify-center">
+                <svg
+                  viewBox="0 0 120 120"
+                  className="absolute -inset-4 w-28 h-28 text-[#F4C4B8]/60 pointer-events-none"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
+                  <line x1="60" y1="12" x2="60" y2="18" strokeLinecap="round" />
+                  <line x1="88" y1="28" x2="82" y2="34" strokeLinecap="round" />
+                  <line x1="98" y1="52" x2="92" y2="52" strokeLinecap="round" />
+                  <line x1="32" y1="28" x2="38" y2="34" strokeLinecap="round" />
+                  <line x1="22" y1="52" x2="28" y2="52" strokeLinecap="round" />
+                  <path
+                    d="M86 68 C83 65 79 66 79 69 C79 73 86 77 86 77 C86 77 93 73 93 69 C93 66 89 65 86 68 Z"
+                    fill="#F4C4B8"
+                    fillOpacity="0.4"
+                  />
+                  <path
+                    d="M34 68 C31 65 27 66 27 69 C27 73 34 77 34 77 C34 77 41 73 41 69 C41 66 37 65 34 68 Z"
+                    fill="#F4C4B8"
+                    fillOpacity="0.4"
+                  />
+                  <circle cx="36" cy="38" r="1.2" fill="#F4C4B8" />
+                  <circle cx="84" cy="38" r="1.2" fill="#F4C4B8" />
+                </svg>
+
+                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-[#FFF5F5] border border-[#FADBD8] flex items-center justify-center shadow-xs">
+                  <Bell className="h-7 w-7 sm:h-8 sm:w-8 text-[#7A1118]" />
+                </div>
+              </div>
+
+              <h2 className="text-base sm:text-lg font-bold text-[#241C1A] font-[family-name:var(--font-heading,serif)]">
+                {tab === 'unread' ? 'No unread notifications.' : tab === 'all' ? 'No notifications yet.' : 'Nothing here yet.'}
+              </h2>
+              <p className="text-xs sm:text-sm text-[#73645C] mt-1.5 max-w-sm">
+                We&apos;ll let you know when something new arrives.
+              </p>
+            </div>
           )}
 
+          {/* List of Notifications (when items exist) */}
           {notifications && notifications.length > 0 && (
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col gap-3">
               {notifications.map((notification) => {
                 const style = TYPE_STYLE[notification.type] ?? SYSTEM_STYLE;
-                const Icon = style.icon;
+                const IconComponent = style.icon;
                 const time = formatRelativeTime(notification.createdAt);
                 const fullDate = new Date(notification.createdAt).toLocaleString();
                 return (
-                  <Card
+                  <div
                     key={notification.id}
                     role="button"
                     tabIndex={0}
                     aria-label={`${notification.isRead ? '' : 'Unread: '}${notification.message}`}
-                    data-type={notification.type}
-                    data-unread={!notification.isRead || undefined}
                     onClick={() => void handleOpen(notification)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
@@ -306,58 +344,67 @@ export default function NotificationsPage() {
                         void handleOpen(notification);
                       }
                     }}
-                    className={`flex cursor-pointer items-center gap-3 rounded-2xl p-3 transition-colors hover:bg-muted/40 sm:gap-4 sm:p-4 ${
-                      notification.isRead ? '' : 'bg-primary/[0.03]'
+                    className={`bg-white rounded-2xl border border-[#F0E8DD] hover:border-[#DECDBB] p-4 flex items-center gap-3.5 sm:gap-4 transition-all shadow-2xs hover:shadow-xs cursor-pointer ${
+                      notification.isRead ? '' : 'bg-[#FFFDFB] border-[#FADBD8]'
                     }`}
                   >
+                    {/* Category Icon */}
                     <span
                       title={style.label}
                       className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${style.className}`}
-                      data-testid="type-icon"
                     >
-                      <Icon className="h-5 w-5" />
+                      <IconComponent className="h-5 w-5" />
                     </span>
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-muted-foreground">
+
+                    {/* Actor Photo */}
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#EADBBD] bg-[#FAF7F2] text-[#73645C]">
                       {notification.actor.photoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={notification.actor.photoUrl} alt="" className="h-full w-full object-cover" />
+                        <img
+                          src={notification.actor.photoUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
                       ) : (
-                        <UserIcon className="h-5 w-5" />
+                        <UserIcon className="h-5 w-5 text-[#A88C78]" />
                       )}
                     </span>
+
+                    {/* Text Details */}
                     <div className="min-w-0 flex-1">
-                      <p className={`text-sm ${notification.isRead ? 'text-muted-foreground' : 'text-foreground'}`}>
+                      <p className={`text-xs sm:text-sm ${notification.isRead ? 'text-[#73645C]' : 'text-[#241C1A] font-medium'}`}>
                         <MessageText notification={notification} />
                       </p>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      <p className="mt-0.5 truncate text-[11px] sm:text-xs text-[#8C7B73]">
                         {notification.actor.name} ·{' '}
                         <time dateTime={notification.createdAt} title={fullDate}>
                           {time}
                         </time>
                       </p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <time dateTime={notification.createdAt} title={fullDate} className="hidden text-xs text-muted-foreground sm:inline">
+
+                    {/* Right side relative time & unread indicator */}
+                    <div className="flex shrink-0 items-center gap-2.5">
+                      <time dateTime={notification.createdAt} title={fullDate} className="hidden text-xs text-[#8C7B73] sm:inline">
                         {time}
                       </time>
                       {!notification.isRead && (
-                        <span className="h-2.5 w-2.5 rounded-full bg-destructive" aria-label="Unread" data-testid="unread-dot" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-[#7A1118]" aria-label="Unread" />
                       )}
-                      <ChevronIcon className="h-4 w-4 text-muted-foreground" />
+                      <ChevronRight className="h-4 w-4 text-[#8C7B73]" />
                     </div>
-                  </Card>
+                  </div>
                 );
               })}
+
               {list?.nextOffset !== null && list?.nextOffset !== undefined && (
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  className="self-center"
                   disabled={loadingMore}
                   onClick={() => void handleLoadMore()}
+                  className="self-center px-5 py-2 mt-2 rounded-full border border-[#DECDBB] bg-white text-xs font-semibold text-[#4A3D36] hover:bg-[#FAF7F2] transition-colors cursor-pointer"
                 >
                   {loadingMore ? 'Loading…' : 'Load more'}
-                </Button>
+                </button>
               )}
             </div>
           )}
