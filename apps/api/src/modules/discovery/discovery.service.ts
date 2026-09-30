@@ -22,6 +22,23 @@ function ageRangeToDobRange(ageMin?: number, ageMax?: number): { gte?: Date; lte
   return range;
 }
 
+// City, education and profession are free text at onboarding, so they're
+// matched against the WHOLE stored value, ignoring case and surrounding
+// spaces ("madurai" finds "Madurai") — never a partial/substring match.
+// maritalStatus is an enum and stays an exact match.
+function detailFilters(query: SearchProfilesQuery): Prisma.ProfileWhereInput[] {
+  const filters: Prisma.ProfileWhereInput[] = [];
+  const text = (path: string[], value: string | undefined) => {
+    const trimmed = value?.trim();
+    if (trimmed) filters.push({ details: { path, equals: trimmed, mode: 'insensitive' } });
+  };
+  text(['location', 'city'], query.city);
+  text(['education', 'educationLevel'], query.educationLevel);
+  text(['education', 'profession'], query.profession);
+  if (query.maritalStatus) filters.push({ details: { path: ['maritalStatus'], equals: query.maritalStatus } });
+  return filters;
+}
+
 @Injectable()
 export class DiscoveryService {
   constructor(
@@ -35,6 +52,7 @@ export class DiscoveryService {
   async search(callerUserId: string, query: SearchProfilesQuery): Promise<SearchProfilesResponse> {
     const blockedUserIds = await getBlockedUserIds(this.prisma, callerUserId);
     const dobRange = ageRangeToDobRange(query.ageMin, query.ageMax);
+    const details = detailFilters(query);
 
     const where: Prisma.ProfileWhereInput = {
       visibility: { not: 'HIDDEN' },
@@ -42,12 +60,10 @@ export class DiscoveryService {
       user: { status: 'ACTIVE' },
       ...(Object.keys(dobRange).length > 0 ? { dateOfBirth: dobRange } : {}),
       ...(query.gender ? { gender: query.gender } : {}),
-      ...(query.city ? { details: { path: ['location', 'city'], equals: query.city } } : {}),
-      ...(query.educationLevel
-        ? { details: { path: ['education', 'educationLevel'], equals: query.educationLevel } }
-        : {}),
-      ...(query.profession ? { details: { path: ['education', 'profession'], equals: query.profession } } : {}),
-      ...(query.maritalStatus ? { details: { path: ['maritalStatus'], equals: query.maritalStatus } } : {}),
+      // Every `details` filter targets the same JSON column, so each must be
+      // its own AND entry — as sibling `details:` keys they overwrote each
+      // other and only the last filter applied.
+      ...(details.length > 0 ? { AND: details } : {}),
     };
 
     // 'newest' has no cursor-pagination guarantee (createdAt ties aren't
@@ -75,12 +91,12 @@ export class DiscoveryService {
       page.map(async (profile) => {
         const photos = await this.photosService.getPhotosForProfile(profile.id);
         const primaryPhotoUrl = photos.find((photo) => photo.isPrimary)?.url ?? photos[0]?.url ?? null;
-        const details = profile.details as { location?: { city?: string } } | null;
+        const profileDetails = profile.details as { location?: { city?: string } } | null;
         return {
           profileId: profile.id,
           fullName: profile.fullName,
           age: calculateAge(profile.dateOfBirth),
-          city: details?.location?.city ?? null,
+          city: profileDetails?.location?.city ?? null,
           primaryPhotoUrl,
           isVerified: profile.isVerified,
           ...relationshipFields(relationships.get(profile.userId)),
