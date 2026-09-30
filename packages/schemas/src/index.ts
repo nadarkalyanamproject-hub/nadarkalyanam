@@ -10,6 +10,7 @@ export * from './notifications.js';
 export * from './payments.js';
 export * from './photo.js';
 export * from './profile.js';
+export * from './profile-card.js';
 export * from './public-profile.js';
 export * from './relationship.js';
 export * from './verification.js';

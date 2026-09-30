@@ -10,22 +10,28 @@ import { useRegistration } from '../../app/providers/registration-provider';
 
 // Visual variants only — each surface keeps its existing button look. The
 // state -> action decision is relationshipActionView's, shared by all.
-type Appearance = 'ui' | 'discovery' | 'home';
+type Appearance = 'ui' | 'discovery' | 'home' | 'matches';
 
 const SEND_CLASSES: Record<Exclude<Appearance, 'ui'>, string> = {
   discovery:
     'w-full rounded-lg bg-gradient-to-r from-[#94151C] to-[#7A0710] py-2 text-xs font-semibold text-white shadow-2xs transition-all hover:from-[#A81C24] hover:to-[#94151C] disabled:cursor-not-allowed disabled:opacity-60',
   home: 'w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-white hover:bg-[#FFF8F0] text-[#7B1118] border border-[#E7CDAF] disabled:cursor-not-allowed disabled:opacity-60',
+  matches:
+    'w-full text-xs font-semibold py-1.5 px-3 rounded-full text-center whitespace-nowrap transition-all cursor-pointer bg-[#7A1118] hover:bg-[#620D13] active:scale-[0.98] text-white shadow-xs disabled:cursor-not-allowed disabled:opacity-60',
 };
 const SENT_CLASSES: Record<Exclude<Appearance, 'ui'>, string> = {
   discovery:
     'w-full rounded-lg bg-gradient-to-r from-[#94151C] to-[#7A0710] py-2 text-xs font-semibold text-white opacity-60 cursor-not-allowed',
   home: 'w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-[#F0FDF4] text-[#16A34A] border border-[#86EFAC] cursor-not-allowed',
+  matches:
+    'w-full text-xs font-semibold py-1.5 px-3 rounded-full text-center whitespace-nowrap bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default',
 };
 const LINK_CLASSES: Record<Exclude<Appearance, 'ui'>, string> = {
   discovery:
     'block w-full rounded-lg bg-gradient-to-r from-[#94151C] to-[#7A0710] py-2 text-center text-xs font-semibold text-white shadow-2xs transition-all hover:from-[#A81C24] hover:to-[#94151C]',
   home: 'w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all bg-[#7B1118] text-white hover:bg-[#650B11]',
+  matches:
+    'block w-full text-xs font-semibold py-1.5 px-3 rounded-full text-center whitespace-nowrap transition-all bg-[#7A1118] hover:bg-[#620D13] text-white shadow-xs',
 };
 
 // "Connected" label, shown next to a connected member's name on every
@@ -93,7 +99,7 @@ export function RelationshipAction({
           onClick={() => void handleSend()}
           className={view.kind === 'sent' ? SENT_CLASSES[appearance] : SEND_CLASSES[appearance]}
         >
-          {view.kind === 'sent' && appearance === 'discovery' ? `✓ ${label}` : label}
+          {view.kind === 'sent' && (appearance === 'discovery' || appearance === 'matches') ? `✓ ${label}` : label}
         </button>
       );
   } else {

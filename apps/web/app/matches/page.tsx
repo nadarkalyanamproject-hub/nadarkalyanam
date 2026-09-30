@@ -8,6 +8,7 @@ import { AppHeader } from '../../components/app-header';
 import { ApiError, listMatches, sendInterest } from '../../lib/api-client';
 import { useRegistration } from '../providers/registration-provider';
 import { useRequireAuth } from '../../lib/use-require-auth';
+import { matchCategoryHref } from '../../lib/match-categories';
 import { BotanicalSprig, LotusEmblem } from '../../components/search/partner-search-bar';
 import {
   ArrowRight,
@@ -277,7 +278,7 @@ export default function MatchesPage() {
               <SectionHeading title="All Matches" viewAllHref="/search" />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                 <HubTile
-                  href="/search"
+                  href={matchCategoryHref('your-matches')}
                   title="Your Matches"
                   subtitle="View all the profiles that match your preferences"
                   icon={<Users className="h-5 w-5" />}
@@ -292,7 +293,7 @@ export default function MatchesPage() {
               <SectionHeading title="Based on activity" />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                 <HubTile
-                  href="/interests"
+                  href={matchCategoryHref('shortlisted-by-you')}
                   title="Shortlisted by you"
                   subtitle="Matches you have shortlisted"
                   icon={<Bookmark className="h-5 w-5" />}
@@ -300,7 +301,7 @@ export default function MatchesPage() {
                   iconColor="text-[#D97706]"
                 />
                 <HubTile
-                  href="/notifications"
+                  href={matchCategoryHref('viewed-you')}
                   title="Viewed you"
                   subtitle="Matches who have viewed your profile"
                   icon={<Eye className="h-5 w-5" />}
@@ -308,7 +309,7 @@ export default function MatchesPage() {
                   iconColor="text-[#7C3AED]"
                 />
                 <HubTile
-                  href="/interests"
+                  href={matchCategoryHref('shortlisted-you')}
                   title="Shortlisted you"
                   subtitle="Matches who have shortlisted your profile"
                   icon={<Star className="h-5 w-5" />}
@@ -316,7 +317,7 @@ export default function MatchesPage() {
                   iconColor="text-[#059669]"
                 />
                 <HubTile
-                  href="/browse"
+                  href={matchCategoryHref('viewed-by-you')}
                   title="Viewed by you"
                   subtitle="Matches you have viewed"
                   icon={<Target className="h-5 w-5" />}
@@ -333,7 +334,7 @@ export default function MatchesPage() {
                 <SectionHeading title="Recently joined & nearby matches" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <HubTile
-                    href="/search?sort=newest"
+                    href={matchCategoryHref('newly-joined')}
                     title="Newly Joined"
                     subtitle="Matches who joined within the last 30 days"
                     icon={<Calendar className="h-5 w-5" />}
@@ -341,7 +342,7 @@ export default function MatchesPage() {
                     iconColor="text-[#0284C7]"
                   />
                   <HubTile
-                    href="/search"
+                    href={matchCategoryHref('nearby')}
                     title="Nearby matches"
                     subtitle="Matches near your location"
                     icon={<MapPin className="h-5 w-5" />}
@@ -356,7 +357,7 @@ export default function MatchesPage() {
                 <SectionHeading title="Based on profile details" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <HubTile
-                    href="/search"
+                    href={matchCategoryHref('with-photos')}
                     title="Matches with photos"
                     subtitle="Matches that have added photos"
                     icon={<ImageIcon className="h-5 w-5" />}
@@ -364,7 +365,7 @@ export default function MatchesPage() {
                     iconColor="text-[#EA580C]"
                   />
                   <HubTile
-                    href="/search"
+                    href={matchCategoryHref('with-horoscope')}
                     title="Matches with horoscope"
                     subtitle="Matches that have added horoscope"
                     icon={<Compass className="h-5 w-5" />}
@@ -382,7 +383,7 @@ export default function MatchesPage() {
                 <SectionHeading title="Based on astrological compatibility" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <HubTile
-                    href="/search"
+                    href={matchCategoryHref('star-matches')}
                     title="Star matches"
                     subtitle="Matches with compatible star sign"
                     icon={<Sparkles className="h-5 w-5" />}
@@ -390,7 +391,7 @@ export default function MatchesPage() {
                     iconColor="text-[#10B981]"
                   />
                   <HubTile
-                    href="/search"
+                    href={matchCategoryHref('horoscope-matches')}
                     title="Horoscope matches"
                     subtitle="Matches with horoscope matching yours"
                     icon={<LotusEmblem className="h-5 w-5" />}
@@ -405,7 +406,7 @@ export default function MatchesPage() {
                 <SectionHeading title="Members who are looking for someone like you" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <HubTile
-                    href="/search"
+                    href={matchCategoryHref('mutual-matches')}
                     title="Mutual matches"
                     subtitle="Matches whose profile match your preferences and vice versa"
                     icon={<Users className="h-5 w-5" />}
@@ -413,7 +414,7 @@ export default function MatchesPage() {
                     iconColor="text-[#EA580C]"
                   />
                   <HubTile
-                    href="/search"
+                    href={matchCategoryHref('looking-for-you')}
                     title="Looking for you"
                     subtitle="Matches whose preferences match your profile"
                     icon={<Target className="h-5 w-5" />}
@@ -429,7 +430,7 @@ export default function MatchesPage() {
               <SectionHeading title="Based on preferences" />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                 <HubTile
-                  href="/search"
+                  href={matchCategoryHref('education-preference')}
                   title="Education preference"
                   subtitle="Matches based on your preferred education"
                   icon={<GraduationCap className="h-5 w-5" />}
@@ -437,7 +438,7 @@ export default function MatchesPage() {
                   iconColor="text-[#0284C7]"
                 />
                 <HubTile
-                  href="/search"
+                  href={matchCategoryHref('professional-preference')}
                   title="Professional preference"
                   subtitle="Matches based on your preferred profession"
                   icon={<Briefcase className="h-5 w-5" />}
@@ -445,7 +446,7 @@ export default function MatchesPage() {
                   iconColor="text-[#D97706]"
                 />
                 <HubTile
-                  href="/search"
+                  href={matchCategoryHref('location-preference')}
                   title="City/location preference"
                   subtitle="Matches based on your preferred city/location"
                   icon={<MapPin className="h-5 w-5" />}
@@ -453,7 +454,7 @@ export default function MatchesPage() {
                   iconColor="text-[#0D9488]"
                 />
                 <HubTile
-                  href="/search"
+                  href={matchCategoryHref('nri-matches')}
                   title="NRI matches"
                   subtitle="Matches from outside India"
                   icon={<Plane className="h-5 w-5" />}

@@ -13,9 +13,11 @@ import type {
   MembershipPlanResponse,
   MessageListResponse,
   MessageResponse,
+  NearbyMatchesResponse,
   NotificationCategory,
   OrderResponse,
   PhotoResponse,
+  ProfileCardListResponse,
   ProfileListResponse,
   ProfileResponse,
   PublicProfileDetail,
@@ -25,6 +27,8 @@ import type {
   SendInterestRequest,
   SendOtpRequest,
   SendOtpResponse,
+  ShortlistResponse,
+  ShortlistStatusResponse,
   UnreadCountResponse,
   UnreadMessagesCountResponse,
   VerificationStatusResponse,
@@ -392,5 +396,55 @@ export function reportProfile(accessToken: string, payload: ReportRequest): Prom
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
     body: JSON.stringify(payload),
+  });
+}
+
+// --- Shortlist --------------------------------------------------------------
+
+export function shortlistProfile(accessToken: string, profileId: string): Promise<ShortlistResponse> {
+  return request<ShortlistResponse>('/shortlists', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ profileId }),
+  });
+}
+
+export function unshortlistProfile(accessToken: string, profileId: string): Promise<void> {
+  return request<void>(`/shortlists/by-profile/${encodeURIComponent(profileId)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function getShortlistStatus(accessToken: string, profileId: string): Promise<ShortlistStatusResponse> {
+  return request<ShortlistStatusResponse>(`/shortlists/by-profile/${encodeURIComponent(profileId)}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function listShortlists(accessToken: string): Promise<ProfileCardListResponse> {
+  return request<ProfileCardListResponse>('/shortlists', { headers: { Authorization: `Bearer ${accessToken}` } });
+}
+
+export function listShortlistedMe(accessToken: string): Promise<ProfileCardListResponse> {
+  return request<ProfileCardListResponse>('/shortlists/shortlisted-me', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// --- Matches categories -------------------------------------------------------
+
+export function listMatchCategory(
+  accessToken: string,
+  category: 'newly-joined' | 'with-photos' | 'viewed-me' | 'viewed-by-me',
+): Promise<ProfileCardListResponse> {
+  return request<ProfileCardListResponse>(`/match-categories/${category}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export function listNearbyMatches(accessToken: string): Promise<NearbyMatchesResponse> {
+  return request<NearbyMatchesResponse>('/match-categories/nearby', {
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
 }

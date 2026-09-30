@@ -8,6 +8,7 @@ import { CallsModule } from './modules/calls/calls.module.js';
 import { DiscoveryModule } from './modules/discovery/discovery.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { InterestsModule } from './modules/interests/interests.module.js';
+import { MatchCategoriesModule } from './modules/match-categories/match-categories.module.js';
 import { MatchingModule } from './modules/matching/matching.module.js';
 import { MessagesModule } from './modules/messages/messages.module.js';
 import { ModerationModule } from './modules/moderation/moderation.module.js';
@@ -19,6 +20,7 @@ import { ProfilesModule } from './modules/profiles/profiles.module.js';
 import { QueueModule } from './modules/queue/queue.module.js';
 import { RealtimeModule } from './modules/realtime/realtime.module.js';
 import { RedisModule } from './modules/redis/redis.module.js';
+import { ShortlistsModule } from './modules/shortlists/shortlists.module.js';
 import { StorageModule } from './modules/storage/storage.module.js';
 import { VerificationModule } from './modules/verification/verification.module.js';
 
@@ -50,6 +52,8 @@ import { VerificationModule } from './modules/verification/verification.module.j
     RealtimeModule,
     DiscoveryModule,
     MatchingModule,
+    MatchCategoriesModule,
+    ShortlistsModule,
     ModerationModule,
     NotificationsModule,
     PaymentsModule,

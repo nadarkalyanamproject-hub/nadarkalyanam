@@ -10,6 +10,7 @@ import { ApiError, getProfile, reportProfile } from '../../../lib/api-client';
 import { ConnectedBadge, RelationshipAction } from '../../../components/relationship/relationship-action';
 import { useRegistration } from '../../providers/registration-provider';
 import { useRequireAuth } from '../../../lib/use-require-auth';
+import { ShortlistButton } from '../../../components/shortlist/shortlist-button';
 import { DUMMY_PROFILES } from '../../../lib/mock-profiles';
 
 const MARITAL_STATUS_LABELS: Record<string, string> = {
@@ -161,6 +162,7 @@ export default function ViewProfilePage() {
                     relationshipStatus={profile.relationshipStatus}
                     conversationId={profile.conversationId}
                   />
+                  <ShortlistButton profileId={profile.id} />
                   {!reportSubmitted && (
                     <Button
                       type="button"
