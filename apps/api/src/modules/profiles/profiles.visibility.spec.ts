@@ -57,4 +57,12 @@ describe('PATCH /profiles/me/visibility', () => {
     const { controller } = setup('PUBLIC');
     expect((await controller.getMe(me)).visibility).toBe('PUBLIC');
   });
+
+  it('GET /profiles/me reports the real isVerified flag', async () => {
+    const { controller, row } = setup();
+    (row as any).isVerified = false;
+    expect((await controller.getMe(me)).isVerified).toBe(false);
+    (row as any).isVerified = true;
+    expect((await controller.getMe(me)).isVerified).toBe(true);
+  });
 });

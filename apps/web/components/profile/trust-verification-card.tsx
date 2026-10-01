@@ -4,13 +4,10 @@ import { useEffect, useState } from 'react';
 import { ApiError, getVerificationStatus, initiateVerification } from '../../lib/api-client';
 import { useRegistration } from '../../app/providers/registration-provider';
 
-export function TrustVerificationCard({
-  mobileVerified = true,
-  emailVerified = true,
-}: {
-  mobileVerified?: boolean;
-  emailVerified?: boolean;
-}) {
+// Mobile is genuinely verified: every account signs in with an OTP to that
+// number. Email is never verified anywhere in this app, so it's shown as
+// plain contact information with no status claim.
+export function TrustVerificationCard({ email }: { email?: string }) {
   const { data } = useRegistration();
   const [status, setStatus] = useState<'PENDING' | 'SUCCEEDED' | 'FAILED' | 'EXPIRED' | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -106,26 +103,20 @@ export function TrustVerificationCard({
           </span>
         </div>
 
-        {/* Email Verification */}
-        <div className="flex items-center justify-between rounded-xl border border-[#F3EBDD] bg-[#FFFDF9] p-3">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#FFF9ED] text-[#7A0710]">
-              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-[#D6A33A]">
-                <path
-                  fillRule="evenodd"
-                  d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z"
-                  clipRule="evenodd"
-                />
+        {/* Email: contact info only — no verification exists for it */}
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-[#F3EBDD] bg-[#FFFDF9] p-3" data-testid="trust-email">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FFF9ED] text-[#7A0710]">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 text-[#A88C78]">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="m3 7 9 6 9-6" />
               </svg>
             </div>
-            <div>
-              <p className="font-semibold text-[#2B211C]">Email Verified</p>
-              <p className="text-[11px] text-[#776B62]">Official communication channel</p>
+            <div className="min-w-0">
+              <p className="font-semibold text-[#2B211C]">Email</p>
+              <p className="truncate text-[11px] text-[#776B62]">{email?.trim() ? email : '—'}</p>
             </div>
           </div>
-          <span className="text-xs font-semibold text-emerald-700">
-            Active
-          </span>
         </div>
 
         {/* Identity Verification */}

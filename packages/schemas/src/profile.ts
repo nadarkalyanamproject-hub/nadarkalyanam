@@ -142,6 +142,8 @@ export const profileResponseSchema = z.object({
   // profile-completion.ts), e.g. ['employedIn', 'photo'].
   completionMissing: z.array(z.string()),
   visibility: profileVisibilityEnum,
+  // Set only by a completed identity verification.
+  isVerified: z.boolean(),
   details: profileDetailsSchema,
   photos: z.array(photoResponseSchema),
 });

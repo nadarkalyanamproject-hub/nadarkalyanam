@@ -12,6 +12,7 @@ import { PhotoGalleryCard } from '../../components/profile/photo-gallery-card';
 import { TrustVerificationCard } from '../../components/profile/trust-verification-card';
 import { CompletionChecklistCard } from '../../components/profile/completion-checklist-card';
 import { PrivacySettingsCard } from '../../components/profile/privacy-settings-card';
+import { ComingSoonNote, ComingSoonPill } from '../../components/ui/coming-soon-note';
 import { CulturalDivider, LotusOrnament } from '../../components/profile/cultural-divider';
 import { useProfile } from '../../lib/use-profile';
 import { useRequireAuth } from '../../lib/use-require-auth';
@@ -62,6 +63,11 @@ const SECTION_FIELDS = {
   family: ['familyType', 'about'],
 } as const;
 
+// Display label for a stored enum value; blank stays blank (shown as '—').
+function labelFor(labels: Record<string, string>, value: string | undefined): string | undefined {
+  return value ? (labels[value] ?? value) : undefined;
+}
+
 function formatDisplayDate(dateStr?: string): string {
   if (!dateStr) return '—';
   try {
@@ -99,14 +105,17 @@ interface AccordionSectionProps {
   id: string;
   icon: ReactNode;
   title: string;
-  statusBadge: {
+  // Real sections show a completion badge and an Edit button; a comingSoon
+  // section (no data exists for it yet) shows neither.
+  statusBadge?: {
     label: string;
     variant: 'complete' | 'progress' | 'pending';
   };
+  comingSoon?: boolean;
   isOpen: boolean;
   isEditing: boolean;
   onToggle: () => void;
-  onEdit: () => void;
+  onEdit?: () => void;
   children: ReactNode;
   editView?: ReactNode;
 }
@@ -116,6 +125,7 @@ function AccordionSection({
   icon,
   title,
   statusBadge,
+  comingSoon = false,
   isOpen,
   isEditing,
   onToggle,
@@ -148,24 +158,31 @@ function AccordionSection({
             <h2 className="font-[family-name:var(--font-body)] text-lg sm:text-xl font-bold tracking-tight text-[#7A0710]">
               {title}
             </h2>
-            <p
-              className={`mt-0.5 flex items-center gap-1 text-xs font-medium ${
-                statusBadge.variant === 'complete'
-                  ? 'text-emerald-700 font-semibold'
-                  : statusBadge.variant === 'progress'
-                  ? 'text-[#8C6110] font-semibold'
-                  : 'text-[#776B62]'
-              }`}
-            >
-              {statusBadge.variant === 'complete' && <span>✓</span>}
-              <span>{statusBadge.label}</span>
-            </p>
+            {comingSoon && (
+              <p className="mt-1">
+                <ComingSoonPill />
+              </p>
+            )}
+            {statusBadge && (
+              <p
+                className={`mt-0.5 flex items-center gap-1 text-xs font-medium ${
+                  statusBadge.variant === 'complete'
+                    ? 'text-emerald-700 font-semibold'
+                    : statusBadge.variant === 'progress'
+                    ? 'text-[#8C6110] font-semibold'
+                    : 'text-[#776B62]'
+                }`}
+              >
+                {statusBadge.variant === 'complete' && <span>✓</span>}
+                <span>{statusBadge.label}</span>
+              </p>
+            )}
           </div>
         </button>
 
         {/* Action button */}
         <div className="flex items-center gap-2 self-end sm:self-auto">
-          {!isEditing && (
+          {!isEditing && onEdit && !comingSoon && (
             <button
               type="button"
               onClick={onEdit}
@@ -254,13 +271,11 @@ export default function ProfilePage() {
   const hasPersonal = Boolean(profile?.details?.religion && profile?.details?.casteCommunity);
   const hasEducation = Boolean(profile?.details?.education?.profession);
   const hasFamily = Boolean(profile?.details?.additional?.familyType);
-  const hasPreferences = false; // default incomplete
 
   const checklistItems = [
     { id: 'basic', label: 'Basic Details', completed: hasBasic },
     { id: 'personal', label: 'Personal & Religious', completed: hasPersonal },
     { id: 'education', label: 'Education & Career', completed: hasEducation },
-    { id: 'preferences', label: 'Partner Preferences', completed: hasPreferences },
     { id: 'family', label: 'Family Details', completed: hasFamily },
   ];
 
@@ -306,10 +321,7 @@ export default function ProfilePage() {
               <PhotoGalleryCard profile={profile} onChanged={() => void refetch()} />
 
               {/* Trust & Verification Card */}
-              <TrustVerificationCard
-                mobileVerified={true}
-                emailVerified={Boolean(profile.details?.email)}
-              />
+              <TrustVerificationCard email={profile.details?.email} />
 
               {/* Profile Completion Checklist Card */}
               <CompletionChecklistCard
@@ -374,20 +386,20 @@ export default function ProfilePage() {
                 }
               >
                 <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
-                  <DetailItem label="Height" value={profile.details?.height || '5 ft 10 in (178 cm)'} />
+                  <DetailItem label="Height" value={profile.details?.height} />
                   <DetailItem
                     label="Physical Status"
-                    value={PHYSICAL_STATUS_LABELS[profile.details?.physicalStatus || 'NORMAL'] || 'Normal'}
+                    value={labelFor(PHYSICAL_STATUS_LABELS, profile.details?.physicalStatus)}
                   />
                   <DetailItem
                     label="Marital Status"
-                    value={MARITAL_STATUS_LABELS[profile.details?.maritalStatus || 'NEVER_MARRIED'] || 'Never Married'}
+                    value={labelFor(MARITAL_STATUS_LABELS, profile.details?.maritalStatus)}
                   />
-                  <DetailItem label="Religion" value={profile.details?.religion || 'Hindu'} />
-                  <DetailItem label="Caste / Community" value={profile.details?.casteCommunity || 'Nadar'} />
+                  <DetailItem label="Religion" value={profile.details?.religion} />
+                  <DetailItem label="Caste / Community" value={profile.details?.casteCommunity} />
                   <DetailItem
                     label="Dosham"
-                    value={DOSHAM_LABELS[profile.details?.dosham || 'NO'] || 'No Dosham'}
+                    value={labelFor(DOSHAM_LABELS, profile.details?.dosham)}
                   />
                 </dl>
               </AccordionSection>
@@ -418,29 +430,27 @@ export default function ProfilePage() {
                 <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
                   <DetailItem
                     label="Education Level"
-                    value={profile.details?.education?.educationLevel || 'B.Tech / B.E. - Computers'}
+                    value={profile.details?.education?.educationLevel}
                   />
                   <DetailItem
                     label="Education Detail"
-                    value={profile.details?.education?.educationDetail || 'Anna University, Chennai'}
+                    value={profile.details?.education?.educationDetail}
                   />
                   <DetailItem
                     label="Profession"
-                    value={profile.details?.education?.profession || 'Software Architect'}
+                    value={profile.details?.education?.profession}
                   />
                   <DetailItem
                     label="Employed In"
-                    value={profile.details?.education?.employedIn || 'Private Sector (MNC)'}
+                    value={profile.details?.education?.employedIn}
                   />
                   <DetailItem
                     label="Annual Income"
                     value={
-                      [
-                        profile.details?.education?.annualIncomeRange || '25 - 35 Lakhs',
-                        profile.details?.education?.annualIncomeCurrency || 'INR',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')
+                      // Currency is fixed to INR at onboarding; only shown with an amount.
+                      profile.details?.education?.annualIncomeRange?.trim()
+                        ? `${profile.details.education.annualIncomeRange} ${profile.details.education.annualIncomeCurrency || 'INR'}`
+                        : undefined
                     }
                     className="sm:col-span-2"
                   />
@@ -472,9 +482,11 @@ export default function ProfilePage() {
               >
                 <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
                   <DetailItem label="City" value={profile.details?.location?.city} />
-                  <DetailItem label="State" value={profile.details?.location?.state || 'Tamil Nadu'} />
-                  <DetailItem label="Country" value={profile.details?.location?.country || 'India'} />
-                  <DetailItem label="Citizenship / Residence" value="Indian Citizen (Resident)" />
+                  <DetailItem label="State" value={profile.details?.location?.state} />
+                  <DetailItem label="Country" value={profile.details?.location?.country} />
+                  <div className="sm:col-span-2">
+                    <ComingSoonNote feature="citizenship" />
+                  </div>
                 </dl>
               </AccordionSection>
 
@@ -506,21 +518,17 @@ export default function ProfilePage() {
                 <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
                   <DetailItem
                     label="Family Status / Type"
-                    value={profile.details?.additional?.familyType || 'Upper Middle Class'}
+                    value={profile.details?.additional?.familyType}
                   />
-                  <DetailItem label="Family Values" value="Traditional with modern outlook" />
-                  <DetailItem
-                    label="About Family"
-                    value={
-                      profile.details?.additional?.about ||
-                      'We belong to a respected Nadar family originally hailing from Tirunelveli district, settled in Chennai for three decades. Parents are retired professionals with strong values of respect, education, and cultural heritage.'
-                    }
-                    className="sm:col-span-2"
-                  />
+                  <div className="sm:col-span-2">
+                    <ComingSoonNote feature="familyValue" />
+                  </div>
+                  {/* The onboarding "About you" text — about the member, not their family. */}
+                  <DetailItem label="About You" value={profile.details?.additional?.about} className="sm:col-span-2" />
                 </dl>
               </AccordionSection>
 
-              {/* 6. Lifestyle */}
+              {/* 6. Lifestyle & Habits: nothing is collected yet, so nothing to show or edit. */}
               <AccordionSection
                 id="lifestyle"
                 title="Lifestyle & Habits"
@@ -529,26 +537,18 @@ export default function ProfilePage() {
                     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                   </svg>
                 }
-                statusBadge={{ label: 'Complete', variant: 'complete' }}
+                comingSoon
                 isOpen={openSections.lifestyle}
                 isEditing={false}
                 onToggle={() => toggleSection('lifestyle')}
-                onEdit={() => toggleSection('lifestyle')}
               >
-                <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
-                  <DetailItem label="Diet" value="Non-Vegetarian" />
-                  <DetailItem label="Smoking" value="No" />
-                  <DetailItem label="Drinking" value="No" />
-                  <DetailItem label="Languages Known" value="Tamil, Telugu, English" />
-                  <DetailItem
-                    label="Hobbies & Interests"
-                    value="Classical music, Badminton, Travel, Reading technology journals"
-                    className="sm:col-span-2"
-                  />
-                </dl>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <ComingSoonNote feature="habits" />
+                  <ComingSoonNote feature="hobbies" />
+                </div>
               </AccordionSection>
 
-              {/* 7. Horoscope */}
+              {/* 7. Horoscope Details: nothing is collected yet, so nothing to show or edit. */}
               <AccordionSection
                 id="horoscope"
                 title="Horoscope Details"
@@ -559,23 +559,17 @@ export default function ProfilePage() {
                     <path d="M3 12h18" />
                   </svg>
                 }
-                statusBadge={{ label: 'Complete', variant: 'complete' }}
+                comingSoon
                 isOpen={openSections.horoscope}
                 isEditing={false}
                 onToggle={() => toggleSection('horoscope')}
-                onEdit={() => toggleSection('horoscope')}
               >
-                <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
-                  <DetailItem label="Rasi / Moon Sign" value="Mesham (Aries)" />
-                  <DetailItem label="Nakshatram / Star" value="Bharani" />
-                  <DetailItem label="Chevvai Dosham" value="No" />
-                  <DetailItem label="Time of Birth" value="06:45 AM" />
-                  <DetailItem label="Place of Birth" value="Chennai, Tamil Nadu" />
-                  <DetailItem label="Horoscope Match Requirement" value="Must Match" />
-                </dl>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <ComingSoonNote feature="star" />
+                </div>
               </AccordionSection>
 
-              {/* 8. Partner Preferences */}
+              {/* 8. Partner Preferences: nothing is collected yet, so nothing to show or edit. */}
               <AccordionSection
                 id="preferences"
                 title="Partner Preferences"
@@ -584,20 +578,14 @@ export default function ProfilePage() {
                     <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
                   </svg>
                 }
-                statusBadge={{ label: '40% Complete', variant: 'progress' }}
+                comingSoon
                 isOpen={openSections.preferences}
                 isEditing={false}
                 onToggle={() => toggleSection('preferences')}
-                onEdit={() => toggleSection('preferences')}
               >
-                <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
-                  <DetailItem label="Age Range" value="25 - 29 Years" />
-                  <DetailItem label="Height Range" value="5 ft 2 in - 5 ft 7 in" />
-                  <DetailItem label="Marital Status" value="Never Married" />
-                  <DetailItem label="Community" value="Nadar (All Sub-sects welcome)" />
-                  <DetailItem label="Education" value="Graduate / Post-Graduate" />
-                  <DetailItem label="Preferred Location" value="Chennai, Coimbatore, Bangalore" />
-                </dl>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <ComingSoonNote feature="partnerPreferences" />
+                </div>
               </AccordionSection>
 
               <CulturalDivider className="my-6" />

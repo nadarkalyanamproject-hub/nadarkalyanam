@@ -32,6 +32,7 @@ function toProfileResponse(profile: Profile, photos: PhotoResponse[]): ProfileRe
     completionScore: profile.completionScore,
     completionMissing: missingCompletionFields(profile, photos.length),
     visibility: profile.visibility,
+    isVerified: profile.isVerified,
     details: profile.details as unknown as ProfileResponse['details'],
     photos,
   };

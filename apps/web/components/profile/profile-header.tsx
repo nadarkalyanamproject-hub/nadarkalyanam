@@ -63,16 +63,20 @@ export function ProfileHeader({
 
             <span className="text-sm font-medium text-[#776B62]">{summary}</span>
 
-            <div className="inline-flex items-center gap-1.5 rounded-md border border-[#FDE68A] bg-[#FEF3C7] px-2.5 py-1 text-xs font-semibold text-[#92400E]">
-              <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5 text-[#F59E0B]">
-                <path
-                  fillRule="evenodd"
-                  d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm11.78-1.72a.75.75 0 0 0-1.06-1.06L7 8.94 5.28 7.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.06 0l4.25-4.25Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>Verified Profile</span>
-            </div>
+            {/* Only a completed identity verification earns this; unverified
+                profiles show nothing here (the Trust card has the status). */}
+            {profile.isVerified && (
+              <div className="inline-flex items-center gap-1.5 rounded-md border border-[#FDE68A] bg-[#FEF3C7] px-2.5 py-1 text-xs font-semibold text-[#92400E]">
+                <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5 text-[#F59E0B]">
+                  <path
+                    fillRule="evenodd"
+                    d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm11.78-1.72a.75.75 0 0 0-1.06-1.06L7 8.94 5.28 7.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.06 0l4.25-4.25Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span>Verified Profile</span>
+              </div>
+            )}
           </div>
         )}
       </div>

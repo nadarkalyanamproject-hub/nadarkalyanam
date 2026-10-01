@@ -3,6 +3,8 @@
 import { type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import type { SearchFilters } from '../../lib/search-query';
+import { COMING_SOON } from '../../lib/coming-soon';
+import { ComingSoonNote } from '../ui/coming-soon-note';
 import {
   Briefcase,
   ChevronDown,
@@ -10,7 +12,6 @@ import {
   Crown,
   Flower2,
   House,
-  Lock,
   MapPin,
   RotateCcw,
   Search,
@@ -90,36 +91,12 @@ const AGE_SELECT_MAX = AGE_MAX_OPTIONS.map((age) => ({ value: age, label: `${age
 
 // Filters shown on the page but not searchable yet: no profile stores this
 // data, so they have no input and no filter state, and can't reach a query.
-export const COMING_SOON_FILTERS = {
-  profileCreatedBy: {
-    label: 'Profile created by',
-    reason: 'Registration asks who the profile is for, but the answer isn’t saved on profiles yet.',
-  },
-  star: {
-    label: 'Star / Horoscope',
-    reason: 'Profiles don’t record a birth star or horoscope yet, so there’s nothing to match on.',
-  },
-  institution: {
-    label: 'Institution',
-    reason: 'Profiles record education level and detail, not the college or university attended.',
-  },
-  citizenship: {
-    label: 'Citizenship',
-    reason: 'Profiles record the country members live in, not their citizenship.',
-  },
-  habits: {
-    label: 'Eating, smoking & drinking habits',
-    reason: 'Lifestyle habits aren’t part of the profile form yet.',
-  },
-  hobbies: {
-    label: 'Mutual hobbies',
-    reason: 'Members can’t list hobbies on their profile yet.',
-  },
-  familyValue: {
-    label: 'Family value',
-    reason: 'Profiles record family status, not family values (traditional, moderate, liberal).',
-  },
-} as const;
+// The wording is shared with the Profile page (lib/coming-soon.ts).
+const SEARCH_COMING_SOON = ['profileCreatedBy', 'star', 'institution', 'citizenship', 'habits', 'hobbies', 'familyValue'] as const;
+export const COMING_SOON_FILTERS = Object.fromEntries(SEARCH_COMING_SOON.map((key) => [key, COMING_SOON[key]])) as Pick<
+  typeof COMING_SOON,
+  (typeof SEARCH_COMING_SOON)[number]
+>;
 
 export function GoldenDoubleRings({ className = 'h-7 w-12' }: { className?: string }) {
   return (
@@ -466,28 +443,8 @@ function CheckboxField({
   );
 }
 
-// Visible but inert: no input element, no filter state, nothing to submit.
 function ComingSoonField({ filter }: { filter: keyof typeof COMING_SOON_FILTERS }) {
-  const { label, reason } = COMING_SOON_FILTERS[filter];
-  return (
-    <div
-      className="rounded-xl border border-dashed border-[#DECDBB] bg-[#FAF7F2] px-3.5 py-2.5 text-left"
-      data-testid="coming-soon-filter"
-      data-filter={filter}
-      aria-disabled="true"
-    >
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-xs font-semibold text-[#73645C]">
-          <Lock className="h-3.5 w-3.5 text-[#A88C78] shrink-0" aria-hidden="true" />
-          {label}
-        </span>
-        <span className="shrink-0 rounded-full border border-[#E6D3B0] bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#9C7328]">
-          Coming soon
-        </span>
-      </div>
-      <p className="mt-1 text-[11px] sm:text-xs text-[#8C7B73]">{reason}</p>
-    </div>
-  );
+  return <ComingSoonNote feature={filter} testId="coming-soon-filter" />;
 }
 
 function Section({
