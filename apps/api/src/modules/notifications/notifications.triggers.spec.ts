@@ -131,7 +131,7 @@ describe('profile view trigger', () => {
   it('GET /profiles/:id -> one PROFILE_VIEWED for the owner, actor = viewer', async () => {
     const { ctl, notifications } = controller(vi.fn().mockResolvedValue(rawProfile));
 
-    await ctl.getOne({ userId: A.userId }, B.profileId);
+    await ctl.getOne({ userId: A.userId, sessionId: 'session-test' }, B.profileId);
 
     expect(notifications.notify).toHaveBeenCalledTimes(1);
     expect(notifications.notify).toHaveBeenCalledWith({
@@ -145,14 +145,14 @@ describe('profile view trigger', () => {
   it('no notification when the view is refused (own profile, hidden, or blocked pair all 404 in getOtherProfile)', async () => {
     const { ctl, notifications } = controller(vi.fn().mockRejectedValue(new NotFoundException('Profile not found')));
 
-    await expect(ctl.getOne({ userId: A.userId }, B.profileId)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(ctl.getOne({ userId: A.userId, sessionId: 'session-test' }, B.profileId)).rejects.toBeInstanceOf(NotFoundException);
     expect(notifications.notify).not.toHaveBeenCalled();
   });
 
   it('the browse LIST never counts as a view', async () => {
     const { ctl, notifications } = controller(vi.fn());
 
-    await ctl.list({ userId: A.userId });
+    await ctl.list({ userId: A.userId, sessionId: 'session-test' });
 
     expect(notifications.notify).not.toHaveBeenCalled();
   });

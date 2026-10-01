@@ -9,6 +9,7 @@ import {
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
 import { parseCorsOrigins } from '../../common/cors-origins.js';
+import { assertActiveSession } from '../auth/session.util.js';
 import { MessagesService } from '../messages/messages.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -53,13 +54,15 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       return;
     }
     try {
-      const payload = await this.jwtService.verifyAsync<{ sub: string; typ?: string }>(token);
+      const payload = await this.jwtService.verifyAsync<{ sub: string; typ?: string; sid?: string }>(token);
       // Same member/admin boundary as JwtAuthGuard: an admin token's sub is
       // an AdminUser id, never a member.
       if (payload.typ === 'admin') {
         client.disconnect(true);
         return;
       }
+      // Same session rule as JwtAuthGuard: a logged-out token can't connect.
+      await assertActiveSession(this.prisma, payload.sid, payload.sub);
       client.data.userId = payload.sub;
       await client.join(userRoom(payload.sub));
     } catch {

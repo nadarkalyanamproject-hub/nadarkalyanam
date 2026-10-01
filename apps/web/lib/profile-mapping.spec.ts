@@ -14,6 +14,8 @@ const COMPLETE_PROFILE: ProfileResponse = {
   gender: 'FEMALE',
   dateOfBirth: '1998-04-12',
   completionScore: 100,
+  completionMissing: [],
+  visibility: 'MEMBERS_ONLY',
   details: {
     motherTongue: 'Tamil',
     email: 'meena@example.com',

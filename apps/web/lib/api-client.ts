@@ -20,6 +20,7 @@ import type {
   ProfileCardListResponse,
   ProfileListResponse,
   ProfileResponse,
+  ProfileVisibility,
   PublicProfileDetail,
   ReportRequest,
   RequestUploadUrlResponse,
@@ -100,6 +101,14 @@ export function verifyOtp(payload: VerifyOtpRequest): Promise<VerifyOtpResponse>
   });
 }
 
+// Ends this login session on the server, so the token stops working at once.
+export function logout(accessToken: string): Promise<void> {
+  return request<void>('/auth/logout', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
 export function createProfile(
   accessToken: string,
   payload: CreateProfileRequest,
@@ -114,6 +123,15 @@ export function createProfile(
 export function getMyProfile(accessToken: string): Promise<ProfileResponse> {
   return request<ProfileResponse>('/profiles/me', {
     headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// Privacy & Visibility: changes only who can find the profile.
+export function updateProfileVisibility(accessToken: string, visibility: ProfileVisibility): Promise<ProfileResponse> {
+  return request<ProfileResponse>('/profiles/me/visibility', {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ visibility }),
   });
 }
 

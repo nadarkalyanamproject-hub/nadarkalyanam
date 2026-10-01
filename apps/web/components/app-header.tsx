@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement, typ
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useRegistration } from '../app/providers/registration-provider';
-import { getInterestsHasUnread, getUnreadMessageCount, getUnreadNotificationCount } from '../lib/api-client';
+import { getInterestsHasUnread, getUnreadMessageCount, getUnreadNotificationCount, logout } from '../lib/api-client';
 import { claimAuthRedirect } from '../lib/auth-events';
 import {
   formatBadgeCount,
@@ -263,11 +263,25 @@ export function AppHeader() {
     }
   }
 
-  function handleLogout() {
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  // Revokes the session server-side first, then clears local state. A failed
+  // call (network, already-expired token) still signs the user out locally
+  // rather than leaving them stuck.
+  async function handleLogout() {
+    if (loggingOut) return;
+    setLoggingOut(true);
     closeAvatarMenu();
     claimAuthRedirect();
-    clearAuth();
-    router.push('/');
+    try {
+      if (data.accessToken) await logout(data.accessToken);
+    } catch {
+      // Local sign-out below still happens; the token expires on its own.
+    } finally {
+      clearAuth();
+      setLoggingOut(false);
+      router.push('/');
+    }
   }
 
   return (
@@ -453,7 +467,7 @@ export function AppHeader() {
                         <button
                           type="button"
                           role="menuitem"
-                          onClick={handleLogout}
+                          onClick={() => void handleLogout()}
                           className={`${ACCOUNT_MENU_ITEM_CLASS} text-[#94151C] hover:bg-red-50 focus:bg-red-50`}
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4">

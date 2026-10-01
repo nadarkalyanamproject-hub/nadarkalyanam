@@ -19,6 +19,16 @@ export const PRIOR_MARRIAGE_STATUSES: readonly string[] = ['DIVORCED', 'WIDOWED'
 export const physicalStatusEnum = z.enum(['NORMAL', 'PHYSICALLY_CHALLENGED']);
 export type PhysicalStatus = z.infer<typeof physicalStatusEnum>;
 
+// Who can find the profile. HIDDEN removes it from browse, search, matches
+// and new interests. PUBLIC and MEMBERS_ONLY behave the same today: only
+// signed-in members can browse profiles at all.
+export const profileVisibilityEnum = z.enum(['PUBLIC', 'MEMBERS_ONLY', 'HIDDEN']);
+export type ProfileVisibility = z.infer<typeof profileVisibilityEnum>;
+
+// PATCH /profiles/me/visibility
+export const updateProfileVisibilitySchema = z.object({ visibility: profileVisibilityEnum }).strict();
+export type UpdateProfileVisibilityRequest = z.infer<typeof updateProfileVisibilitySchema>;
+
 export const doshamEnum = z.enum(['NO', 'YES', 'DONT_KNOW']);
 export type Dosham = z.infer<typeof doshamEnum>;
 
@@ -128,6 +138,10 @@ export const profileResponseSchema = z.object({
   gender: genderEnum,
   dateOfBirth: z.string(),
   completionScore: z.number(),
+  // Keys of the counted fields still empty (see the API's
+  // profile-completion.ts), e.g. ['employedIn', 'photo'].
+  completionMissing: z.array(z.string()),
+  visibility: profileVisibilityEnum,
   details: profileDetailsSchema,
   photos: z.array(photoResponseSchema),
 });

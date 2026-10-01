@@ -136,7 +136,7 @@ describe('controller', () => {
   it('maps ?category= to the right filter', async () => {
     const svc = { list: vi.fn().mockResolvedValue({}) };
     const controller = new NotificationsController(svc as never);
-    const me = { userId: ME };
+    const me = { userId: ME, sessionId: 'session-test' };
 
     await controller.list(me, { category: 'profile' });
     await controller.list(me, { category: 'interests' });
@@ -163,7 +163,7 @@ describe('controller', () => {
     expect(Reflect.getMetadata('__guards__', NotificationsController)).toEqual([JwtAuthGuard]);
     expect(Reflect.getMetadata('method', NotificationsController.prototype.clearAll)).toBe(3); // RequestMethod.DELETE
     const svc = { clearAll: vi.fn().mockResolvedValue({ deletedCount: 0 }) };
-    await new NotificationsController(svc as never).clearAll({ userId: ME });
+    await new NotificationsController(svc as never).clearAll({ userId: ME, sessionId: 'session-test' });
     expect(svc.clearAll).toHaveBeenCalledWith(ME);
   });
 });

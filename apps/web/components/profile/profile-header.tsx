@@ -19,7 +19,7 @@ function calculateAge(dateOfBirth?: string): number | undefined {
 
 export function ProfileHeader({
   profile,
-  completionPercent = 68,
+  completionPercent = 0,
 }: {
   profile?: ProfileResponse | null;
   completionPercent?: number;
@@ -89,7 +89,7 @@ export function ProfileHeader({
           <div
             className="h-full rounded-full bg-gradient-to-r from-[#7A0710] via-[#D97706] to-[#F59E0B] transition-all duration-700 ease-out"
             style={{
-              width: `${Math.min(100, Math.max(10, completionPercent))}%`,
+              width: `${Math.min(100, Math.max(0, completionPercent))}%`,
             }}
           />
         </div>

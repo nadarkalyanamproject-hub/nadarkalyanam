@@ -23,6 +23,7 @@ function buildService(nodeEnv: string = 'test') {
   const prisma = {
     profile: {
       findUnique: vi.fn().mockResolvedValue({ id: PROFILE_ID, userId: USER_ID }),
+      update: vi.fn(),
     },
     profilePhoto: {
       count: vi.fn().mockResolvedValue(0),
@@ -233,6 +234,39 @@ describe('PhotosService.deletePhoto', () => {
 
     expect(prisma.profilePhoto.delete).toHaveBeenCalledWith({ where: { id: 'photo-1' } });
     expect(storage.deleteObject).toHaveBeenCalledWith(objectKey);
+  });
+
+  it('recomputes the completion score when a photo is added or removed', async () => {
+    const { service, prisma } = buildService();
+    const filled = {
+      id: PROFILE_ID,
+      userId: USER_ID,
+      fullName: 'Meena Raj',
+      gender: 'FEMALE',
+      dateOfBirth: new Date('1996-01-01'),
+      completionScore: 95,
+      details: {
+        motherTongue: 'Tamil', email: 'm@example.com', height: '160 cm', physicalStatus: 'NORMAL',
+        maritalStatus: 'NEVER_MARRIED', religion: 'Hindu', casteCommunity: 'Nadar', dosham: 'NO',
+        location: { city: 'Madurai', state: 'Tamil Nadu' },
+        education: { educationLevel: 'B.E', educationDetail: 'CS', profession: 'Engineer', employedIn: 'Private', annualIncomeRange: '8-12 LPA' },
+        additional: { familyType: 'Middle Class', about: 'About me.' },
+      },
+    };
+    prisma.profile.findUnique.mockResolvedValue(filled);
+
+    // Adding the first photo: 20/21 -> 21/21.
+    prisma.profilePhoto.count.mockResolvedValueOnce(0).mockResolvedValueOnce(1);
+    prisma.profilePhoto.create.mockResolvedValueOnce({ id: 'photo-1', profileId: PROFILE_ID, objectKey: `profiles/${PROFILE_ID}/a.jpg`, isPrimary: true, sortOrder: 0, isApproved: true, isModerated: true });
+    await service.confirmPhoto(USER_ID, `profiles/${PROFILE_ID}/a.jpg`);
+    expect(prisma.profile.update).toHaveBeenLastCalledWith({ where: { id: PROFILE_ID }, data: { completionScore: 100 } });
+
+    // Deleting the only photo: back to 20/21.
+    prisma.profile.findUnique.mockResolvedValue({ ...filled, completionScore: 100 });
+    prisma.profilePhoto.findUnique.mockResolvedValueOnce({ id: 'photo-1', profileId: PROFILE_ID, objectKey: `profiles/${PROFILE_ID}/a.jpg` });
+    prisma.profilePhoto.count.mockResolvedValueOnce(0);
+    await service.deletePhoto(USER_ID, 'photo-1');
+    expect(prisma.profile.update).toHaveBeenLastCalledWith({ where: { id: PROFILE_ID }, data: { completionScore: 95 } });
   });
 
   it('throws NotFoundException for a photo belonging to a different profile', async () => {

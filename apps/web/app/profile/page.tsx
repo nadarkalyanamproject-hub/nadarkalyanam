@@ -52,6 +52,16 @@ const DOSHAM_LABELS: Record<string, string> = {
   DONT_KNOW: "Don't Know",
 };
 
+// Which counted completion fields (see the API's profile-completion.ts) each
+// real section holds.
+const SECTION_FIELDS = {
+  basic: ['fullName', 'gender', 'dateOfBirth', 'motherTongue', 'email'],
+  personal: ['height', 'physicalStatus', 'maritalStatus', 'religion', 'casteCommunity', 'dosham'],
+  education: ['educationLevel', 'educationDetail', 'profession', 'employedIn', 'annualIncomeRange'],
+  location: ['city', 'state'],
+  family: ['familyType', 'about'],
+} as const;
+
 function formatDisplayDate(dateStr?: string): string {
   if (!dateStr) return '—';
   try {
@@ -254,7 +264,16 @@ export default function ProfilePage() {
     { id: 'family', label: 'Family Details', completed: hasFamily },
   ];
 
-  const completionPercent = profile?.completionScore || 68;
+  // Real, computed by the API from the profile's filled fields and photos.
+  const completionPercent = profile?.completionScore ?? 0;
+
+  // Section badges from the API's list of still-empty counted fields.
+  function sectionBadge(section: keyof typeof SECTION_FIELDS): { label: string; variant: 'complete' | 'progress' } {
+    const missing = SECTION_FIELDS[section].filter((field) => profile?.completionMissing.includes(field)).length;
+    return missing === 0
+      ? { label: 'Complete', variant: 'complete' }
+      : { label: `${missing} to fill`, variant: 'progress' };
+  }
 
   return (
     <div className="profile-page-root min-h-screen bg-[#FFF8E8] text-[#2B211C]">
@@ -312,7 +331,7 @@ export default function ProfilePage() {
                     <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
                   </svg>
                 }
-                statusBadge={{ label: 'Complete', variant: 'complete' }}
+                statusBadge={sectionBadge('basic')}
                 isOpen={openSections.basic}
                 isEditing={editingSection === 'basic'}
                 onToggle={() => toggleSection('basic')}
@@ -341,7 +360,7 @@ export default function ProfilePage() {
                 icon={
                   <LotusOrnament className="h-5 w-5" />
                 }
-                statusBadge={{ label: 'Complete', variant: 'complete' }}
+                statusBadge={sectionBadge('personal')}
                 isOpen={openSections.personal}
                 isEditing={editingSection === 'personal'}
                 onToggle={() => toggleSection('personal')}
@@ -383,7 +402,7 @@ export default function ProfilePage() {
                     <path d="M6 12v5c3 3 9 3 12 0v-5" />
                   </svg>
                 }
-                statusBadge={{ label: '80% Complete', variant: 'progress' }}
+                statusBadge={sectionBadge('education')}
                 isOpen={openSections.education}
                 isEditing={editingSection === 'education'}
                 onToggle={() => toggleSection('education')}
@@ -438,7 +457,7 @@ export default function ProfilePage() {
                     <circle cx="12" cy="10" r="3" />
                   </svg>
                 }
-                statusBadge={{ label: 'Complete', variant: 'complete' }}
+                statusBadge={sectionBadge('location')}
                 isOpen={openSections.location}
                 isEditing={editingSection === 'location'}
                 onToggle={() => toggleSection('location')}
@@ -471,7 +490,7 @@ export default function ProfilePage() {
                     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                   </svg>
                 }
-                statusBadge={{ label: 'Complete', variant: 'complete' }}
+                statusBadge={sectionBadge('family')}
                 isOpen={openSections.family}
                 isEditing={editingSection === 'family'}
                 onToggle={() => toggleSection('family')}
@@ -584,7 +603,7 @@ export default function ProfilePage() {
               <CulturalDivider className="my-6" />
 
               {/* 9. Privacy & Visibility */}
-              <PrivacySettingsCard />
+              <PrivacySettingsCard profile={profile} onSaved={setProfile} />
             </div>
           </div>
         )}

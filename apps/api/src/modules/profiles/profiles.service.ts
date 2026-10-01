@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { PRIOR_MARRIAGE_STATUSES, type CreateProfileRequest } from '@nadar-kalyanam/schemas';
+import { PRIOR_MARRIAGE_STATUSES, type CreateProfileRequest, type ProfileVisibility } from '@nadar-kalyanam/schemas';
 import { getBlockedUserIds, isBlockedEitherDirection } from '../../common/blocks.util.js';
+import { computeCompletionScore } from '../../common/profile-completion.js';
 import { getRelationshipStates, type RelationshipState } from '../../common/relationship.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -56,8 +57,10 @@ export class ProfilesService {
       throw new ConflictException('Profile already exists for this user');
     }
 
+    // A brand-new profile has no photos yet.
+    const data = buildProfileData(input);
     return this.prisma.profile.create({
-      data: { userId, ...buildProfileData(input) },
+      data: { userId, ...data, completionScore: computeCompletionScore(data, 0) },
     });
   }
 
@@ -67,13 +70,20 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found for this user');
     }
 
-    // completionScore is intentionally left untouched here — it is a
-    // known pre-existing gap (hardcoded to 0 on creation, never actually
-    // calculated) and out of scope for this edit endpoint.
+    const data = buildProfileData(input);
+    const photoCount = await this.prisma.profilePhoto.count({ where: { profileId: existing.id } });
     return this.prisma.profile.update({
       where: { userId },
-      data: buildProfileData(input),
+      data: { ...data, completionScore: computeCompletionScore(data, photoCount) },
     });
+  }
+
+  async updateVisibility(userId: string, visibility: ProfileVisibility) {
+    const existing = await this.prisma.profile.findUnique({ where: { userId } });
+    if (!existing) {
+      throw new NotFoundException('Profile not found for this user');
+    }
+    return this.prisma.profile.update({ where: { userId }, data: { visibility } });
   }
 
   // "Browse Profiles" list: everyone except the caller, profiles the caller

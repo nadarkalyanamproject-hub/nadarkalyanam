@@ -82,6 +82,9 @@ function buildService() {
     interest: {
       findMany: vi.fn().mockResolvedValue([]),
     },
+    profilePhoto: {
+      count: vi.fn().mockResolvedValue(0),
+    },
   };
   const service = new ProfilesService(prisma as never);
   return { service, prisma };
@@ -231,6 +234,8 @@ describe('ProfilesService', () => {
           },
           additional: validPayload.additional,
         },
+        // Every counted field is filled; no photo yet: 20 of 21.
+        completionScore: 95,
       },
     });
   });
@@ -343,18 +348,27 @@ describe('ProfilesService.updateProfile', () => {
           },
           additional: validPayload.additional,
         },
+        // Every counted field is filled; no photo yet: 20 of 21.
+        completionScore: 95,
       },
     });
   });
 
-  it('does not include completionScore in the update payload', async () => {
+  it('recomputes completionScore from the saved fields and the photo count', async () => {
     const { service, prisma } = buildService();
-    prisma.profile.findUnique.mockResolvedValueOnce({ id: 'profile-1' });
+    prisma.profile.findUnique.mockResolvedValue({ id: 'profile-1' });
+    prisma.profilePhoto.count.mockResolvedValue(1);
 
     await service.updateProfile('user-1', validPayload);
+    expect(prisma.profile.update.mock.calls[0][0].data.completionScore).toBe(100);
+    expect(prisma.profilePhoto.count).toHaveBeenCalledWith({ where: { profileId: 'profile-1' } });
 
-    const call = prisma.profile.update.mock.calls[0][0];
-    expect(call.data).not.toHaveProperty('completionScore');
+    // Clearing two optional fields lowers it: 19 of 21.
+    await service.updateProfile('user-1', {
+      ...validPayload,
+      location: { ...validPayload.location, employedIn: '', annualIncomeRange: '' },
+    });
+    expect(prisma.profile.update.mock.calls[1][0].data.completionScore).toBe(90);
   });
 
   it('throws NotFoundException when no profile exists for the user', async () => {

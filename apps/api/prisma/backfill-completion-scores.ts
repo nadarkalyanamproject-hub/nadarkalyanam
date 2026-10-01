@@ -1,15 +1,13 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client.js';
-import { seedEssential } from '../src/seed/essential-seed.js';
+import { backfillCompletionScores } from '../src/seed/backfill-completion.js';
 
-// `pnpm prisma:seed` / `prisma db seed` (also run by `prisma migrate reset`):
-// the ESSENTIAL seed only — permissions, roles, membership plans and the first
-// admin. Safe for production. Demo members are a separate, explicit command:
-// `pnpm prisma:seed:demo` (prisma/seed-demo.ts).
+// `pnpm profiles:backfill-completion`: one-off recompute of every profile's
+// completionScore. Run once after deploying the real completion score.
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-seedEssential(prisma)
+backfillCompletionScores(prisma)
   .catch((error: unknown) => {
     console.error(error);
     process.exitCode = 1;

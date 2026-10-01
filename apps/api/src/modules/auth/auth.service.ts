@@ -96,21 +96,24 @@ export class AuthService {
     const adminUser =
       intent === 'login' ? await this.prisma.adminUser.findUnique({ where: { userId: user.id } }) : null;
 
-    const accessToken = adminUser
-      ? await this.jwtService.signAsync({ sub: adminUser.id, typ: 'admin' })
-      : await this.jwtService.signAsync({ sub: user.id });
-
+    // The session is created first so the access token can carry its id
+    // (`sid`): guards check that session on every request, which is what
+    // lets logout revoke the token server-side.
     const refreshToken = randomBytes(32).toString('hex');
     const refreshTtlSeconds = this.configService.get('JWT_REFRESH_TOKEN_TTL_SECONDS', {
       infer: true,
     });
-    await this.prisma.session.create({
+    const session = await this.prisma.session.create({
       data: {
         userId: user.id,
         refreshTokenHash: hashValue(refreshToken),
         expiresAt: new Date(Date.now() + refreshTtlSeconds * 1000),
       },
     });
+
+    const accessToken = adminUser
+      ? await this.jwtService.signAsync({ sub: adminUser.id, typ: 'admin', sid: session.id })
+      : await this.jwtService.signAsync({ sub: user.id, sid: session.id });
 
     return {
       accessToken,
@@ -122,6 +125,16 @@ export class AuthService {
         isAdmin: Boolean(adminUser),
       },
     };
+  }
+
+  // Revokes the caller's own login session. Every token carrying that `sid`
+  // is rejected from then on (see assertActiveSession). Idempotent: an
+  // already-revoked session stays revoked.
+  async logout(userId: string, sessionId: string): Promise<void> {
+    await this.prisma.session.updateMany({
+      where: { id: sessionId, userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
   }
 
   private async findUserForLogin(phoneNumber: string) {

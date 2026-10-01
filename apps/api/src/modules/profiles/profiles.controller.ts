@@ -5,9 +5,12 @@ import {
   type ProfileListResponse,
   type ProfileResponse,
   type PublicProfileDetail,
+  type UpdateProfileVisibilityRequest,
   createProfileSchema,
+  updateProfileVisibilitySchema,
 } from '@nadar-kalyanam/schemas';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
+import { missingCompletionFields } from '../../common/profile-completion.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard.js';
@@ -27,6 +30,8 @@ function toProfileResponse(profile: Profile, photos: PhotoResponse[]): ProfileRe
     gender: profile.gender as ProfileResponse['gender'],
     dateOfBirth: profile.dateOfBirth.toISOString().slice(0, 10),
     completionScore: profile.completionScore,
+    completionMissing: missingCompletionFields(profile, photos.length),
+    visibility: profile.visibility,
     details: profile.details as unknown as ProfileResponse['details'],
     photos,
   };
@@ -65,6 +70,19 @@ export class ProfilesController {
     @Body(new ZodValidationPipe(createProfileSchema)) body: CreateProfileRequest,
   ): Promise<ProfileResponse> {
     const profile = await this.profilesService.updateProfile(user.userId, body);
+    const photos = await this.photosService.getPhotosForProfile(profile.id);
+    return toProfileResponse(profile, photos);
+  }
+
+  // Privacy & Visibility: only the visibility field, so changing it never
+  // resends (or risks overwriting) the rest of the profile.
+  @Patch('me/visibility')
+  @UseGuards(JwtAuthGuard)
+  async updateMyVisibility(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodValidationPipe(updateProfileVisibilitySchema)) body: UpdateProfileVisibilityRequest,
+  ): Promise<ProfileResponse> {
+    const profile = await this.profilesService.updateVisibility(user.userId, body.visibility);
     const photos = await this.photosService.getPhotosForProfile(profile.id);
     return toProfileResponse(profile, photos);
   }

@@ -377,7 +377,7 @@ describe('NotificationsController', () => {
       markRead: vi.fn().mockResolvedValue({}),
     };
     const controller = new NotificationsController(svc as never);
-    const me = { userId: B };
+    const me = { userId: B, sessionId: 'session-test' };
 
     await controller.list(me, { unreadOnly: 'true', offset: '20', limit: '500' });
     await controller.unreadCount(me);

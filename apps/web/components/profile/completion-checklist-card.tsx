@@ -7,7 +7,7 @@ interface SectionItem {
 }
 
 export function CompletionChecklistCard({
-  percentage = 68,
+  percentage = 0,
   items,
   onCompleteClick,
 }: {

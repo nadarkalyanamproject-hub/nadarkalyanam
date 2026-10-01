@@ -150,7 +150,7 @@ describe('ShortlistsController', () => {
   });
 
   it('rejects unauthenticated requests with 401', async () => {
-    const guard = new JwtAuthGuard({ verifyAsync: vi.fn().mockRejectedValue(new Error('bad')) } as never);
+    const guard = new JwtAuthGuard({ verifyAsync: vi.fn().mockRejectedValue(new Error('bad')) } as never, {} as never);
     const context = (authorization?: string) =>
       ({ switchToHttp: () => ({ getRequest: () => ({ headers: { authorization } }) }) }) as unknown as ExecutionContext;
 

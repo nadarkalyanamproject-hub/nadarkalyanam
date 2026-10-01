@@ -184,8 +184,8 @@ describe('AuthService', () => {
 
       expect(prisma.adminUser.findUnique).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
       // sub is the AdminUser's own id (what AdminAuthGuard looks up by), not the User's id.
-      expect(jwtService.signAsync).toHaveBeenCalledWith({ sub: 'admin-1', typ: 'admin' });
-      expect(jwtService.signAsync).not.toHaveBeenCalledWith({ sub: 'user-1' });
+      expect(jwtService.signAsync).toHaveBeenCalledWith({ sub: 'admin-1', typ: 'admin', sid: 'session-1' });
+      expect(jwtService.signAsync).not.toHaveBeenCalledWith({ sub: 'user-1', sid: 'session-1' });
     });
 
     it('logging in as a normal user (no AdminUser record) still issues the existing member token, unchanged', async () => {
@@ -199,7 +199,7 @@ describe('AuthService', () => {
 
       // The check runs (it must, to know there's no admin link) but falls through.
       expect(prisma.adminUser.findUnique).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
-      expect(jwtService.signAsync).toHaveBeenCalledWith({ sub: 'user-1' });
+      expect(jwtService.signAsync).toHaveBeenCalledWith({ sub: 'user-1', sid: 'session-1' });
       expect(jwtService.signAsync).not.toHaveBeenCalledWith(expect.objectContaining({ typ: 'admin' }));
     });
 
@@ -209,7 +209,7 @@ describe('AuthService', () => {
       await service.verifyOtp('+919876543210', otp, 'register');
 
       expect(prisma.adminUser.findUnique).not.toHaveBeenCalled();
-      expect(jwtService.signAsync).toHaveBeenCalledWith({ sub: 'user-1' });
+      expect(jwtService.signAsync).toHaveBeenCalledWith({ sub: 'user-1', sid: 'session-1' });
     });
   });
 });

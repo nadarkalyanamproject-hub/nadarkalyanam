@@ -269,8 +269,8 @@ describe('InterestsController — auth + route', () => {
     const interestsService = { listConnections: vi.fn().mockResolvedValue({ items: [], total: 0, nextOffset: null }) };
     const controller = new InterestsController(interestsService as never);
 
-    await controller.connections({ userId: A.userId });
-    await controller.connections({ userId: A.userId }, '40', '500');
+    await controller.connections({ userId: A.userId, sessionId: 'session-test' });
+    await controller.connections({ userId: A.userId, sessionId: 'session-test' }, '40', '500');
 
     expect(interestsService.listConnections).toHaveBeenNthCalledWith(1, A.userId, 0, 20);
     expect(interestsService.listConnections).toHaveBeenNthCalledWith(2, A.userId, 40, 50);

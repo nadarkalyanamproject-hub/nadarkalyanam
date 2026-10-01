@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { PhotoResponse } from '@nadar-kalyanam/schemas';
+import { refreshCompletionScore } from '../../common/profile-completion.js';
 import type { Env } from '../config/env.schema.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StorageService } from '../storage/storage.service.js';
@@ -78,6 +79,8 @@ export class PhotosService {
         isApproved: photoAutoApproveDevStub,
       },
     });
+    // Having a photo is one of the completion fields.
+    await refreshCompletionScore(this.prisma, profile.id);
 
     return this.toPhotoResponse(photo);
   }
@@ -108,6 +111,7 @@ export class PhotosService {
     // left with an orphaned object (wasted space, harmless), which is safer
     // than the reverse order leaving a DB row that points at nothing.
     await this.prisma.profilePhoto.delete({ where: { id: photo.id } });
+    await refreshCompletionScore(this.prisma, profile.id);
     await this.storage.deleteObject(photo.objectKey);
     return { id: photo.id, objectKey: photo.objectKey };
   }

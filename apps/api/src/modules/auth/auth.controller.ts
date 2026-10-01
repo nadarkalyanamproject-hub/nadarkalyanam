@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
 import {
   type SendOtpRequest,
   type VerifyOtpRequest,
@@ -7,6 +7,8 @@ import {
 } from '@nadar-kalyanam/schemas';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
 import { AuthService } from './auth.service.js';
+import { CurrentUser } from './decorators/current-user.decorator.js';
+import { JwtAuthGuard, type AuthenticatedUser } from './guards/jwt-auth.guard.js';
 
 @Controller('auth')
 export class AuthController {
@@ -20,5 +22,14 @@ export class AuthController {
   @Post('otp/verify')
   verifyOtp(@Body(new ZodValidationPipe(verifyOtpRequestSchema)) body: VerifyOtpRequest) {
     return this.authService.verifyOtp(body.phoneNumber, body.otp, body.intent ?? 'register');
+  }
+
+  // Ends this login session server-side: the access token used here (and
+  // any other carrying the same session) stops working immediately.
+  @Post('logout')
+  @HttpCode(204)
+  @UseGuards(JwtAuthGuard)
+  async logout(@CurrentUser() user: AuthenticatedUser): Promise<void> {
+    await this.authService.logout(user.userId, user.sessionId);
   }
 }

@@ -178,7 +178,8 @@ export function AuthenticatedHome() {
   // Never a placeholder name: until the user's own profile has loaded the
   // greeting simply has no name.
   const firstName = profile?.fullName ? profile.fullName.split(' ')[0] : '';
-  const completionScore = profile?.completionScore && profile.completionScore > 0 ? profile.completionScore : 60;
+  // Real, computed by the API from the profile's filled fields and photos.
+  const completionScore = profile?.completionScore ?? 0;
 
   // Real, derived from the same fetched pool — never hardcoded stock photos
   // or invented counts (see the tiles below).

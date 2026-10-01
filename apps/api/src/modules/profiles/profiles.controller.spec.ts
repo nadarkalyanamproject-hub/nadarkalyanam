@@ -145,7 +145,7 @@ describe('ProfilesController — photo URLs are signed, not plain', () => {
   it('GET /profiles/me returns the signed photo URL unmodified', async () => {
     const { controller } = buildController();
 
-    const result = await controller.getMe({ userId: 'user-1' });
+    const result = await controller.getMe({ userId: 'user-1', sessionId: 'session-test' });
 
     expect(result.photos[0].url).toBe(SIGNED_URL);
   });
@@ -153,7 +153,7 @@ describe('ProfilesController — photo URLs are signed, not plain', () => {
   it('GET /profiles (list) returns the signed primaryPhotoUrl unmodified', async () => {
     const { controller } = buildController();
 
-    const result = await controller.list({ userId: 'user-1' });
+    const result = await controller.list({ userId: 'user-1', sessionId: 'session-test' });
 
     expect(result.items[0].primaryPhotoUrl).toBe(SIGNED_URL);
   });
@@ -161,7 +161,7 @@ describe('ProfilesController — photo URLs are signed, not plain', () => {
   it('GET /profiles/:id returns the signed photo URLs unmodified', async () => {
     const { controller } = buildController();
 
-    const result = await controller.getOne({ userId: 'user-1' }, 'profile-1');
+    const result = await controller.getOne({ userId: 'user-1', sessionId: 'session-test' }, 'profile-1');
 
     expect(result.primaryPhotoUrl).toBe(SIGNED_URL);
     expect(result.photos[0].url).toBe(SIGNED_URL);
