@@ -235,7 +235,7 @@ export default function MatchesPage() {
           <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EADBBD]/80 p-5 sm:p-7 lg:p-8 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)] space-y-6">
             {/* 1. All Matches */}
             <div>
-              <SectionHeading title="All Matches" viewAllHref="/search" />
+              <SectionHeading title="All Matches" />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                 <HubTile
                   href={matchCategoryHref('your-matches')}
@@ -443,7 +443,7 @@ export default function MatchesPage() {
               </div>
 
               <Link
-                href="/search"
+                href={matchCategoryHref('your-matches')}
                 className="px-4 py-2 rounded-full border border-[#7A1118]/30 hover:border-[#7A1118] hover:bg-[#7A1118]/5 text-[#7A1118] text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap"
               >
                 <span>View All Matches</span>
