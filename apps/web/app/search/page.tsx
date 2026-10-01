@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useState, type FormEvent } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { SearchProfileResult } from '@nadar-kalyanam/schemas';
 import { AppHeader } from '../../components/app-header';
@@ -40,6 +40,9 @@ function SearchPageContent() {
   // in the loading state, so the effect below never sets state synchronously.
   const [loading, setLoading] = useState(hasUrlQuery);
   const [error, setError] = useState<string | null>(null);
+  // Numbers each search; only the newest may update the page. Clear bumps it
+  // too, so a response still in flight can't bring back old results.
+  const requestSeq = useRef(0);
 
   // Only ever real results: 0 matches shows the empty state and a failed call
   // shows the error state. No fake/demo profiles are ever substituted.
@@ -69,12 +72,15 @@ function SearchPageContent() {
   async function handleLoadMore() {
     if (!searchedFilters || !nextCursor) return;
     setLoadingMore(true);
+    const seq = requestSeq.current;
     try {
       const page = await searchProfiles(data.accessToken!, { ...toSearchQuery(searchedFilters), cursor: nextCursor });
+      if (seq !== requestSeq.current) return;
       setResults((prev) => [...(prev ?? []), ...page.items]);
       setTotal(page.total);
       setNextCursor(page.nextCursor);
     } catch (err) {
+      if (seq !== requestSeq.current) return;
       setError(err instanceof ApiError ? err.message : 'Could not load more profiles. Please try again.');
     } finally {
       setLoadingMore(false);
@@ -86,8 +92,9 @@ function SearchPageContent() {
   useEffect(() => {
     if (!ready || !hasUrlQuery) return;
     let cancelled = false;
+    const seq = ++requestSeq.current;
     void runSearch(initialFilters).then((outcome) => {
-      if (!cancelled) applyOutcome(outcome);
+      if (!cancelled && seq === requestSeq.current) applyOutcome(outcome);
     });
     return () => {
       cancelled = true;
@@ -98,10 +105,16 @@ function SearchPageContent() {
     e?.preventDefault();
     setLoading(true);
     setError(null);
-    void runSearch(filters).then(applyOutcome);
+    const seq = ++requestSeq.current;
+    void runSearch(filters).then((outcome) => {
+      if (seq === requestSeq.current) applyOutcome(outcome);
+    });
   }
 
   function handleClear() {
+    requestSeq.current += 1;
+    setLoading(false);
+    setLoadingMore(false);
     setFilters(EMPTY_SEARCH_FILTERS);
     setResults(null);
     setTotal(null);
@@ -150,7 +163,7 @@ function SearchPageContent() {
                 <BotanicalSprig className="h-6 w-6 text-[#C4A882]" />
               </div>
               <h3 className="text-base sm:text-lg font-bold text-[#241C1A] font-[family-name:var(--font-heading,serif)]">
-                No profiles match these filters
+                {countIsStale ? 'No profiles matched your previous search' : 'No profiles match these filters'}
               </h3>
               <p className="mt-1 text-xs sm:text-sm text-[#73645C] max-w-md mx-auto">
                 Try removing a filter or widening a range to see more profiles.
@@ -169,13 +182,20 @@ function SearchPageContent() {
           {results && results.length > 0 && (
             <div className="flex flex-col gap-5 pt-2">
               <div className="flex items-center justify-between border-b border-[#EADBBD]/60 pb-3">
-                <p className="text-xs sm:text-sm font-semibold text-[#241C1A]">
-                  Found <span className="text-[#7A1118] font-bold">{total ?? results.length}</span>{' '}
-                  {total === 1 ? 'profile' : 'profiles'} matching your criteria
-                  {total !== null && total > results.length && (
-                    <span className="font-normal text-[#73645C]"> · showing {results.length}</span>
-                  )}
-                </p>
+                {/* The count is only shown for the filters it was computed for. */}
+                {countIsStale || total === null ? (
+                  <p className="text-xs sm:text-sm font-medium text-[#73645C]" data-testid="results-stale">
+                    These are results for your previous search. Click Search to update them.
+                  </p>
+                ) : (
+                  <p className="text-xs sm:text-sm font-semibold text-[#241C1A]" data-testid="results-count">
+                    Found <span className="text-[#7A1118] font-bold">{total}</span>{' '}
+                    {total === 1 ? 'profile' : 'profiles'} matching your criteria
+                    {total > results.length && (
+                      <span className="font-normal text-[#73645C]"> · showing {results.length}</span>
+                    )}
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={handleClear}

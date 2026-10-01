@@ -555,7 +555,8 @@ export function PartnerSearchBar({
 
   let countText: ReactNode;
   if (loading) countText = 'Searching…';
-  else if (matchCount === null) countText = 'Choose filters, then search to see how many profiles match.';
+  // Searching with no filters is allowed and lists every member (paginated).
+  else if (matchCount === null) countText = 'Select filters and click Search to find matches.';
   else if (countIsStale) countText = 'Filters changed. Search again to update the count.';
   else
     countText = (
