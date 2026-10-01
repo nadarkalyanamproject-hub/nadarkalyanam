@@ -34,6 +34,7 @@ import { ConnectedBadge, RelationshipAction } from '../../../components/relation
 import { useRegistration } from '../../providers/registration-provider';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { ShortlistButton } from '../../../components/shortlist/shortlist-button';
+import { useBackNavigation } from '../../../lib/navigation-history';
 
 const MARITAL_STATUS_LABELS: Record<string, string> = {
   NEVER_MARRIED: 'Never Married',
@@ -105,6 +106,7 @@ export default function ViewProfilePage() {
   const [reportError, setReportError] = useState<string | undefined>();
   const [enlargedPhotoUrl, setEnlargedPhotoUrl] = useState<string | null>(null);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const { goBack, hasHistory } = useBackNavigation('/browse');
 
   useEffect(() => {
     if (!ready || !data.accessToken) return;
@@ -162,12 +164,20 @@ export default function ViewProfilePage() {
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
           {/* Back Navigation Breadcrumb */}
           <div className="flex items-center justify-between">
+            {/* Returns to wherever the user came from (Search, Matches,
+                Interests, a notification…); Browse only when there's no
+                in-app page to go back to, e.g. a shared link. */}
             <Link
               href="/browse"
+              onClick={(e) => {
+                e.preventDefault();
+                goBack();
+              }}
+              data-testid="profile-back"
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#7E6F65] hover:text-[#7A1C32] transition-colors"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Back to Browse</span>
+              <span>{hasHistory ? 'Back' : 'Back to Browse'}</span>
             </Link>
           </div>
 
