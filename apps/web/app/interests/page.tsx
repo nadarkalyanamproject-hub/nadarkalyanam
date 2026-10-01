@@ -14,7 +14,6 @@ import {
 import { announceInterestsChanged, announceNotificationsChanged } from '../../lib/notifications';
 import { useRegistration } from '../providers/registration-provider';
 import { useRequireAuth } from '../../lib/use-require-auth';
-import { DUMMY_PROFILES } from '../../lib/mock-profiles';
 import { BotanicalSprig } from '../../components/search/partner-search-bar';
 import {
   Check,
@@ -39,80 +38,14 @@ export interface DisplayInterest {
   profileId: string;
   fullName: string;
   age: number;
-  location: string;
-  education: string;
+  location: string | null;
+  education: string | null;
   primaryPhotoUrl: string | null;
   status: InterestStatus;
   createdAt: string;
 }
 
 type StatusFilter = 'ALL' | 'PENDING' | 'ACCEPTED' | 'DECLINED';
-
-export const DEMO_RECEIVED_INTERESTS: DisplayInterest[] = [
-  {
-    id: 'demo-rec-1',
-    profileId: 'profile-sneha-01',
-    fullName: 'Sneha',
-    age: 22,
-    location: 'Hyderabad, Telangana',
-    education: 'B.Tech',
-    primaryPhotoUrl:
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-    status: 'PENDING',
-    createdAt: '2025-09-12T10:00:00.000Z',
-  },
-  {
-    id: 'demo-rec-2',
-    profileId: 'profile-anjali-02',
-    fullName: 'Anjali',
-    age: 26,
-    location: 'Vijayawada, Andhra Pradesh',
-    education: 'M.Com',
-    primaryPhotoUrl:
-      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
-    status: 'ACCEPTED',
-    createdAt: '2025-09-08T14:30:00.000Z',
-  },
-  {
-    id: 'demo-rec-3',
-    profileId: 'profile-priya-03',
-    fullName: 'Priya',
-    age: 24,
-    location: 'Bengaluru, Karnataka',
-    education: 'B.E',
-    primaryPhotoUrl:
-      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',
-    status: 'DECLINED',
-    createdAt: '2025-09-05T09:15:00.000Z',
-  },
-  {
-    id: 'demo-rec-4',
-    profileId: 'profile-divya-04',
-    fullName: 'Divya',
-    age: 28,
-    location: 'Chennai, Tamil Nadu',
-    education: 'M.Tech',
-    primaryPhotoUrl:
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80',
-    status: 'ACCEPTED',
-    createdAt: '2025-08-28T16:45:00.000Z',
-  },
-];
-
-export const DEMO_SENT_INTERESTS: DisplayInterest[] = [
-  {
-    id: 'demo-sent-1',
-    profileId: 'profile-rahul-01',
-    fullName: 'Rahul',
-    age: 29,
-    location: 'Mysuru, Karnataka',
-    education: 'M.Tech',
-    primaryPhotoUrl:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
-    status: 'PENDING',
-    createdAt: '2025-09-10T11:20:00.000Z',
-  },
-];
 
 export function formatInterestDate(dateStr: string): string {
   try {
@@ -127,30 +60,18 @@ export function formatInterestDate(dateStr: string): string {
   }
 }
 
-function mapApiInterestToDisplay(interest: InterestResponse, isReceived: boolean): DisplayInterest {
+// The interest party summary carries no location or education, so those stay
+// null and render as the app's '—' placeholder rather than an invented value.
+export function mapApiInterestToDisplay(interest: InterestResponse, isReceived: boolean): DisplayInterest {
   const party = isReceived ? interest.sender : interest.target;
-  const match = DUMMY_PROFILES.find(
-    (p) => p.id === party.profileId || p.fullName.toLowerCase() === party.fullName.toLowerCase(),
-  );
-
-  let location = 'Tamil Nadu, India';
-  if (match?.location) {
-    location = [match.location.city, match.location.state].filter(Boolean).join(', ');
-  }
-
-  let education = 'Graduate';
-  if (match?.education?.educationLevel) {
-    education = match.education.educationLevel;
-  }
-
   return {
     id: interest.id,
     profileId: party.profileId,
     fullName: party.fullName.split(' ')[0] || party.fullName,
     age: party.age,
-    location,
-    education,
-    primaryPhotoUrl: party.primaryPhotoUrl || match?.primaryPhotoUrl || null,
+    location: null,
+    education: null,
+    primaryPhotoUrl: party.primaryPhotoUrl,
     status: interest.status,
     createdAt: interest.createdAt,
   };
@@ -160,8 +81,10 @@ export default function InterestsPage() {
   const { ready } = useRequireAuth();
   const { data } = useRegistration();
 
-  const [receivedList, setReceivedList] = useState<DisplayInterest[]>(DEMO_RECEIVED_INTERESTS);
-  const [sentList, setSentList] = useState<DisplayInterest[]>(DEMO_SENT_INTERESTS);
+  // null until GET /interests resolves; never seeded with placeholder people.
+  const [receivedList, setReceivedList] = useState<DisplayInterest[] | null>(null);
+  const [sentList, setSentList] = useState<DisplayInterest[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [filterReceived, setFilterReceived] = useState<StatusFilter>('ALL');
   const [filterSent, setFilterSent] = useState<StatusFilter>('ALL');
@@ -187,7 +110,6 @@ export default function InterestsPage() {
     return () => document.removeEventListener('click', handleDocumentClick);
   }, []);
 
-  // Fetch real interests from API if available
   useEffect(() => {
     if (!ready || !data.accessToken) return;
     let cancelled = false;
@@ -195,15 +117,12 @@ export default function InterestsPage() {
     listInterests(data.accessToken)
       .then((result: ListInterestsResponse) => {
         if (cancelled) return;
-        if (result.received.length > 0) {
-          setReceivedList(result.received.map((i) => mapApiInterestToDisplay(i, true)));
-        }
-        if (result.sent.length > 0) {
-          setSentList(result.sent.map((i) => mapApiInterestToDisplay(i, false)));
-        }
+        setReceivedList(result.received.map((i) => mapApiInterestToDisplay(i, true)));
+        setSentList(result.sent.map((i) => mapApiInterestToDisplay(i, false)));
       })
-      .catch(() => {
-        // Fall back gracefully to demo dataset
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setLoadError(err instanceof ApiError ? err.message : 'Could not load interests. Please try again.');
       });
 
     markInterestsViewed(data.accessToken)
@@ -224,14 +143,13 @@ export default function InterestsPage() {
     setErrorMessage(null);
 
     try {
-      if (data.accessToken && !interest.id.startsWith('demo-')) {
-        await acceptInterest(data.accessToken, interest.id);
-        announceNotificationsChanged();
-        announceInterestsChanged();
-      }
+      if (!data.accessToken) throw new Error('Your session has expired. Please sign in again.');
+      await acceptInterest(data.accessToken, interest.id);
+      announceNotificationsChanged();
+      announceInterestsChanged();
 
       setReceivedList((prev) =>
-        prev.map((item) => (item.id === interest.id ? { ...item, status: 'ACCEPTED' } : item)),
+        prev && prev.map((item) => (item.id === interest.id ? { ...item, status: 'ACCEPTED' } : item)),
       );
       setSuccessMessage(`Interest from ${interest.fullName} accepted! You are now connected.`);
     } catch (err) {
@@ -250,13 +168,12 @@ export default function InterestsPage() {
     setErrorMessage(null);
 
     try {
-      if (data.accessToken && !interest.id.startsWith('demo-')) {
-        await declineInterest(data.accessToken, interest.id);
-        announceInterestsChanged();
-      }
+      if (!data.accessToken) throw new Error('Your session has expired. Please sign in again.');
+      await declineInterest(data.accessToken, interest.id);
+      announceInterestsChanged();
 
       setReceivedList((prev) =>
-        prev.map((item) => (item.id === interest.id ? { ...item, status: 'DECLINED' } : item)),
+        prev && prev.map((item) => (item.id === interest.id ? { ...item, status: 'DECLINED' } : item)),
       );
       setSuccessMessage(`Interest from ${interest.fullName} declined.`);
     } catch (err) {
@@ -275,8 +192,28 @@ export default function InterestsPage() {
     return items.filter((item) => item.status === filter);
   }
 
-  const displayedReceived = filterItems(receivedList, filterReceived);
-  const displayedSent = filterItems(sentList, filterSent);
+  const displayedReceived = receivedList ? filterItems(receivedList, filterReceived) : [];
+  const displayedSent = sentList ? filterItems(sentList, filterSent) : [];
+
+  // Loading / error / empty copy for a card; null means there are rows to render.
+  function listStatus(list: DisplayInterest[] | null, filter: StatusFilter, emptyText: string): string | null {
+    if (loadError) return loadError;
+    if (!list) return 'Loading interests…';
+    if (list.length === 0) return emptyText;
+    if (filterItems(list, filter).length === 0) return 'No interests match this filter.';
+    return null;
+  }
+
+  const receivedStatus = listStatus(
+    receivedList,
+    filterReceived,
+    'No interests received yet. When someone shows interest in your profile, they will appear here.',
+  );
+  const sentStatus = listStatus(
+    sentList,
+    filterSent,
+    "You haven't sent any interests yet. Browse matches and send an interest to someone you like.",
+  );
 
   return (
     <>
@@ -391,9 +328,12 @@ export default function InterestsPage() {
             {/* Card Content / List of Received Interests */}
             {receivedOpen && (
               <div className="flex flex-col gap-3 pt-2">
-                {displayedReceived.length === 0 ? (
-                  <div className="py-8 text-center text-xs sm:text-sm text-[#8C7B73]">
-                    No received interests found under this filter.
+                {receivedStatus ? (
+                  <div
+                    role={loadError ? 'alert' : undefined}
+                    className={`py-8 text-center text-xs sm:text-sm ${loadError ? 'text-[#7A1118] font-medium' : 'text-[#8C7B73]'}`}
+                  >
+                    {receivedStatus}
                   </div>
                 ) : (
                   displayedReceived.map((item) => (
@@ -424,12 +364,12 @@ export default function InterestsPage() {
                           <div className="flex items-center gap-2 mt-1 text-xs text-[#73645C] flex-wrap">
                             <span className="flex items-center gap-1">
                               <MapPin className="h-3.5 w-3.5 text-[#A88C78] shrink-0" />
-                              <span>{item.location}</span>
+                              <span>{item.location || '—'}</span>
                             </span>
                             <span className="text-[#D6C7B2] font-light">|</span>
                             <span className="flex items-center gap-1">
                               <GraduationCap className="h-3.5 w-3.5 text-[#A88C78] shrink-0" />
-                              <span>{item.education}</span>
+                              <span>{item.education || '—'}</span>
                             </span>
                           </div>
                         </div>
@@ -605,9 +545,12 @@ export default function InterestsPage() {
             {/* Card Content / List of Sent Interests */}
             {sentOpen && (
               <div className="flex flex-col gap-3 pt-2">
-                {displayedSent.length === 0 ? (
-                  <div className="py-8 text-center text-xs sm:text-sm text-[#8C7B73]">
-                    No sent interests found under this filter.
+                {sentStatus ? (
+                  <div
+                    role={loadError ? 'alert' : undefined}
+                    className={`py-8 text-center text-xs sm:text-sm ${loadError ? 'text-[#7A1118] font-medium' : 'text-[#8C7B73]'}`}
+                  >
+                    {sentStatus}
                   </div>
                 ) : (
                   displayedSent.map((item) => (
@@ -638,12 +581,12 @@ export default function InterestsPage() {
                           <div className="flex items-center gap-2 mt-1 text-xs text-[#73645C] flex-wrap">
                             <span className="flex items-center gap-1">
                               <MapPin className="h-3.5 w-3.5 text-[#A88C78] shrink-0" />
-                              <span>{item.location}</span>
+                              <span>{item.location || '—'}</span>
                             </span>
                             <span className="text-[#D6C7B2] font-light">|</span>
                             <span className="flex items-center gap-1">
                               <GraduationCap className="h-3.5 w-3.5 text-[#A88C78] shrink-0" />
-                              <span>{item.education}</span>
+                              <span>{item.education || '—'}</span>
                             </span>
                           </div>
                         </div>

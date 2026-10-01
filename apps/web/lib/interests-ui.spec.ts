@@ -1,10 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import {
-  DEMO_RECEIVED_INTERESTS,
-  DEMO_SENT_INTERESTS,
-  formatInterestDate,
-  type DisplayInterest,
-} from '../app/interests/page';
+import type { InterestResponse } from '@nadar-kalyanam/schemas';
+import { formatInterestDate, mapApiInterestToDisplay } from '../app/interests/page';
+
+const interest: InterestResponse = {
+  id: 'int_123',
+  status: 'PENDING',
+  createdAt: '2025-09-12T10:00:00.000Z',
+  respondedAt: null,
+  sender: { profileId: 'prof_sender', fullName: 'Meena Raj', age: 27, primaryPhotoUrl: null },
+  target: {
+    profileId: 'prof_target',
+    fullName: 'Karthik',
+    age: 30,
+    primaryPhotoUrl: 'https://cdn.example.com/k.jpg',
+  },
+};
 
 describe('Interests UI Logic', () => {
   it('formats dates cleanly as DD MMM YYYY', () => {
@@ -12,35 +22,26 @@ describe('Interests UI Logic', () => {
     expect(formatInterestDate('2025-08-28T16:45:00.000Z')).toBe('28 Aug 2025');
   });
 
-  it('contains expected demo profiles matching reference UI', () => {
-    expect(DEMO_RECEIVED_INTERESTS.length).toBe(4);
-    expect(DEMO_RECEIVED_INTERESTS[0].fullName).toBe('Sneha');
-    expect(DEMO_RECEIVED_INTERESTS[0].age).toBe(22);
-    expect(DEMO_RECEIVED_INTERESTS[0].status).toBe('PENDING');
-
-    expect(DEMO_RECEIVED_INTERESTS[1].fullName).toBe('Anjali');
-    expect(DEMO_RECEIVED_INTERESTS[1].status).toBe('ACCEPTED');
-
-    expect(DEMO_RECEIVED_INTERESTS[2].fullName).toBe('Priya');
-    expect(DEMO_RECEIVED_INTERESTS[2].status).toBe('DECLINED');
-
-    expect(DEMO_RECEIVED_INTERESTS[3].fullName).toBe('Divya');
-    expect(DEMO_RECEIVED_INTERESTS[3].status).toBe('ACCEPTED');
-
-    expect(DEMO_SENT_INTERESTS.length).toBe(1);
-    expect(DEMO_SENT_INTERESTS[0].fullName).toBe('Rahul');
-    expect(DEMO_SENT_INTERESTS[0].status).toBe('PENDING');
+  it('maps a received interest to the sender with the real interest id', () => {
+    const row = mapApiInterestToDisplay(interest, true);
+    expect(row).toEqual({
+      id: 'int_123',
+      profileId: 'prof_sender',
+      fullName: 'Meena',
+      age: 27,
+      location: null,
+      education: null,
+      primaryPhotoUrl: null,
+      status: 'PENDING',
+      createdAt: '2025-09-12T10:00:00.000Z',
+    });
   });
 
-  it('filters items correctly by status', () => {
-    function filter(items: DisplayInterest[], status: string) {
-      if (status === 'ALL') return items;
-      return items.filter((i) => i.status === status);
-    }
-
-    expect(filter(DEMO_RECEIVED_INTERESTS, 'ALL').length).toBe(4);
-    expect(filter(DEMO_RECEIVED_INTERESTS, 'PENDING').length).toBe(1);
-    expect(filter(DEMO_RECEIVED_INTERESTS, 'ACCEPTED').length).toBe(2);
-    expect(filter(DEMO_RECEIVED_INTERESTS, 'DECLINED').length).toBe(1);
+  it('maps a sent interest to the target and never invents missing fields', () => {
+    const row = mapApiInterestToDisplay(interest, false);
+    expect(row.profileId).toBe('prof_target');
+    expect(row.primaryPhotoUrl).toBe('https://cdn.example.com/k.jpg');
+    expect(row.location).toBeNull();
+    expect(row.education).toBeNull();
   });
 });
