@@ -8,25 +8,27 @@ import { ApiError, sendInterest } from '../../lib/api-client';
 import { relationshipActionView } from '../../lib/relationship-action';
 import { useRegistration } from '../../app/providers/registration-provider';
 
+import { ArrowRight, Check, Heart, HeartHandshake, MessageCircle } from 'lucide-react';
+
 // Visual variants only — each surface keeps its existing button look. The
 // state -> action decision is relationshipActionView's, shared by all.
-type Appearance = 'ui' | 'discovery' | 'home' | 'matches';
+type Appearance = 'ui' | 'discovery' | 'home' | 'matches' | 'profile-hero';
 
-const SEND_CLASSES: Record<Exclude<Appearance, 'ui'>, string> = {
+const SEND_CLASSES: Record<Exclude<Appearance, 'ui' | 'profile-hero'>, string> = {
   discovery:
     'w-full rounded-lg bg-gradient-to-r from-[#94151C] to-[#7A0710] py-2 text-xs font-semibold text-white shadow-2xs transition-all hover:from-[#A81C24] hover:to-[#94151C] disabled:cursor-not-allowed disabled:opacity-60',
   home: 'w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-white hover:bg-[#FFF8F0] text-[#7B1118] border border-[#E7CDAF] disabled:cursor-not-allowed disabled:opacity-60',
   matches:
     'w-full text-xs font-semibold py-1.5 px-3 rounded-full text-center whitespace-nowrap transition-all cursor-pointer bg-[#7A1118] hover:bg-[#620D13] active:scale-[0.98] text-white shadow-xs disabled:cursor-not-allowed disabled:opacity-60',
 };
-const SENT_CLASSES: Record<Exclude<Appearance, 'ui'>, string> = {
+const SENT_CLASSES: Record<Exclude<Appearance, 'ui' | 'profile-hero'>, string> = {
   discovery:
     'w-full rounded-lg bg-gradient-to-r from-[#94151C] to-[#7A0710] py-2 text-xs font-semibold text-white opacity-60 cursor-not-allowed',
   home: 'w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-[#F0FDF4] text-[#16A34A] border border-[#86EFAC] cursor-not-allowed',
   matches:
     'w-full text-xs font-semibold py-1.5 px-3 rounded-full text-center whitespace-nowrap bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default',
 };
-const LINK_CLASSES: Record<Exclude<Appearance, 'ui'>, string> = {
+const LINK_CLASSES: Record<Exclude<Appearance, 'ui' | 'profile-hero'>, string> = {
   discovery:
     'block w-full rounded-lg bg-gradient-to-r from-[#94151C] to-[#7A0710] py-2 text-center text-xs font-semibold text-white shadow-2xs transition-all hover:from-[#A81C24] hover:to-[#94151C]',
   home: 'w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all bg-[#7B1118] text-white hover:bg-[#650B11]',
@@ -84,7 +86,55 @@ export function RelationshipAction({
   }
 
   let control: React.ReactNode;
-  if (view.kind === 'send' || view.kind === 'sent') {
+  if (appearance === 'profile-hero') {
+    if (view.kind === 'send') {
+      control = (
+        <button
+          type="button"
+          disabled={sending}
+          onClick={() => void handleSend()}
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#7A1C32] hover:bg-[#681427] active:scale-[0.98] px-6 py-2.5 text-sm font-semibold text-white shadow-xs transition-all disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <Heart className="h-4 w-4 text-white" />
+          <span>{sending ? 'Sending Interest…' : 'Send Interest'}</span>
+          <ArrowRight className="h-4 w-4 text-white/90" />
+        </button>
+      );
+    } else if (view.kind === 'sent') {
+      control = (
+        <button
+          type="button"
+          disabled
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#FAF5F6] border border-[#F2D6DC] px-6 py-2.5 text-sm font-semibold text-[#7A1C32] shadow-xs cursor-default"
+        >
+          <Heart className="h-4 w-4 fill-[#7A1C32] text-[#7A1C32]" />
+          <span>Interest Sent</span>
+        </button>
+      );
+    } else if (view.kind === 'connected') {
+      control = (
+        <Link
+          href={view.href}
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#7A1C32] hover:bg-[#681427] active:scale-[0.98] px-6 py-2.5 text-sm font-semibold text-white shadow-xs transition-all"
+        >
+          <MessageCircle className="h-4 w-4 text-white" />
+          <span>Message</span>
+          <ArrowRight className="h-4 w-4 text-white/90" />
+        </Link>
+      );
+    } else {
+      control = (
+        <Link
+          href={view.href}
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-[#7A1C32] hover:bg-[#681427] active:scale-[0.98] px-6 py-2.5 text-sm font-semibold text-white shadow-xs transition-all"
+        >
+          <HeartHandshake className="h-4 w-4 text-white" />
+          <span>Respond to Interest</span>
+          <ArrowRight className="h-4 w-4 text-white/90" />
+        </Link>
+      );
+    }
+  } else if (view.kind === 'send' || view.kind === 'sent') {
     const disabled = view.kind === 'sent' || sending;
     const label = view.kind === 'sent' ? view.label : sending ? 'Sending…' : view.label;
     control =
