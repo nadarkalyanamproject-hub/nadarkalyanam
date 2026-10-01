@@ -32,53 +32,18 @@ import {
   Users,
 } from 'lucide-react';
 
+// Only real GET /matches fields. /matches carries no state or education, so
+// the card shows city and profession when present and omits a line otherwise.
 interface TopMatchItem {
   profileId: string;
   fullName: string;
   age: number;
-  city: string;
-  state: string;
-  education: string;
+  city: string | null;
+  profession: string | null;
   score: number;
   primaryPhotoUrl: string | null;
   interestSent?: boolean;
 }
-
-const DEMO_TOP_MATCHES: TopMatchItem[] = [
-  {
-    profileId: 'profile-sneha-01',
-    fullName: 'Sneha',
-    age: 22,
-    city: 'Hyderabad',
-    state: 'Telangana',
-    education: 'B.Tech',
-    score: 85,
-    primaryPhotoUrl:
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-  },
-  {
-    profileId: 'profile-anjali-02',
-    fullName: 'Anjali',
-    age: 26,
-    city: 'Vijayawada',
-    state: 'Andhra Pradesh',
-    education: 'M.Com',
-    score: 83,
-    primaryPhotoUrl:
-      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
-  },
-  {
-    profileId: 'profile-priya-03',
-    fullName: 'Priya',
-    age: 24,
-    city: 'Bengaluru',
-    state: 'Karnataka',
-    education: 'B.E',
-    score: 90,
-    primaryPhotoUrl:
-      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',
-  },
-];
 
 interface HubTileProps {
   href: string;
@@ -138,7 +103,9 @@ export default function MatchesPage() {
   const { data } = useRegistration();
   const router = useRouter();
 
-  const [topMatches, setTopMatches] = useState<TopMatchItem[]>(DEMO_TOP_MATCHES);
+  // null while loading. Only real matches ever go in here.
+  const [topMatches, setTopMatches] = useState<TopMatchItem[] | null>(null);
+  const [topMatchesError, setTopMatchesError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -150,26 +117,22 @@ export default function MatchesPage() {
     listMatches(data.accessToken, 3)
       .then((result) => {
         if (cancelled) return;
-        if (result.items.length > 0) {
-          const mapped: TopMatchItem[] = result.items.map((m: MatchResult, index) => {
-            const fallback = DEMO_TOP_MATCHES[index % DEMO_TOP_MATCHES.length];
-            return {
-              profileId: m.profileId,
-              fullName: m.fullName.split(' ')[0] || m.fullName,
-              age: m.age,
-              city: m.city || fallback.city,
-              state: fallback.state,
-              education: fallback.education,
-              score: Math.round(m.score) || fallback.score,
-              primaryPhotoUrl: m.primaryPhotoUrl || fallback.primaryPhotoUrl,
-              interestSent: m.relationshipStatus === 'INTEREST_SENT' || m.relationshipStatus === 'CONNECTED',
-            };
-          });
-          setTopMatches(mapped);
-        }
+        setTopMatches(
+          result.items.map((m: MatchResult) => ({
+            profileId: m.profileId,
+            fullName: m.fullName.split(' ')[0] || m.fullName,
+            age: m.age,
+            city: m.city,
+            profession: m.profession,
+            score: Math.round(m.score),
+            primaryPhotoUrl: m.primaryPhotoUrl,
+            interestSent: m.relationshipStatus === 'INTEREST_SENT' || m.relationshipStatus === 'CONNECTED',
+          })),
+        );
       })
-      .catch(() => {
-        // Fall back gracefully to demo top matches
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setTopMatchesError(err instanceof ApiError ? err.message : 'Could not load your top matches. Please try again.');
       });
 
     return () => {
@@ -181,11 +144,10 @@ export default function MatchesPage() {
     if (match.interestSent) return;
     setSendingId(match.profileId);
     try {
-      if (data.accessToken && !match.profileId.startsWith('profile-')) {
-        await sendInterest(data.accessToken, { targetProfileId: match.profileId });
-      }
+      if (!data.accessToken) return;
+      await sendInterest(data.accessToken, { targetProfileId: match.profileId });
       setTopMatches((prev) =>
-        prev.map((m) => (m.profileId === match.profileId ? { ...m, interestSent: true } : m)),
+        (prev ?? []).map((m) => (m.profileId === match.profileId ? { ...m, interestSent: true } : m)),
       );
       setToastMessage(`Interest sent to ${match.fullName}!`);
       setTimeout(() => setToastMessage(null), 3500);
@@ -208,14 +170,12 @@ export default function MatchesPage() {
 
   if (!ready) return null;
 
-  const filteredTopMatches = searchQuery.trim()
-    ? topMatches.filter(
-        (m) =>
-          m.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          m.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          m.education.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    : topMatches;
+  const query = searchQuery.trim().toLowerCase();
+  const filteredTopMatches = (topMatches ?? []).filter(
+    (m) =>
+      !query ||
+      [m.fullName, m.city, m.profession].some((field) => field?.toLowerCase().includes(query)),
+  );
 
   return (
     <>
@@ -491,11 +451,28 @@ export default function MatchesPage() {
               </Link>
             </div>
 
+            {topMatchesError && (
+              <p className="mt-5 rounded-2xl border border-red-200 bg-red-50/80 p-6 text-center text-sm font-medium text-[#7A1118]" data-testid="top-matches-error">
+                {topMatchesError}
+              </p>
+            )}
+            {!topMatchesError && topMatches === null && (
+              <p className="mt-5 py-6 text-center text-sm text-[#73645C]">Loading your top matches…</p>
+            )}
+            {!topMatchesError && topMatches !== null && filteredTopMatches.length === 0 && (
+              <p className="mt-5 py-6 text-center text-sm text-[#73645C]" data-testid="top-matches-empty">
+                {topMatches.length === 0
+                  ? 'No matches are available for your profile right now. Check back as new members join.'
+                  : 'None of your top matches match that search.'}
+              </p>
+            )}
+
             {/* Match Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5" data-testid="top-matches-grid">
               {filteredTopMatches.map((match) => (
                 <div
                   key={match.profileId}
+                  data-profile-id={match.profileId}
                   className="bg-white rounded-2xl border border-[#F0E8DD] hover:border-[#DECDBB] p-4 flex flex-col justify-between gap-4 transition-all shadow-2xs hover:shadow-xs"
                 >
                   {/* Top Part: Avatar + Info + Score Pill */}
@@ -519,16 +496,18 @@ export default function MatchesPage() {
                         <h3 className="text-sm sm:text-base font-bold text-[#241C1A] truncate">
                           {match.fullName}, {match.age}
                         </h3>
-                        <p className="flex items-center gap-1 text-xs text-[#73645C] mt-1 truncate">
-                          <MapPin className="h-3 w-3 text-[#A88C78] shrink-0" />
-                          <span className="truncate">
-                            {match.city}, {match.state}
-                          </span>
-                        </p>
-                        <p className="flex items-center gap-1 text-xs text-[#73645C] mt-0.5 truncate">
-                          <GraduationCap className="h-3 w-3 text-[#A88C78] shrink-0" />
-                          <span className="truncate">{match.education}</span>
-                        </p>
+                        {match.city && (
+                          <p className="flex items-center gap-1 text-xs text-[#73645C] mt-1 truncate">
+                            <MapPin className="h-3 w-3 text-[#A88C78] shrink-0" />
+                            <span className="truncate">{match.city}</span>
+                          </p>
+                        )}
+                        {match.profession && (
+                          <p className="flex items-center gap-1 text-xs text-[#73645C] mt-0.5 truncate">
+                            <Briefcase className="h-3 w-3 text-[#A88C78] shrink-0" />
+                            <span className="truncate">{match.profession}</span>
+                          </p>
+                        )}
                       </div>
                     </div>
 
