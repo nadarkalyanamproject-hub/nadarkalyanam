@@ -17,7 +17,9 @@ import {
   type SearchFilters,
 } from '../../lib/search-query';
 
-type SearchOutcome = { items: SearchProfileResult[] } | { error: string };
+type SearchOutcome =
+  | { items: SearchProfileResult[]; total: number; nextCursor: string | null; filters: SearchFilters }
+  | { error: string };
 
 function SearchPageContent() {
   const { ready } = useRequireAuth();
@@ -29,6 +31,11 @@ function SearchPageContent() {
   const [filters, setFilters] = useState<SearchFilters>(initialFilters);
 
   const [results, setResults] = useState<SearchProfileResult[] | null>(null);
+  const [total, setTotal] = useState<number | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  // The filters the shown results/count belong to, to flag a stale count.
+  const [searchedFilters, setSearchedFilters] = useState<SearchFilters | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   // A search arriving via the URL (e.g. the home page's quick search) starts
   // in the loading state, so the effect below never sets state synchronously.
   const [loading, setLoading] = useState(hasUrlQuery);
@@ -40,7 +47,7 @@ function SearchPageContent() {
     async (currentFilters: SearchFilters): Promise<SearchOutcome> => {
       try {
         const result = await searchProfiles(data.accessToken!, toSearchQuery(currentFilters));
-        return { items: result.items };
+        return { items: result.items, total: result.total, nextCursor: result.nextCursor, filters: currentFilters };
       } catch (err) {
         return { error: err instanceof ApiError ? err.message : 'Search failed. Please try again.' };
       }
@@ -49,9 +56,29 @@ function SearchPageContent() {
   );
 
   function applyOutcome(outcome: SearchOutcome) {
-    setResults('items' in outcome ? outcome.items : null);
-    setError('error' in outcome ? outcome.error : null);
+    const ok = 'items' in outcome;
+    setResults(ok ? outcome.items : null);
+    setTotal(ok ? outcome.total : null);
+    setNextCursor(ok ? outcome.nextCursor : null);
+    setSearchedFilters(ok ? outcome.filters : null);
+    setError(ok ? null : outcome.error);
     setLoading(false);
+  }
+
+  // Next page for the filters that produced the current results.
+  async function handleLoadMore() {
+    if (!searchedFilters || !nextCursor) return;
+    setLoadingMore(true);
+    try {
+      const page = await searchProfiles(data.accessToken!, { ...toSearchQuery(searchedFilters), cursor: nextCursor });
+      setResults((prev) => [...(prev ?? []), ...page.items]);
+      setTotal(page.total);
+      setNextCursor(page.nextCursor);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not load more profiles. Please try again.');
+    } finally {
+      setLoadingMore(false);
+    }
   }
 
   // Runs once auth is ready if the page was opened with filters in the URL
@@ -77,8 +104,14 @@ function SearchPageContent() {
   function handleClear() {
     setFilters(EMPTY_SEARCH_FILTERS);
     setResults(null);
+    setTotal(null);
+    setNextCursor(null);
+    setSearchedFilters(null);
     setError(null);
   }
+
+  const countIsStale =
+    searchedFilters !== null && JSON.stringify(searchedFilters) !== JSON.stringify(filters);
 
   if (!ready) return null;
 
@@ -99,6 +132,8 @@ function SearchPageContent() {
             onClear={handleClear}
             loading={loading}
             showBrandHeader={true}
+            matchCount={total}
+            countIsStale={countIsStale}
           />
 
           {/* Error Message */}
@@ -118,7 +153,7 @@ function SearchPageContent() {
                 No profiles match these filters
               </h3>
               <p className="mt-1 text-xs sm:text-sm text-[#73645C] max-w-md mx-auto">
-                Try widening your age, location, or education range to view more compatible profiles in the community.
+                Try removing a filter or widening a range to see more profiles.
               </p>
               <button
                 type="button"
@@ -135,8 +170,11 @@ function SearchPageContent() {
             <div className="flex flex-col gap-5 pt-2">
               <div className="flex items-center justify-between border-b border-[#EADBBD]/60 pb-3">
                 <p className="text-xs sm:text-sm font-semibold text-[#241C1A]">
-                  Found <span className="text-[#7A1118] font-bold">{results.length}</span>{' '}
-                  {results.length === 1 ? 'profile' : 'profiles'} matching your criteria
+                  Found <span className="text-[#7A1118] font-bold">{total ?? results.length}</span>{' '}
+                  {total === 1 ? 'profile' : 'profiles'} matching your criteria
+                  {total !== null && total > results.length && (
+                    <span className="font-normal text-[#73645C]"> · showing {results.length}</span>
+                  )}
                 </p>
                 <button
                   type="button"
@@ -163,6 +201,17 @@ function SearchPageContent() {
                   />
                 ))}
               </div>
+
+              {nextCursor && (
+                <button
+                  type="button"
+                  onClick={() => void handleLoadMore()}
+                  disabled={loadingMore}
+                  className="self-center px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-[#7A1118] bg-white hover:bg-[#FAF7F2] border border-[#DECDBB] transition-colors cursor-pointer disabled:opacity-60"
+                >
+                  {loadingMore ? 'Loading…' : 'Load more profiles'}
+                </button>
+              )}
             </div>
           )}
         </div>

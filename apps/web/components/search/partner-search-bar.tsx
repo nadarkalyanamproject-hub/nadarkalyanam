@@ -1,16 +1,21 @@
 'use client';
 
-import { type FormEvent } from 'react';
+import { type FormEvent, type ReactNode } from 'react';
+import Link from 'next/link';
 import type { SearchFilters } from '../../lib/search-query';
 import {
   Briefcase,
   ChevronDown,
-  GraduationCap,
-  Heart,
+  Clock,
+  Crown,
+  Flower2,
+  House,
+  Lock,
   MapPin,
   RotateCcw,
   Search,
   User,
+  Utensils,
 } from 'lucide-react';
 
 export const AGE_MIN_OPTIONS = [
@@ -25,10 +30,11 @@ export const AGE_MAX_OPTIONS = [
   '42', '45', '50', '55', '60', '65', '70',
 ];
 
-// City, education and profession are free text at onboarding (no fixed list
-// exists), so they're typed here and matched on the whole value, ignoring
-// case. Marital status and gender are enums: the option value is exactly
-// what's stored; only the label is friendly.
+// Free-text profile fields (city, education, profession, mother tongue,
+// religion, caste, employment type) have no fixed list at onboarding, so
+// they're typed here and matched on the whole value, ignoring case. Enum
+// fields use the stored value as the option value; only the label is
+// friendly.
 export const MARITAL_STATUS_OPTIONS = [
   { value: 'NEVER_MARRIED', label: 'Never Married' },
   { value: 'DIVORCED', label: 'Divorced' },
@@ -40,6 +46,80 @@ export const GENDER_OPTIONS = [
   { value: 'FEMALE', label: 'Bride' },
   { value: 'MALE', label: 'Groom' },
 ];
+
+// The onboarding height picker's own list (4'6" to 6'6"); the value is the
+// centimetre figure the search API compares.
+export const HEIGHT_OPTIONS = Array.from({ length: 78 - 54 + 1 }, (_, i) => {
+  const totalInches = 54 + i;
+  const cm = Math.round(totalInches * 2.54);
+  return { value: String(cm), label: `${Math.floor(totalInches / 12)}'${totalInches % 12}" (${cm} cm)` };
+});
+
+const PHYSICAL_STATUS_OPTIONS = [
+  { value: 'NORMAL', label: 'Normal' },
+  { value: 'PHYSICALLY_CHALLENGED', label: 'Physically challenged' },
+];
+
+const DOSHAM_OPTIONS = [
+  { value: 'NO', label: 'No' },
+  { value: 'YES', label: 'Yes' },
+  { value: 'DONT_KNOW', label: "Don't know" },
+];
+
+const FAMILY_STATUS_OPTIONS = ['Middle Class', 'Upper Middle Class', 'Rich / Affluent (Elite)'].map((value) => ({
+  value,
+  label: value,
+}));
+
+// Annual income is entered in lakhs at onboarding ("e.g. 10-15 LPA").
+export const INCOME_LAKH_OPTIONS = [1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 40, 50, 75, 100].map((lakhs) => ({
+  value: String(lakhs),
+  label: lakhs >= 100 ? `₹${lakhs / 100} Cr` : `₹${lakhs} L`,
+}));
+
+const JOINED_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: '1', label: 'Today' },
+  { value: '3', label: 'Last 3 days' },
+  { value: '7', label: 'One week' },
+  { value: '30', label: 'One month' },
+];
+
+const AGE_SELECT_MIN = AGE_MIN_OPTIONS.map((age) => ({ value: age, label: `${age} yrs` }));
+const AGE_SELECT_MAX = AGE_MAX_OPTIONS.map((age) => ({ value: age, label: `${age} yrs` }));
+
+// Filters shown on the page but not searchable yet: no profile stores this
+// data, so they have no input and no filter state, and can't reach a query.
+export const COMING_SOON_FILTERS = {
+  profileCreatedBy: {
+    label: 'Profile created by',
+    reason: 'Registration asks who the profile is for, but the answer isn’t saved on profiles yet.',
+  },
+  star: {
+    label: 'Star / Horoscope',
+    reason: 'Profiles don’t record a birth star or horoscope yet, so there’s nothing to match on.',
+  },
+  institution: {
+    label: 'Institution',
+    reason: 'Profiles record education level and detail, not the college or university attended.',
+  },
+  citizenship: {
+    label: 'Citizenship',
+    reason: 'Profiles record the country members live in, not their citizenship.',
+  },
+  habits: {
+    label: 'Eating, smoking & drinking habits',
+    reason: 'Lifestyle habits aren’t part of the profile form yet.',
+  },
+  hobbies: {
+    label: 'Mutual hobbies',
+    reason: 'Members can’t list hobbies on their profile yet.',
+  },
+  familyValue: {
+    label: 'Family value',
+    reason: 'Profiles record family status, not family values (traditional, moderate, liberal).',
+  },
+} as const;
 
 export function GoldenDoubleRings({ className = 'h-7 w-12' }: { className?: string }) {
   return (
@@ -226,6 +306,219 @@ export function BotanicalSprig({ className = '' }: { className?: string }) {
   );
 }
 
+const CONTROL_CLASS =
+  'w-full bg-white border border-[#DECDBB] hover:border-[#BFA892] focus:border-[#7A1118] focus:ring-1 focus:ring-[#7A1118] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm transition-colors outline-none';
+
+type Option = { value: string; label: string };
+
+function FieldLabel({ htmlFor, children }: { htmlFor?: string; children: ReactNode }) {
+  const className = 'block text-xs font-semibold text-[#241C1A]';
+  return htmlFor ? (
+    <label htmlFor={htmlFor} className={className}>
+      {children}
+    </label>
+  ) : (
+    <span className={className}>{children}</span>
+  );
+}
+
+function SelectControl({
+  id,
+  value,
+  onChange,
+  placeholder,
+  options,
+  ariaLabel,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  options: Option[];
+  ariaLabel?: string;
+}) {
+  return (
+    <div className="relative">
+      <select
+        id={id}
+        aria-label={ariaLabel}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${CONTROL_CLASS} appearance-none pr-8 cursor-pointer ${
+          value ? 'text-[#241C1A] font-medium' : 'text-[#8C7B73]'
+        }`}
+      >
+        <option value="">{placeholder}</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value} className="text-[#241C1A]">
+            {option.label}
+          </option>
+        ))}
+        {value && !options.some((option) => option.value === value) && (
+          <option value={value} className="text-[#241C1A]">
+            {value}
+          </option>
+        )}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C7B73]" />
+    </div>
+  );
+}
+
+function SelectField(props: { id: string; label: string } & Parameters<typeof SelectControl>[0]) {
+  return (
+    <div className="space-y-1.5 text-left">
+      <FieldLabel htmlFor={props.id}>{props.label}</FieldLabel>
+      <SelectControl {...props} />
+    </div>
+  );
+}
+
+function TextField({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="space-y-1.5 text-left">
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <input
+        id={id}
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`${CONTROL_CLASS} text-[#241C1A] font-medium placeholder:font-normal placeholder:text-[#8C7B73]`}
+      />
+    </div>
+  );
+}
+
+// Two selects under one label: "from" and "to".
+function RangeField({
+  id,
+  label,
+  min,
+  max,
+  onMin,
+  onMax,
+  minOptions,
+  maxOptions,
+}: {
+  id: string;
+  label: string;
+  min: string;
+  max: string;
+  onMin: (value: string) => void;
+  onMax: (value: string) => void;
+  minOptions: Option[];
+  maxOptions: Option[];
+}) {
+  return (
+    <fieldset className="space-y-1.5 text-left">
+      <legend className="block text-xs font-semibold text-[#241C1A] mb-1.5">{label}</legend>
+      <div className="grid grid-cols-2 gap-2">
+        <SelectControl id={`${id}-min`} ariaLabel={`${label} from`} value={min} onChange={onMin} placeholder="From" options={minOptions} />
+        <SelectControl id={`${id}-max`} ariaLabel={`${label} to`} value={max} onChange={onMax} placeholder="To" options={maxOptions} />
+      </div>
+    </fieldset>
+  );
+}
+
+function CheckboxField({
+  id,
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  hint?: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label
+      htmlFor={id}
+      className="flex items-start gap-2.5 rounded-xl border border-[#DECDBB] hover:border-[#BFA892] bg-white px-3.5 py-2.5 cursor-pointer transition-colors"
+    >
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 h-4 w-4 shrink-0 accent-[#7A1118] cursor-pointer"
+      />
+      <span className="min-w-0">
+        <span className="block text-xs sm:text-sm font-medium text-[#241C1A]">{label}</span>
+        {hint && <span className="block text-[11px] sm:text-xs text-[#73645C] mt-0.5">{hint}</span>}
+      </span>
+    </label>
+  );
+}
+
+// Visible but inert: no input element, no filter state, nothing to submit.
+function ComingSoonField({ filter }: { filter: keyof typeof COMING_SOON_FILTERS }) {
+  const { label, reason } = COMING_SOON_FILTERS[filter];
+  return (
+    <div
+      className="rounded-xl border border-dashed border-[#DECDBB] bg-[#FAF7F2] px-3.5 py-2.5 text-left"
+      data-testid="coming-soon-filter"
+      data-filter={filter}
+      aria-disabled="true"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-[#73645C]">
+          <Lock className="h-3.5 w-3.5 text-[#A88C78] shrink-0" aria-hidden="true" />
+          {label}
+        </span>
+        <span className="shrink-0 rounded-full border border-[#E6D3B0] bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#9C7328]">
+          Coming soon
+        </span>
+      </div>
+      <p className="mt-1 text-[11px] sm:text-xs text-[#8C7B73]">{reason}</p>
+    </div>
+  );
+}
+
+function Section({
+  id,
+  title,
+  icon,
+  children,
+}: {
+  id: string;
+  title: string;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      aria-labelledby={id}
+      className="bg-white rounded-2xl sm:rounded-3xl border border-[#EADBBD]/80 p-5 sm:p-6 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)]"
+    >
+      <div className="flex items-center gap-2.5 mb-4">
+        <span className="h-9 w-9 rounded-full bg-[#FAF7F2] border border-[#DECDBB] flex items-center justify-center text-[#7A1118] shrink-0">
+          {icon}
+        </span>
+        <h2 id={id} className="text-base sm:text-lg font-bold text-[#241C1A] font-[family-name:var(--font-heading,serif)]">
+          {title}
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 lg:gap-4 items-start">{children}</div>
+    </section>
+  );
+}
+
 interface PartnerSearchBarProps {
   filters: SearchFilters;
   onChange: (filters: SearchFilters) => void;
@@ -234,6 +527,10 @@ interface PartnerSearchBarProps {
   loading?: boolean;
   showBrandHeader?: boolean;
   className?: string;
+  // Total matches from the last completed search (null before any search),
+  // and whether the filters have changed since that search ran.
+  matchCount?: number | null;
+  countIsStale?: boolean;
 }
 
 export function PartnerSearchBar({
@@ -244,255 +541,211 @@ export function PartnerSearchBar({
   loading = false,
   showBrandHeader = true,
   className = '',
+  matchCount = null,
+  countIsStale = false,
 }: PartnerSearchBarProps) {
-  function handleFieldChange(field: keyof SearchFilters, value: string) {
-    onChange({
-      ...filters,
-      [field]: value,
-    });
-  }
+  const set = (field: keyof SearchFilters) => (value: string) => onChange({ ...filters, [field]: value });
+  const setFlag = (field: keyof SearchFilters) => (checked: boolean) =>
+    onChange({ ...filters, [field]: checked ? 'true' : '' });
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     onSearch(e);
   }
 
+  let countText: ReactNode;
+  if (loading) countText = 'Searching…';
+  else if (matchCount === null) countText = 'Choose filters, then search to see how many profiles match.';
+  else if (countIsStale) countText = 'Filters changed. Search again to update the count.';
+  else
+    countText = (
+      <>
+        <span className="text-[#7A1118] font-bold" data-testid="match-count">
+          {matchCount.toLocaleString('en-IN')}
+        </span>{' '}
+        {matchCount === 1 ? 'profile matches' : 'profiles match'} your search
+      </>
+    );
+
   return (
     <div className={`w-full flex flex-col gap-6 ${className}`}>
-      {/* Brand Header & Titles */}
       {showBrandHeader && (
         <div className="space-y-3">
-          {/* Logo with golden double rings */}
           <div className="flex items-center gap-2.5">
             <GoldenDoubleRings className="h-6 w-10 sm:h-7 sm:w-11" />
             <span className="text-xl sm:text-2xl font-bold tracking-tight text-[#70121A] font-[family-name:var(--font-heading,serif)]">
               Nadarkalyanam
             </span>
           </div>
-
-          {/* Heading */}
           <div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#241C1A] tracking-tight font-[family-name:var(--font-heading,serif)]">
               Find Your Life Partner
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-[#73645C] font-normal">
-              Search by bride or groom, age, location, education, profession and marital status.
+              Search by basic, religious, professional, location and family details.
             </p>
           </div>
         </div>
       )}
 
-      {/* Main Search Card */}
-      <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EADBBD]/80 p-5 sm:p-7 lg:p-8 shadow-[0_8px_30px_-6px_rgba(43,21,21,0.06)] transition-all">
-        <form onSubmit={handleSubmit}>
-          {/* 7 filters: 4 dropdowns (enums/ages) + 3 free-text fields */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3.5 lg:gap-4 items-end">
-            {/* 0. Looking for (gender) */}
-            <div className="space-y-1.5 text-left">
-              <label htmlFor="search-gender" className="flex items-center gap-1.5 text-xs font-semibold text-[#241C1A]">
-                <Heart className="h-4 w-4 text-[#7A1118] shrink-0" />
-                <span>Looking for</span>
-              </label>
-              <div className="relative">
-                <select
-                  id="search-gender"
-                  value={filters.gender}
-                  onChange={(e) => handleFieldChange('gender', e.target.value)}
-                  className={`w-full appearance-none bg-white border border-[#DECDBB] hover:border-[#BFA892] focus:border-[#7A1118] focus:ring-1 focus:ring-[#7A1118] rounded-xl px-3.5 py-2.5 pr-8 text-xs sm:text-sm transition-colors outline-none cursor-pointer ${
-                    filters.gender ? 'text-[#241C1A] font-medium' : 'text-[#8C7B73]'
-                  }`}
-                >
-                  <option value="">Bride or Groom</option>
-                  {GENDER_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value} className="text-[#241C1A]">
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C7B73]" />
-              </div>
-            </div>
-
-            {/* 1. Min age */}
-            <div className="space-y-1.5 text-left">
-              <label htmlFor="search-min-age" className="flex items-center gap-1.5 text-xs font-semibold text-[#241C1A]">
-                <User className="h-4 w-4 text-[#7A1118] shrink-0" />
-                <span>Min age</span>
-              </label>
-              <div className="relative">
-                <select
-                  id="search-min-age"
-                  value={filters.ageMin}
-                  onChange={(e) => handleFieldChange('ageMin', e.target.value)}
-                  className={`w-full appearance-none bg-white border border-[#DECDBB] hover:border-[#BFA892] focus:border-[#7A1118] focus:ring-1 focus:ring-[#7A1118] rounded-xl px-3.5 py-2.5 pr-8 text-xs sm:text-sm transition-colors outline-none cursor-pointer ${
-                    filters.ageMin ? 'text-[#241C1A] font-medium' : 'text-[#8C7B73]'
-                  }`}
-                >
-                  <option value="">Select minimum age</option>
-                  {AGE_MIN_OPTIONS.map((age) => (
-                    <option key={`min-${age}`} value={age} className="text-[#241C1A]">
-                      {age} yrs
-                    </option>
-                  ))}
-                  {filters.ageMin && !AGE_MIN_OPTIONS.includes(filters.ageMin) && (
-                    <option value={filters.ageMin} className="text-[#241C1A]">
-                      {filters.ageMin} yrs
-                    </option>
-                  )}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C7B73]" />
-              </div>
-            </div>
-
-            {/* 2. Max age */}
-            <div className="space-y-1.5 text-left">
-              <label htmlFor="search-max-age" className="flex items-center gap-1.5 text-xs font-semibold text-[#241C1A]">
-                <User className="h-4 w-4 text-[#7A1118] shrink-0" />
-                <span>Max age</span>
-              </label>
-              <div className="relative">
-                <select
-                  id="search-max-age"
-                  value={filters.ageMax}
-                  onChange={(e) => handleFieldChange('ageMax', e.target.value)}
-                  className={`w-full appearance-none bg-white border border-[#DECDBB] hover:border-[#BFA892] focus:border-[#7A1118] focus:ring-1 focus:ring-[#7A1118] rounded-xl px-3.5 py-2.5 pr-8 text-xs sm:text-sm transition-colors outline-none cursor-pointer ${
-                    filters.ageMax ? 'text-[#241C1A] font-medium' : 'text-[#8C7B73]'
-                  }`}
-                >
-                  <option value="">Select maximum age</option>
-                  {AGE_MAX_OPTIONS.map((age) => (
-                    <option key={`max-${age}`} value={age} className="text-[#241C1A]">
-                      {age} yrs
-                    </option>
-                  ))}
-                  {filters.ageMax && !AGE_MAX_OPTIONS.includes(filters.ageMax) && (
-                    <option value={filters.ageMax} className="text-[#241C1A]">
-                      {filters.ageMax} yrs
-                    </option>
-                  )}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C7B73]" />
-              </div>
-            </div>
-
-            {/* 3. City / Location */}
-            <div className="space-y-1.5 text-left">
-              <label htmlFor="search-city" className="flex items-center gap-1.5 text-xs font-semibold text-[#241C1A]">
-                <MapPin className="h-4 w-4 text-[#7A1118] shrink-0" />
-                <span>City / Location</span>
-              </label>
-              <div className="relative">
-                <input
-                  id="search-city"
-                  type="text"
-                  value={filters.city}
-                  onChange={(e) => handleFieldChange('city', e.target.value)}
-                  placeholder="e.g. Madurai"
-                  className="w-full bg-white border border-[#DECDBB] hover:border-[#BFA892] focus:border-[#7A1118] focus:ring-1 focus:ring-[#7A1118] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-[#241C1A] font-medium placeholder:font-normal placeholder:text-[#8C7B73] transition-colors outline-none"
-                />
-              </div>
-            </div>
-
-            {/* 4. Education */}
-            <div className="space-y-1.5 text-left">
-              <label htmlFor="search-education" className="flex items-center gap-1.5 text-xs font-semibold text-[#241C1A]">
-                <GraduationCap className="h-4 w-4 text-[#7A1118] shrink-0" />
-                <span>Education</span>
-              </label>
-              <div className="relative">
-                <input
-                  id="search-education"
-                  type="text"
-                  value={filters.educationLevel}
-                  onChange={(e) => handleFieldChange('educationLevel', e.target.value)}
-                  placeholder="e.g. Bachelors"
-                  className="w-full bg-white border border-[#DECDBB] hover:border-[#BFA892] focus:border-[#7A1118] focus:ring-1 focus:ring-[#7A1118] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-[#241C1A] font-medium placeholder:font-normal placeholder:text-[#8C7B73] transition-colors outline-none"
-                />
-              </div>
-            </div>
-
-            {/* 5. Profession */}
-            <div className="space-y-1.5 text-left">
-              <label htmlFor="search-profession" className="flex items-center gap-1.5 text-xs font-semibold text-[#241C1A]">
-                <Briefcase className="h-4 w-4 text-[#7A1118] shrink-0" />
-                <span>Profession</span>
-              </label>
-              <div className="relative">
-                <input
-                  id="search-profession"
-                  type="text"
-                  value={filters.profession}
-                  onChange={(e) => handleFieldChange('profession', e.target.value)}
-                  placeholder="e.g. Software Engineer"
-                  className="w-full bg-white border border-[#DECDBB] hover:border-[#BFA892] focus:border-[#7A1118] focus:ring-1 focus:ring-[#7A1118] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-[#241C1A] font-medium placeholder:font-normal placeholder:text-[#8C7B73] transition-colors outline-none"
-                />
-              </div>
-            </div>
-
-            {/* 6. Marital status */}
-            <div className="space-y-1.5 text-left">
-              <label htmlFor="search-marital-status" className="flex items-center gap-1.5 text-xs font-semibold text-[#241C1A]">
-                <InterlockingRingsIcon className="h-4 w-4 text-[#7A1118] shrink-0" />
-                <span>Marital status</span>
-              </label>
-              <div className="relative">
-                <select
-                  id="search-marital-status"
-                  value={filters.maritalStatus}
-                  onChange={(e) => handleFieldChange('maritalStatus', e.target.value)}
-                  className={`w-full appearance-none bg-white border border-[#DECDBB] hover:border-[#BFA892] focus:border-[#7A1118] focus:ring-1 focus:ring-[#7A1118] rounded-xl px-3.5 py-2.5 pr-8 text-xs sm:text-sm transition-colors outline-none cursor-pointer ${
-                    filters.maritalStatus ? 'text-[#241C1A] font-medium' : 'text-[#8C7B73]'
-                  }`}
-                >
-                  <option value="">Select marital status</option>
-                  {MARITAL_STATUS_OPTIONS.map((status) => (
-                    <option key={status.value} value={status.value} className="text-[#241C1A]">
-                      {status.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C7B73]" />
-              </div>
-            </div>
-          </div>
-
-          {/* Action Row: Left buttons + Right ornamental tagline */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-5 mt-6 pt-2">
-            {/* Action Buttons */}
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-medium text-xs sm:text-sm bg-[#7A1118] hover:bg-[#620D13] active:scale-[0.99] text-white shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-              >
-                <Search className="h-4 w-4" />
-                <span>{loading ? 'Searching…' : 'Search'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={onClear}
-                className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-medium text-xs sm:text-sm bg-white hover:bg-[#FAF7F2] active:scale-[0.99] text-[#4A3D36] border border-[#DECDBB] transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <RotateCcw className="h-3.5 w-3.5 text-[#5A4D45]" />
-                <span>Clear</span>
-              </button>
-            </div>
-
-            {/* Right Side Lotus Motif & Tagline */}
-            <div className="flex flex-col items-center sm:items-end justify-center">
-              <div className="flex items-center gap-2.5">
-                <span className="w-10 sm:w-16 h-px bg-[#EADBBD]" />
-                <LotusEmblem className="h-4 w-4 text-[#B89B7D]" />
-                <span className="w-10 sm:w-16 h-px bg-[#EADBBD]" />
-              </div>
-              <p className="text-[11px] sm:text-xs text-[#8C7B73] font-serif italic tracking-wider mt-1 text-center sm:text-right">
-                Better matches. Brighter futures.
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        {/* Decorative only: no plan check, and nothing here unlocks a filter. */}
+        <div className="rounded-2xl border border-[#E6D3B0] bg-gradient-to-r from-[#FFF8EC] to-[#FAF7F2] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <span className="h-9 w-9 rounded-full bg-white border border-[#E6D3B0] flex items-center justify-center text-[#9C7328] shrink-0">
+              <Crown className="h-4.5 w-4.5" />
+            </span>
+            <div>
+              <p className="text-sm font-bold text-[#241C1A]">More premium filters are on the way</p>
+              <p className="text-xs text-[#73645C] mt-0.5">
+                Fields marked <span className="font-semibold">Coming soon</span> can be searched once members can add that
+                detail to their profile. No plan unlocks them yet.
               </p>
             </div>
           </div>
-        </form>
-      </div>
+          <Link
+            href="/membership"
+            className="self-start sm:self-auto shrink-0 px-4 py-2 rounded-full border border-[#C49746] text-[#9C7328] hover:bg-[#C49746]/10 text-xs font-semibold transition-colors whitespace-nowrap"
+          >
+            View Membership
+          </Link>
+        </div>
+
+        <Section id="search-basic" title="Basic Details" icon={<User className="h-4 w-4" />}>
+          <SelectField id="search-gender" label="Looking for" value={filters.gender} onChange={set('gender')} placeholder="Bride or Groom" options={GENDER_OPTIONS} />
+          <RangeField id="search-age" label="Age" min={filters.ageMin} max={filters.ageMax} onMin={set('ageMin')} onMax={set('ageMax')} minOptions={AGE_SELECT_MIN} maxOptions={AGE_SELECT_MAX} />
+          <RangeField id="search-height" label="Height" min={filters.heightMinCm} max={filters.heightMaxCm} onMin={set('heightMinCm')} onMax={set('heightMaxCm')} minOptions={HEIGHT_OPTIONS} maxOptions={HEIGHT_OPTIONS} />
+          <SelectField id="search-marital-status" label="Marital status" value={filters.maritalStatus} onChange={set('maritalStatus')} placeholder="Any" options={MARITAL_STATUS_OPTIONS} />
+          <TextField id="search-mother-tongue" label="Mother tongue" value={filters.motherTongue} onChange={set('motherTongue')} placeholder="e.g. Tamil" />
+          <SelectField id="search-physical-status" label="Physical status" value={filters.physicalStatus} onChange={set('physicalStatus')} placeholder="Any" options={PHYSICAL_STATUS_OPTIONS} />
+          <ComingSoonField filter="profileCreatedBy" />
+        </Section>
+
+        <Section id="search-religious" title="Religious Details" icon={<Flower2 className="h-4 w-4" />}>
+          <TextField id="search-religion" label="Religion" value={filters.religion} onChange={set('religion')} placeholder="e.g. Hindu" />
+          <TextField id="search-caste" label="Caste" value={filters.casteCommunity} onChange={set('casteCommunity')} placeholder="e.g. Nadar" />
+          <SelectField id="search-dosham" label="Dosham" value={filters.dosham} onChange={set('dosham')} placeholder="Any" options={DOSHAM_OPTIONS} />
+          <ComingSoonField filter="star" />
+        </Section>
+
+        <Section id="search-professional" title="Professional Details" icon={<Briefcase className="h-4 w-4" />}>
+          <TextField id="search-education" label="Education" value={filters.educationLevel} onChange={set('educationLevel')} placeholder="e.g. Bachelors" />
+          <TextField id="search-profession" label="Occupation" value={filters.profession} onChange={set('profession')} placeholder="e.g. Software Engineer" />
+          <TextField id="search-employed-in" label="Employment type" value={filters.employedIn} onChange={set('employedIn')} placeholder="e.g. Private, Government" />
+          <RangeField id="search-income" label="Annual income" min={filters.incomeMinLakhs} max={filters.incomeMaxLakhs} onMin={set('incomeMinLakhs')} onMax={set('incomeMaxLakhs')} minOptions={INCOME_LAKH_OPTIONS} maxOptions={INCOME_LAKH_OPTIONS} />
+          <ComingSoonField filter="institution" />
+        </Section>
+
+        <Section id="search-location" title="Location Details" icon={<MapPin className="h-4 w-4" />}>
+          <div className="space-y-1.5 text-left">
+            <FieldLabel htmlFor="search-country">Country</FieldLabel>
+            {/* Single-option select, as at onboarding: India is the only country. */}
+            <div className="relative">
+              <select
+                id="search-country"
+                value={filters.country}
+                onChange={(e) => set('country')(e.target.value)}
+                className={`${CONTROL_CLASS} appearance-none pr-8 cursor-pointer text-[#241C1A] font-medium`}
+              >
+                <option value="India">India</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C7B73]" />
+            </div>
+          </div>
+          <TextField id="search-city" label="City" value={filters.city} onChange={set('city')} placeholder="e.g. Madurai" />
+          <div className="space-y-1.5 text-left">
+            <FieldLabel>Nearby profiles</FieldLabel>
+            <CheckboxField
+              id="search-nearby"
+              label="Only profiles near me"
+              hint="Same city or state as your profile, as in Matches › Nearby."
+              checked={filters.nearby === 'true'}
+              onChange={setFlag('nearby')}
+            />
+          </div>
+          <ComingSoonField filter="citizenship" />
+        </Section>
+
+        <Section id="search-lifestyle" title="Lifestyle" icon={<Utensils className="h-4 w-4" />}>
+          <ComingSoonField filter="habits" />
+          <ComingSoonField filter="hobbies" />
+        </Section>
+
+        <Section id="search-family" title="Family Details" icon={<House className="h-4 w-4" />}>
+          <SelectField id="search-family-status" label="Family status" value={filters.familyType} onChange={set('familyType')} placeholder="Any" options={FAMILY_STATUS_OPTIONS} />
+          <ComingSoonField filter="familyValue" />
+        </Section>
+
+        <Section id="search-recent" title="Recently Created Profiles" icon={<Clock className="h-4 w-4" />}>
+          <fieldset className="space-y-1.5 text-left sm:col-span-2 lg:col-span-3">
+            <legend className="block text-xs font-semibold text-[#241C1A] mb-1.5">Profile created</legend>
+            <div className="flex flex-wrap gap-2">
+              {JOINED_OPTIONS.map((option) => {
+                const active = filters.joinedWithinDays === option.value;
+                return (
+                  <label
+                    key={option.value || 'all'}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium border cursor-pointer transition-colors ${
+                      active
+                        ? 'bg-[#7A1118] border-[#7A1118] text-white'
+                        : 'bg-white border-[#DECDBB] text-[#4A3D36] hover:border-[#BFA892]'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="search-joined"
+                      value={option.value}
+                      checked={active}
+                      onChange={() => set('joinedWithinDays')(option.value)}
+                      className="sr-only"
+                    />
+                    {option.label}
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+          <div className="space-y-1.5 text-left">
+            <FieldLabel>Profile type</FieldLabel>
+            <CheckboxField id="search-with-photo" label="Profiles with photo" checked={filters.withPhoto === 'true'} onChange={setFlag('withPhoto')} />
+          </div>
+          <div className="space-y-1.5 text-left">
+            <FieldLabel>Don&apos;t show</FieldLabel>
+            <CheckboxField
+              id="search-exclude-shortlisted"
+              label="Shortlisted profiles"
+              hint="Hide members already in your shortlist."
+              checked={filters.excludeShortlisted === 'true'}
+              onChange={setFlag('excludeShortlisted')}
+            />
+          </div>
+        </Section>
+
+        {/* Match count footer: stays in view while scrolling the filters. */}
+        <div className="sticky bottom-3 z-20 rounded-2xl border border-[#EADBBD] bg-white/95 backdrop-blur px-4 py-3 sm:px-5 shadow-[0_8px_30px_-6px_rgba(43,21,21,0.18)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-xs sm:text-sm font-semibold text-[#241C1A]" aria-live="polite" data-testid="match-count-footer">
+            {countText}
+          </p>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={onClear}
+              className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-medium text-xs sm:text-sm bg-white hover:bg-[#FAF7F2] active:scale-[0.99] text-[#4A3D36] border border-[#DECDBB] transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <RotateCcw className="h-3.5 w-3.5 text-[#5A4D45]" />
+              <span>Clear</span>
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-medium text-xs sm:text-sm bg-[#7A1118] hover:bg-[#620D13] active:scale-[0.99] text-white shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+            >
+              <Search className="h-4 w-4" />
+              <span>{loading ? 'Searching…' : 'Search'}</span>
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }

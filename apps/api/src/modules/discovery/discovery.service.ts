@@ -2,6 +2,15 @@ import { Injectable } from '@nestjs/common';
 import type { SearchProfileResult, SearchProfilesQuery, SearchProfilesResponse } from '@nadar-kalyanam/schemas';
 import { calculateAge } from '../../common/age.js';
 import { getBlockedUserIds } from '../../common/blocks.util.js';
+import {
+  WITH_PHOTO_WHERE,
+  getCallerLocation,
+  joinedWithinWhere,
+  nearbyWhere,
+  parseHeightCm,
+  parseIncomeLakhs,
+  rangesOverlap,
+} from '../../common/profile-filters.js';
 import { getRelationshipStates, relationshipFields } from '../../common/relationship.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PhotosService } from '../photos/photos.service.js';
@@ -22,20 +31,32 @@ function ageRangeToDobRange(ageMin?: number, ageMax?: number): { gte?: Date; lte
   return range;
 }
 
-// City, education and profession are free text at onboarding, so they're
-// matched against the WHOLE stored value, ignoring case and surrounding
-// spaces ("madurai" finds "Madurai") — never a partial/substring match.
-// maritalStatus is an enum and stays an exact match.
+// City, education, profession, mother tongue, religion, caste, employment
+// type and country are free text at onboarding, so they're matched against
+// the WHOLE stored value, ignoring case and surrounding spaces ("madurai"
+// finds "Madurai") — never a partial/substring match. Marital status,
+// physical status, dosham and family status are enums: exact match.
 function detailFilters(query: SearchProfilesQuery): Prisma.ProfileWhereInput[] {
   const filters: Prisma.ProfileWhereInput[] = [];
   const text = (path: string[], value: string | undefined) => {
     const trimmed = value?.trim();
     if (trimmed) filters.push({ details: { path, equals: trimmed, mode: 'insensitive' } });
   };
+  const exact = (path: string[], value: string | undefined) => {
+    if (value) filters.push({ details: { path, equals: value } });
+  };
   text(['location', 'city'], query.city);
   text(['education', 'educationLevel'], query.educationLevel);
   text(['education', 'profession'], query.profession);
-  if (query.maritalStatus) filters.push({ details: { path: ['maritalStatus'], equals: query.maritalStatus } });
+  exact(['maritalStatus'], query.maritalStatus);
+  text(['motherTongue'], query.motherTongue);
+  exact(['physicalStatus'], query.physicalStatus);
+  text(['religion'], query.religion);
+  text(['casteCommunity'], query.casteCommunity);
+  exact(['dosham'], query.dosham);
+  text(['education', 'employedIn'], query.employedIn);
+  exact(['additional', 'familyType'], query.familyType);
+  text(['location', 'country'], query.country);
   return filters;
 }
 
@@ -54,6 +75,24 @@ export class DiscoveryService {
     const dobRange = ageRangeToDobRange(query.ageMin, query.ageMax);
     const details = detailFilters(query);
 
+    if (query.nearby) {
+      const sameLocation = nearbyWhere(await getCallerLocation(this.prisma, callerUserId));
+      // A caller with no stored location has nobody nearby, as on Matches.
+      if (!sameLocation) return { items: [], nextCursor: null, total: 0 };
+      details.push(sameLocation);
+    }
+    if (query.joinedWithinDays) details.push(joinedWithinWhere(query.joinedWithinDays));
+    if (query.withPhoto) details.push(WITH_PHOTO_WHERE);
+    if (query.excludeShortlisted) {
+      const shortlisted = await this.prisma.shortlist.findMany({
+        where: { memberId: callerUserId },
+        select: { profileId: true },
+      });
+      details.push({ id: { notIn: shortlisted.map((row) => row.profileId) } });
+    }
+    const parsedIds = await this.idsMatchingParsedRanges(query);
+    if (parsedIds) details.push({ id: { in: parsedIds } });
+
     const where: Prisma.ProfileWhereInput = {
       visibility: { not: 'HIDDEN' },
       userId: { notIn: [callerUserId, ...blockedUserIds] },
@@ -62,9 +101,11 @@ export class DiscoveryService {
       ...(query.gender ? { gender: query.gender } : {}),
       // Every `details` filter targets the same JSON column, so each must be
       // its own AND entry — as sibling `details:` keys they overwrote each
-      // other and only the last filter applied.
+      // other and only the last filter applied. The same goes for the
+      // several `id` filters (shortlist exclusion, height/income ranges).
       ...(details.length > 0 ? { AND: details } : {}),
     };
+    const total = await this.prisma.profile.count({ where });
 
     // 'newest' has no cursor-pagination guarantee (createdAt ties aren't
     // disambiguated) — acceptable for its one caller, an unpaginated
@@ -104,6 +145,33 @@ export class DiscoveryService {
       }),
     );
 
-    return { items, nextCursor: hasMore ? (page[page.length - 1]?.id ?? null) : null };
+    return { items, nextCursor: hasMore ? (page[page.length - 1]?.id ?? null) : null, total };
+  }
+
+  // Height and income are stored as text, so a range can't be a JSON-path
+  // comparison: every profile's value is parsed here and the matching ids
+  // become an id filter. Null when neither range is requested. This scans
+  // all profiles — fine at the current size; a numeric column is the fix
+  // once that stops being true.
+  private async idsMatchingParsedRanges(query: SearchProfilesQuery): Promise<string[] | null> {
+    const height = query.heightMinCm !== undefined || query.heightMaxCm !== undefined;
+    const income = query.incomeMinLakhs !== undefined || query.incomeMaxLakhs !== undefined;
+    if (!height && !income) return null;
+
+    const rows = await this.prisma.profile.findMany({ select: { id: true, details: true } });
+    return rows
+      .filter((row) => {
+        const details = row.details as { height?: unknown; education?: { annualIncomeRange?: unknown } } | null;
+        if (height) {
+          const cm = parseHeightCm(details?.height);
+          if (cm === null || !rangesOverlap({ min: cm, max: cm }, query.heightMinCm, query.heightMaxCm)) return false;
+        }
+        if (income) {
+          const lakhs = parseIncomeLakhs(details?.education?.annualIncomeRange);
+          if (lakhs === null || !rangesOverlap(lakhs, query.incomeMinLakhs, query.incomeMaxLakhs)) return false;
+        }
+        return true;
+      })
+      .map((row) => row.id);
   }
 }

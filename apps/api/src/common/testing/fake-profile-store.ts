@@ -35,6 +35,10 @@ export function matchesProfileWhere(state: FakeState, p: FakeProfile, where: any
   if (where.userId?.in && !where.userId.in.includes(p.userId)) return false;
   if (typeof where.userId === 'string' && where.userId !== p.userId) return false;
   if (where.id?.in && !where.id.in.includes(p.id)) return false;
+  if (where.id?.notIn?.includes(p.id)) return false;
+  if (typeof where.gender === 'string' && where.gender !== p.gender) return false;
+  if (where.dateOfBirth?.gte && p.dateOfBirth < where.dateOfBirth.gte) return false;
+  if (where.dateOfBirth?.lte && p.dateOfBirth > where.dateOfBirth.lte) return false;
   if (typeof where.id === 'string' && where.id !== p.id) return false;
   if (where.user?.status && state.userStatus[p.userId] !== where.user.status) return false;
   if (where.createdAt?.gte && p.createdAt < where.createdAt.gte) return false;
@@ -87,6 +91,7 @@ export function fakePrisma(state: FakeState) {
           .filter((p) => matchesProfileWhere(state, p, where))
           .sort(byOrder(orderBy))
           .slice(0, take ?? Infinity),
+      count: async ({ where }: any) => state.profiles.filter((p) => matchesProfileWhere(state, p, where)).length,
     },
     block: {
       findMany: async ({ where }: any) => {

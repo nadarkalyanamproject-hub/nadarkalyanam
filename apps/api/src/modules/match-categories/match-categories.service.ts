@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { NearbyMatchesResponse, ProfileCardListResponse } from '@nadar-kalyanam/schemas';
 import { inKeyOrder, toProfileCards, visibleProfilesWhere } from '../../common/profile-cards.js';
+import { WITH_PHOTO_WHERE, getCallerLocation, joinedWithinWhere, nearbyWhere } from '../../common/profile-filters.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -23,31 +24,23 @@ export class MatchCategoriesService {
 
   // Profiles created in the last 30 days, newest first.
   async newlyJoined(callerUserId: string, now = new Date()): Promise<ProfileCardListResponse> {
-    const since = new Date(now.getTime() - NEWLY_JOINED_DAYS * 24 * 60 * 60 * 1000);
     const profiles = await this.prisma.profile.findMany({
-      where: { AND: [await visibleProfilesWhere(this.prisma, callerUserId), { createdAt: { gte: since } }] },
+      where: { AND: [await visibleProfilesWhere(this.prisma, callerUserId), joinedWithinWhere(NEWLY_JOINED_DAYS, now)] },
       orderBy: { createdAt: 'desc' },
       take: LIST_LIMIT,
     });
     return this.cards(callerUserId, profiles);
   }
 
-  // No geolocation exists: "nearby" means the same city or the same state as
-  // the caller's own stored location (whole value, case-insensitive), with
-  // same-city members first.
+  // Same city or same state as the caller (see nearbyWhere, shared with
+  // Search), with same-city members first.
   async nearby(callerUserId: string): Promise<NearbyMatchesResponse> {
-    const own = await this.prisma.profile.findUnique({ where: { userId: callerUserId } });
-    const location = (own?.details as { location?: { city?: string; state?: string } } | null)?.location;
-    const city = location?.city?.trim() || null;
-    const state = location?.state?.trim() || null;
-    if (!city && !state) return { items: [], city, state };
+    const { city, state } = await getCallerLocation(this.prisma, callerUserId);
+    const sameLocation = nearbyWhere({ city, state });
+    if (!sameLocation) return { items: [], city, state };
 
-    const sameLocation = [
-      ...(city ? [{ details: { path: ['location', 'city'], equals: city, mode: 'insensitive' as const } }] : []),
-      ...(state ? [{ details: { path: ['location', 'state'], equals: state, mode: 'insensitive' as const } }] : []),
-    ];
     const profiles = await this.prisma.profile.findMany({
-      where: { AND: [await visibleProfilesWhere(this.prisma, callerUserId), { OR: sameLocation }] },
+      where: { AND: [await visibleProfilesWhere(this.prisma, callerUserId), sameLocation] },
       orderBy: { createdAt: 'desc' },
       take: LIST_LIMIT * 2,
     });
@@ -63,7 +56,7 @@ export class MatchCategoriesService {
   // Members with at least one photo, newest first.
   async withPhotos(callerUserId: string): Promise<ProfileCardListResponse> {
     const profiles = await this.prisma.profile.findMany({
-      where: { AND: [await visibleProfilesWhere(this.prisma, callerUserId), { photos: { some: {} } }] },
+      where: { AND: [await visibleProfilesWhere(this.prisma, callerUserId), WITH_PHOTO_WHERE] },
       orderBy: { createdAt: 'desc' },
       take: LIST_LIMIT,
     });

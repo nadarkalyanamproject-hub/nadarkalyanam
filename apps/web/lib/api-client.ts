@@ -295,21 +295,37 @@ export function sendMessage(
   });
 }
 
-export function searchProfiles(
-  accessToken: string,
-  params: {
-    ageMin?: number;
-    ageMax?: number;
-    city?: string;
-    gender?: 'MALE' | 'FEMALE';
-    educationLevel?: string;
-    profession?: string;
-    maritalStatus?: string;
-    sort?: 'id' | 'newest';
-    cursor?: string;
-    limit?: number;
-  },
-): Promise<SearchProfilesResponse> {
+// Exactly the params GET /search/profiles accepts — nothing else can be sent.
+export interface SearchProfilesParams {
+  ageMin?: number;
+  ageMax?: number;
+  city?: string;
+  gender?: 'MALE' | 'FEMALE';
+  educationLevel?: string;
+  profession?: string;
+  maritalStatus?: string;
+  heightMinCm?: number;
+  heightMaxCm?: number;
+  motherTongue?: string;
+  physicalStatus?: 'NORMAL' | 'PHYSICALLY_CHALLENGED';
+  religion?: string;
+  casteCommunity?: string;
+  dosham?: 'NO' | 'YES' | 'DONT_KNOW';
+  employedIn?: string;
+  incomeMinLakhs?: number;
+  incomeMaxLakhs?: number;
+  familyType?: 'Middle Class' | 'Upper Middle Class' | 'Rich / Affluent (Elite)';
+  country?: 'India';
+  nearby?: boolean;
+  joinedWithinDays?: number;
+  withPhoto?: boolean;
+  excludeShortlisted?: boolean;
+  sort?: 'id' | 'newest';
+  cursor?: string;
+  limit?: number;
+}
+
+export function searchProfiles(accessToken: string, params: SearchProfilesParams): Promise<SearchProfilesResponse> {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value) query.set(key, String(value));

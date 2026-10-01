@@ -78,8 +78,9 @@ function buildService(profiles: FakeProfile[]) {
       .sort((a, b) => a.id.localeCompare(b.id))
       .slice(0, take),
   );
+  const count = vi.fn(async ({ where }: { where: unknown }) => profiles.filter((p) => matchesWhere(p, where)).length);
   const prisma = {
-    profile: { findMany },
+    profile: { findMany, count },
     block: { findMany: vi.fn().mockResolvedValue([]) },
     interest: { findMany: vi.fn().mockResolvedValue([]) },
   };
