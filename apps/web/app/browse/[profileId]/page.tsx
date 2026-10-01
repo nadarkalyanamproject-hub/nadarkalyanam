@@ -11,7 +11,6 @@ import { ConnectedBadge, RelationshipAction } from '../../../components/relation
 import { useRegistration } from '../../providers/registration-provider';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { ShortlistButton } from '../../../components/shortlist/shortlist-button';
-import { DUMMY_PROFILES } from '../../../lib/mock-profiles';
 
 const MARITAL_STATUS_LABELS: Record<string, string> = {
   NEVER_MARRIED: 'Never Married',
@@ -77,15 +76,17 @@ export default function ViewProfilePage() {
           setProfile(result);
         }
       })
+      // A 404 covers hidden, blocked, inactive and nonexistent profiles alike
+      // (the API never says which); anything else is a real load error.
       .catch((err: unknown) => {
         if (!cancelled) {
-          const fallback = DUMMY_PROFILES.find((p) => p.id === params.profileId);
-          if (fallback) {
-            setProfile(fallback);
-            setError(null);
-          } else {
-            setError(err instanceof ApiError ? err.message : 'Could not load this profile.');
-          }
+          setError(
+            err instanceof ApiError && err.status === 404
+              ? 'This profile is no longer available.'
+              : err instanceof ApiError
+                ? err.message
+                : 'Could not load this profile. Please try again.',
+          );
         }
       })
       .finally(() => {
@@ -129,7 +130,9 @@ export default function ViewProfilePage() {
           )}
 
           {error && (
-            <Card className="rounded-2xl p-8 text-center text-sm text-destructive">{error}</Card>
+            <Card role="alert" className="rounded-2xl p-8 text-center text-sm text-destructive" data-testid="profile-error">
+              {error}
+            </Card>
           )}
 
           {profile && (

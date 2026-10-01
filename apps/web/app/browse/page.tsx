@@ -5,32 +5,27 @@ import type { PublicProfileSummary } from '@nadar-kalyanam/schemas';
 import { Card } from '@nadar-kalyanam/ui';
 import { AppHeader } from '../../components/app-header';
 import { ProfileCard } from '../../components/browse/profile-card';
-import { listProfiles } from '../../lib/api-client';
+import { ApiError, listProfiles } from '../../lib/api-client';
 import { useRegistration } from '../providers/registration-provider';
 import { useRequireAuth } from '../../lib/use-require-auth';
-
-import { DUMMY_SUMMARIES } from '../../lib/mock-profiles';
 
 export default function BrowsePage() {
   const { ready } = useRequireAuth();
   const { data } = useRegistration();
   const [profiles, setProfiles] = useState<PublicProfileSummary[] | null>(null);
-  const [error] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!ready || !data.accessToken) return;
     let cancelled = false;
     listProfiles(data.accessToken)
+      // Only ever real members: none shows the empty state and a failed call
+      // shows the error. Nothing is substituted for either.
       .then((result) => {
-        if (!cancelled) {
-          setProfiles(result.items.length > 0 ? result.items : DUMMY_SUMMARIES);
-        }
+        if (!cancelled) setProfiles(result.items);
       })
-      .catch(() => {
-        if (!cancelled) {
-          // Graceful fallback to rich test profiles
-          setProfiles(DUMMY_SUMMARIES);
-        }
+      .catch((err: unknown) => {
+        if (!cancelled) setError(err instanceof ApiError ? err.message : 'Could not load profiles. Please try again.');
       });
     return () => {
       cancelled = true;
@@ -58,12 +53,14 @@ export default function BrowsePage() {
           )}
 
           {error && (
-            <Card className="rounded-2xl p-8 text-center text-sm text-destructive">{error}</Card>
+            <Card role="alert" className="rounded-2xl p-8 text-center text-sm text-destructive">
+              {error}
+            </Card>
           )}
 
           {profiles && profiles.length === 0 && (
-            <Card className="rounded-2xl p-8 text-center text-sm text-muted-foreground">
-              No other profiles are available to browse yet. Check back soon.
+            <Card className="rounded-2xl p-8 text-center text-sm text-muted-foreground" data-testid="browse-empty">
+              No profiles to show right now. New members appear here as they join.
             </Card>
           )}
 

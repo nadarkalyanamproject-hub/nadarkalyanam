@@ -92,6 +92,7 @@ export function fakePrisma(state: FakeState) {
           .sort(byOrder(orderBy))
           .slice(0, take ?? Infinity),
       count: async ({ where }: any) => state.profiles.filter((p) => matchesProfileWhere(state, p, where)).length,
+      findFirst: async ({ where }: any) => state.profiles.find((p) => matchesProfileWhere(state, p, where)) ?? null,
     },
     block: {
       findMany: async ({ where }: any) => {

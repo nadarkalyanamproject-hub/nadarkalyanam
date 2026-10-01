@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { createProfileSchema, type CreateProfileRequest } from '@nadar-kalyanam/schemas';
 import { describe, expect, it, vi } from 'vitest';
+import { type FakeState, fakePrisma, makeProfile } from '../../common/testing/fake-profile-store.js';
 import { ProfilesService } from './profiles.service.js';
 
 const validPayload: CreateProfileRequest = {
@@ -382,77 +383,51 @@ describe('ProfilesService.updateProfile', () => {
   });
 });
 
+// Browse uses the app-wide visibility rule. The shared fake store evaluates
+// the real where clause, with one member of every excluded kind beside the
+// visible ones.
+function browseSetup() {
+  const ids = ['caller', 'a', 'b', 'blocker', 'blocked', 'hidden', 'suspended', 'pending-deletion', 'deleted'];
+  const state: FakeState = {
+    profiles: ids.map((userId) => makeProfile({ userId, visibility: userId === 'hidden' ? 'HIDDEN' : 'MEMBERS_ONLY' })),
+    userStatus: Object.fromEntries(
+      ids.map((id) => [
+        id,
+        id === 'suspended' ? 'SUSPENDED' : id === 'pending-deletion' ? 'PENDING_DELETION' : id === 'deleted' ? 'DELETED' : 'ACTIVE',
+      ]),
+    ),
+    photos: [],
+    blocks: [
+      { initiatorId: 'blocker', targetId: 'caller' },
+      { initiatorId: 'caller', targetId: 'blocked' },
+    ],
+    shortlists: [],
+    notifications: [],
+  };
+  return new ProfilesService(fakePrisma(state) as never);
+}
+const EXCLUDED = ['caller', 'blocker', 'blocked', 'hidden', 'suspended', 'pending-deletion', 'deleted'];
+
 describe('ProfilesService.listOtherProfiles', () => {
-  it('excludes the caller, blocked users in either direction, and hidden profiles via one query', async () => {
-    const { service, prisma } = buildService();
-    prisma.block.findMany.mockResolvedValueOnce([
-      { initiatorId: 'caller-1', targetId: 'blocked-by-me' },
-      { initiatorId: 'blocked-me', targetId: 'caller-1' },
-    ]);
-    prisma.profile.findMany.mockResolvedValueOnce([storedProfile]);
-    prisma.profile.count.mockResolvedValueOnce(1);
+  it('lists only visible members: not the caller, blocked (either way), hidden or non-ACTIVE accounts', async () => {
+    const service = browseSetup();
 
-    const result = await service.listOtherProfiles('caller-1', 0, 20);
+    const { profiles, total } = await service.listOtherProfiles('caller', 0, 50);
 
-    expect(prisma.profile.findMany).toHaveBeenCalledWith({
-      where: {
-        userId: { notIn: ['caller-1', 'blocked-by-me', 'blocked-me'] },
-        visibility: { not: 'HIDDEN' },
-      },
-      orderBy: { createdAt: 'desc' },
-      skip: 0,
-      take: 20,
-    });
-    expect(result.profiles).toEqual([storedProfile]);
-    expect(result.total).toBe(1);
+    expect(profiles.map((p) => p.userId).sort()).toEqual(['a', 'b']);
+    expect(total).toBe(2);
   });
 });
 
 describe('ProfilesService.getOtherProfile', () => {
-  it('returns the profile when visible, not the caller\'s own, and not blocked', async () => {
-    const { service, prisma } = buildService();
-    prisma.profile.findUnique.mockResolvedValueOnce({ ...storedProfile, visibility: 'PUBLIC' });
-
-    const result = await service.getOtherProfile('caller-1', 'profile-1');
-
-    expect(result).toMatchObject({ id: 'profile-1' });
+  it('returns a visible member', async () => {
+    const service = browseSetup();
+    await expect(service.getOtherProfile('caller', 'profile-a')).resolves.toMatchObject({ id: 'profile-a' });
   });
 
-  it('404s for a hidden profile rather than revealing why it is excluded', async () => {
-    const { service, prisma } = buildService();
-    prisma.profile.findUnique.mockResolvedValueOnce({ ...storedProfile, visibility: 'HIDDEN' });
-
-    await expect(service.getOtherProfile('caller-1', 'profile-1')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-  });
-
-  it('404s for the caller\'s own profile id', async () => {
-    const { service, prisma } = buildService();
-    prisma.profile.findUnique.mockResolvedValueOnce({ ...storedProfile, userId: 'caller-1' });
-
-    await expect(service.getOtherProfile('caller-1', 'profile-1')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-  });
-
-  it('404s when the target user has blocked the caller, or vice versa', async () => {
-    const { service, prisma } = buildService();
-    prisma.profile.findUnique.mockResolvedValueOnce({ ...storedProfile, visibility: 'PUBLIC' });
-    prisma.block.findFirst.mockResolvedValueOnce({ id: 'block-1' });
-
-    await expect(service.getOtherProfile('caller-1', 'profile-1')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-  });
-
-  it('404s for a profile id that does not exist', async () => {
-    const { service, prisma } = buildService();
-    prisma.profile.findUnique.mockResolvedValueOnce(null);
-
-    await expect(service.getOtherProfile('caller-1', 'no-such-profile')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+  it.each([...EXCLUDED, 'no-such-member'])('404s the same way for %s', async (userId) => {
+    const service = browseSetup();
+    await expect(service.getOtherProfile('caller', `profile-${userId}`)).rejects.toBeInstanceOf(NotFoundException);
   });
 });
 

@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PRIOR_MARRIAGE_STATUSES, type CreateProfileRequest, type ProfileVisibility } from '@nadar-kalyanam/schemas';
-import { getBlockedUserIds, isBlockedEitherDirection } from '../../common/blocks.util.js';
 import { computeCompletionScore } from '../../common/profile-completion.js';
+import { visibleProfilesWhere } from '../../common/profile-cards.js';
 import { getRelationshipStates, type RelationshipState } from '../../common/relationship.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -86,17 +86,13 @@ export class ProfilesService {
     return this.prisma.profile.update({ where: { userId }, data: { visibility } });
   }
 
-  // "Browse Profiles" list: everyone except the caller, profiles the caller
-  // has hidden themselves from (visibility HIDDEN), and anyone blocked in
-  // either direction. MEMBERS_ONLY is intentionally included — there's no
-  // tiered membership system yet to distinguish further, so any
-  // authenticated caller counts as a member.
+  // "Browse Profiles" list: the app-wide visibility rule (visibleProfilesWhere,
+  // shared with search, matches and shortlists) — never the caller, never
+  // anyone blocked in either direction, never a HIDDEN profile, never an
+  // account that isn't ACTIVE. MEMBERS_ONLY is included: every caller is a
+  // signed-in member.
   async listOtherProfiles(callerUserId: string, offset: number, limit: number) {
-    const blockedUserIds = await getBlockedUserIds(this.prisma, callerUserId);
-    const where = {
-      userId: { notIn: [callerUserId, ...blockedUserIds] },
-      visibility: { not: 'HIDDEN' as const },
-    };
+    const where = await visibleProfilesWhere(this.prisma, callerUserId);
 
     const [profiles, total] = await Promise.all([
       this.prisma.profile.findMany({ where, orderBy: { createdAt: 'desc' }, skip: offset, take: limit }),
@@ -106,15 +102,14 @@ export class ProfilesService {
     return { profiles, total };
   }
 
-  // Same exclusion rules as listOtherProfiles, collapsed to a single 404 so a
-  // hidden, blocked, or nonexistent profile id all look identical from the
-  // outside — never confirm *why* a profile id doesn't resolve.
+  // Same rule as listOtherProfiles, in one query, so a hidden, blocked,
+  // inactive or nonexistent profile id all 404 identically — never confirm
+  // *why* a profile id doesn't resolve.
   async getOtherProfile(callerUserId: string, profileId: string) {
-    const profile = await this.prisma.profile.findUnique({ where: { id: profileId } });
-    if (!profile || profile.userId === callerUserId || profile.visibility === 'HIDDEN') {
-      throw new NotFoundException('Profile not found');
-    }
-    if (await isBlockedEitherDirection(this.prisma, callerUserId, profile.userId)) {
+    const profile = await this.prisma.profile.findFirst({
+      where: { AND: [await visibleProfilesWhere(this.prisma, callerUserId), { id: profileId }] },
+    });
+    if (!profile) {
       throw new NotFoundException('Profile not found');
     }
     return profile;
