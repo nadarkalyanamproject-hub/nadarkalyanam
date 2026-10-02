@@ -113,13 +113,18 @@ export default function NotificationsPage() {
   async function handleOpen(notification: NotificationResponse) {
     if (!data.accessToken) return;
     setNotice(null);
+    setError(null);
     if (!notification.isRead) {
-      markLocallyRead(notification.id);
+      // Shown as read only once the server has actually recorded it. On a
+      // failure it stays unread, the error is shown and the user stays here
+      // to retry, rather than seeing a read state the server doesn't have.
       try {
         await markNotificationRead(data.accessToken, notification.id);
-      } catch {
-        // Best-effort
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'Could not mark this notification as read. Please try again.');
+        return;
       }
+      markLocallyRead(notification.id);
       announceNotificationsChanged();
     }
     const destination = notificationDestination(notification);

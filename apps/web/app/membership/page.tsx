@@ -195,8 +195,8 @@ export default function MembershipPage() {
 
   async function handlePayNow(plan: PlanDetail) {
     if (!data.accessToken) {
-      // If not logged in, prompt user to log in or register on homepage
-      router.push('/?login=true');
+      // Not signed in: open the login modal, then come back here to pay.
+      router.push('/?login=true&returnTo=%2Fmembership');
       return;
     }
     setOrderingPlanId(plan.id);

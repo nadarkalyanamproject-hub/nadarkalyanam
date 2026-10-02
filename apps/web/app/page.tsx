@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthenticatedHome } from '../components/home/authenticated-home';
 import { useRegistration } from './providers/registration-provider';
 import { ApiError, requestOtp, verifyOtp } from '../lib/api-client';
@@ -55,9 +55,18 @@ function getNameErrorMsg(profileFor: string): string {
   }
 }
 
-export default function Home() {
+// `returnTo` may only be one of this app's own paths, never another site.
+function safeReturnTo(value: string | null): string | null {
+  return value && value.startsWith('/') && !value.startsWith('//') && !value.startsWith('/\\') ? value : null;
+}
+
+function HomeContent() {
   const router = useRouter();
   const { data, hydrated, setPhoneNumber, setAuth } = useRegistration();
+  // /?login=true (e.g. from Membership's Pay Now) opens the same login modal
+  // as the Log In button; returnTo is where a successful login goes next.
+  const searchParams = useSearchParams();
+  const returnTo = safeReturnTo(searchParams.get('returnTo'));
 
   const [langOpen, setLangOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState('English');
@@ -81,7 +90,7 @@ export default function Home() {
   const [registerDevOtp, setRegisterDevOtp] = useState<string | undefined>();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(() => searchParams.get('login') === 'true');
   const [submitting, setSubmitting] = useState(false);
 
   const [loginStep, setLoginStep] = useState<'phone' | 'otp'>('phone');
@@ -295,7 +304,7 @@ export default function Home() {
         window.location.href = adminUrl;
         return;
       }
-      if (!result.user.hasProfile) {
+      if (!result.user.hasProfile || returnTo) {
         setSkipHomeRedirect(true);
       }
       setAuth({
@@ -306,7 +315,7 @@ export default function Home() {
       });
       closeAuthModal();
       showToast('Logged In', 'Welcome back to Nadar Kalyanam!');
-      router.push(result.user.hasProfile ? '/' : '/onboarding/basic-details');
+      router.push(result.user.hasProfile ? (returnTo ?? '/') : '/onboarding/basic-details');
     } catch (error) {
       setLoginSubmitting(false);
       setLoginOtpError(
@@ -984,5 +993,15 @@ export default function Home() {
         </div>
       </div>
     </div>
+  );
+}
+
+// useSearchParams needs a Suspense boundary; the page renders nothing until
+// the stored session has loaded anyway, so the fallback is empty too.
+export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
   );
 }

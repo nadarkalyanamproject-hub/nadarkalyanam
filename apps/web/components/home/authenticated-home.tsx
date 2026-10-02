@@ -125,7 +125,6 @@ const POPULAR_TAGS = [
   'Madurai',
   'Bangalore',
   'Trichy',
-  'India',
   'Nadar Bride (25–30)',
 ];
 
