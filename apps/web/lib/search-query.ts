@@ -28,6 +28,7 @@ export interface SearchFilters {
   joinedWithinDays: string;
   withPhoto: string;
   excludeShortlisted: string;
+  verified: string;
 }
 
 export const EMPTY_SEARCH_FILTERS: SearchFilters = {
@@ -55,6 +56,7 @@ export const EMPTY_SEARCH_FILTERS: SearchFilters = {
   joinedWithinDays: '',
   withPhoto: '',
   excludeShortlisted: '',
+  verified: '',
 };
 
 const FILTER_KEYS = Object.keys(EMPTY_SEARCH_FILTERS) as (keyof SearchFilters)[];
@@ -117,5 +119,6 @@ export function toSearchQuery(filters: SearchFilters): SearchProfilesParams {
     joinedWithinDays: joined ? Number(joined) : undefined,
     withPhoto: flag(filters.withPhoto),
     excludeShortlisted: flag(filters.excludeShortlisted),
+    verified: flag(filters.verified),
   };
 }

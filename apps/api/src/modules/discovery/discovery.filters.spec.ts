@@ -147,6 +147,18 @@ describe('search filters — each narrows results independently', () => {
   });
 });
 
+describe('verified filter', () => {
+  it('keeps only identity-verified members and combines with other filters', async () => {
+    const { state, discovery } = setup();
+    state.profiles.find((p) => p.userId === 'target')!.isVerified = true;
+    state.profiles.find((p) => p.userId === 'religion')!.isVerified = true;
+
+    expect(ids((await run(discovery, { verified: 'true' })).items)).toEqual([pid('religion'), pid('target')].sort());
+    expect(ids((await run(discovery, { verified: 'true', religion: 'Hindu' })).items)).toEqual([pid('target')]);
+    expect((await run(discovery, { verified: 'false' })).total).toBe(1 + ALL_DECOYS.length);
+  });
+});
+
 describe('nearby is the Matches "Nearby" rule', () => {
   it('returns the same members as GET /match-categories/nearby', async () => {
     const { discovery, matches } = setup();

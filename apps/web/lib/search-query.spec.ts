@@ -65,6 +65,7 @@ describe('search query mapping (used by app/search/page.tsx)', () => {
       joinedWithinDays: '7',
       withPhoto: 'true',
       excludeShortlisted: 'true',
+      verified: 'true',
     });
     expect(defined(query)).toEqual({
       heightMinCm: 160,
@@ -83,6 +84,7 @@ describe('search query mapping (used by app/search/page.tsx)', () => {
       joinedWithinDays: 7,
       withPhoto: true,
       excludeShortlisted: true,
+      verified: true,
     });
   });
 

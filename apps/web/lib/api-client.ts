@@ -338,6 +338,7 @@ export interface SearchProfilesParams {
   joinedWithinDays?: number;
   withPhoto?: boolean;
   excludeShortlisted?: boolean;
+  verified?: boolean;
   sort?: 'id' | 'newest';
   cursor?: string;
   limit?: number;

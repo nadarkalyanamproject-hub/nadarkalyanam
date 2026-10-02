@@ -37,6 +37,7 @@ export function matchesProfileWhere(state: FakeState, p: FakeProfile, where: any
   if (where.id?.in && !where.id.in.includes(p.id)) return false;
   if (where.id?.notIn?.includes(p.id)) return false;
   if (typeof where.gender === 'string' && where.gender !== p.gender) return false;
+  if (typeof where.isVerified === 'boolean' && where.isVerified !== p.isVerified) return false;
   if (where.dateOfBirth?.gte && p.dateOfBirth < where.dateOfBirth.gte) return false;
   if (where.dateOfBirth?.lte && p.dateOfBirth > where.dateOfBirth.lte) return false;
   if (typeof where.id === 'string' && where.id !== p.id) return false;

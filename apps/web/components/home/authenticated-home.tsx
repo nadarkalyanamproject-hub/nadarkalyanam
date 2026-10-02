@@ -4,8 +4,6 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type {
-  ListInterestsResponse,
-  ListNotificationsResponse,
   MatchResult,
   SearchProfileResult,
 } from '@nadar-kalyanam/schemas';
@@ -25,7 +23,7 @@ import {
 } from 'lucide-react';
 import { AppHeader, UserIcon } from '../app-header';
 import { SponsoredBanner } from './sponsored-banner';
-import { listInterests, listMatches, listNotifications, searchProfiles } from '../../lib/api-client';
+import { ApiError, listMatches, searchProfiles, type SearchProfilesParams } from '../../lib/api-client';
 import { ConnectedBadge, RelationshipAction } from '../relationship/relationship-action';
 import { useProfile } from '../../lib/use-profile';
 import { useRequireAuth } from '../../lib/use-require-auth';
@@ -42,6 +40,8 @@ function ExploreTile({
   title,
   subtitle,
   profiles,
+  total = null,
+  failed = false,
 }: {
   href: string;
   icon: ReactNode;
@@ -51,9 +51,13 @@ function ExploreTile({
   title: string;
   subtitle: string;
   profiles: { profileId: string; primaryPhotoUrl: string | null }[];
+  // Real total from the API for exactly what the tile links to; without
+  // one, no "+N" is shown (never a count derived from a small sample).
+  total?: number | null;
+  failed?: boolean;
 }) {
   const shown = profiles.slice(0, 3);
-  const remaining = profiles.length - shown.length;
+  const remaining = total === null ? 0 : total - shown.length;
 
   return (
     <Link
@@ -71,6 +75,7 @@ function ExploreTile({
             {title}
           </h3>
           <p className="text-[11px] text-[#73645C]">{subtitle}</p>
+          {failed && <p className="mt-2 text-[11px] font-medium text-[#7B1118]">Couldn&apos;t load a preview</p>}
           {shown.length > 0 && (
             <div className="flex items-center gap-1.5 mt-2">
               <div className="flex -space-x-1.5">
@@ -100,6 +105,20 @@ function ExploreTile({
   );
 }
 
+// Explore tiles: each opens Search with real filters, and its preview and
+// "+N" come from the same query. 30 days matches Matches' "Newly Joined".
+type TileKey = 'recent' | 'verified' | 'nearby';
+type TilePreview = { items: SearchProfileResult[]; total: number } | 'failed';
+const TILE_QUERIES: Record<TileKey, (ownCity: string) => SearchProfilesParams | null> = {
+  recent: () => ({ joinedWithinDays: 30 }),
+  verified: () => ({ verified: true }),
+  nearby: (ownCity) => (ownCity ? { city: ownCity } : null),
+};
+const TILE_HREFS = {
+  recent: '/search?joinedWithinDays=30',
+  verified: '/search?verified=true',
+};
+
 const POPULAR_TAGS = [
   'Chennai',
   'Coimbatore',
@@ -116,38 +135,46 @@ export function AuthenticatedHome() {
   // Sends a signed-in user without a profile back to onboarding.
   const { ready } = useRequireAuth();
   const { profile } = useProfile();
-  const [interests, setInterests] = useState<ListInterestsResponse | null>(null);
-  const [notifications, setNotifications] = useState<ListNotificationsResponse | null>(null);
   const [matches, setMatches] = useState<MatchResult[] | null>(null);
-  const [discoverPool, setDiscoverPool] = useState<SearchProfileResult[] | null>(null);
+  const [matchesError, setMatchesError] = useState<string | null>(null);
+  const [previews, setPreviews] = useState<Partial<Record<TileKey, TilePreview>>>({});
 
   const [lookingFor, setLookingFor] = useState<'Nadar Bride' | 'Nadar Groom'>('Nadar Bride');
   const [ageRange, setAgeRange] = useState('25 – 32 yrs');
   const [locationCity, setLocationCity] = useState('Chennai');
 
+  // Each section loads on its own, so one failing call only affects its own
+  // section. (Interests and notifications aren't shown on this page; the
+  // header loads its own badges.)
+  const ownCity = profile?.details?.location?.city?.trim() || '';
   useEffect(() => {
     if (!data.accessToken || !profile) return;
+    const token = data.accessToken;
     let cancelled = false;
-    Promise.all([
-      listInterests(data.accessToken),
-      listNotifications(data.accessToken),
-      listMatches(data.accessToken, 8),
-      searchProfiles(data.accessToken, { sort: 'newest', limit: 12 }),
-    ])
-      .then(([interestsResult, notificationsResult, matchesResult, discoverResult]) => {
-        if (cancelled) return;
-        setInterests(interestsResult);
-        setNotifications(notificationsResult);
-        setMatches(matchesResult.items);
-        setDiscoverPool(discoverResult.items);
+    listMatches(token, 8)
+      .then((result) => {
+        if (!cancelled) setMatches(result.items);
       })
-      .catch(() => {
-        // Best effort
+      .catch((err: unknown) => {
+        if (!cancelled) setMatchesError(err instanceof ApiError ? err.message : 'Could not load recommendations.');
       });
+    for (const key of Object.keys(TILE_QUERIES) as TileKey[]) {
+      const query = TILE_QUERIES[key](ownCity);
+      if (!query) continue;
+      // Same filters the tile's link opens Search with (Search always sends
+      // country=India), so the preview and its count match what Search shows.
+      searchProfiles(token, { ...query, country: 'India', sort: 'newest', limit: 3 })
+        .then((result) => {
+          if (!cancelled) setPreviews((prev) => ({ ...prev, [key]: { items: result.items, total: result.total } }));
+        })
+        .catch(() => {
+          if (!cancelled) setPreviews((prev) => ({ ...prev, [key]: 'failed' }));
+        });
+    }
     return () => {
       cancelled = true;
     };
-  }, [data.accessToken, profile]);
+  }, [data.accessToken, profile, ownCity]);
 
   function handleQuickSearch(e?: FormEvent) {
     e?.preventDefault();
@@ -155,9 +182,11 @@ export function AuthenticatedHome() {
     if (lookingFor === 'Nadar Bride') params.set('gender', 'FEMALE');
     if (lookingFor === 'Nadar Groom') params.set('gender', 'MALE');
 
-    if (ageRange.includes('25')) {
-      params.set('ageMin', '25');
-      params.set('ageMax', '32');
+    // Exactly the range the label shows, e.g. "28 – 35 yrs" -> 28..35.
+    const range = ageRange.match(/(\d+)\s*–\s*(\d+)/);
+    if (range) {
+      params.set('ageMin', range[1]);
+      params.set('ageMax', range[2]);
     }
     if (locationCity && locationCity !== 'All Locations') {
       params.set('city', locationCity);
@@ -181,12 +210,13 @@ export function AuthenticatedHome() {
   // Real, computed by the API from the profile's filled fields and photos.
   const completionScore = profile?.completionScore ?? 0;
 
-  // Real, derived from the same fetched pool — never hardcoded stock photos
-  // or invented counts (see the tiles below).
-  const ownCity = profile?.details?.location?.city;
-  const newMembers = discoverPool ?? [];
-  const verifiedMembers = (discoverPool ?? []).filter((p) => p.isVerified);
-  const nearbyMembers = ownCity ? (discoverPool ?? []).filter((p) => p.city === ownCity) : [];
+  const missingDetails = profile?.completionMissing.length;
+  const tile = (key: TileKey) => {
+    const preview = previews[key];
+    return preview === 'failed'
+      ? { profiles: [], total: null, failed: true }
+      : { profiles: preview?.items ?? [], total: preview?.total ?? null, failed: false };
+  };
 
   if (!ready) return null;
 
@@ -348,7 +378,11 @@ export function AuthenticatedHome() {
                   </div>
 
                   <p className="text-xs text-[#73645C] leading-snug">
-                    Add 3 more details to get better matches and 3x more responses.
+                    {missingDetails === undefined
+                      ? null
+                      : missingDetails === 0
+                        ? 'Your profile is complete.'
+                        : `Add ${missingDetails} more ${missingDetails === 1 ? 'detail' : 'details'} to complete your profile.`}
                   </p>
                 </div>
 
@@ -392,6 +426,12 @@ export function AuthenticatedHome() {
               <span>→</span>
             </Link>
           </div>
+
+          {matchesError && (
+            <p role="alert" className="py-8 text-center text-sm font-medium text-[#7B1118]">
+              {matchesError}
+            </p>
+          )}
 
           {matches && matches.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -477,7 +517,7 @@ export function AuthenticatedHome() {
               <div className="flex flex-col items-center gap-2 py-8 text-center">
                 <p className="text-sm font-semibold text-[#2B1515]">No new recommendations yet</p>
                 <p className="text-xs text-[#73645C] max-w-sm">
-                  Try adjusting your preferences to discover more compatible profiles.
+                  New recommendations appear here as more members join.
                 </p>
                 <Link
                   href="/matches"
@@ -505,24 +545,24 @@ export function AuthenticatedHome() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <ExploreTile
-              href="/search?sort=newest"
+              href={TILE_HREFS.recent}
               icon={<Users className="h-5 w-5" />}
               iconBg="bg-[#FEE2E2]"
               iconBorder="border-[#FECDD3]"
               iconColor="text-[#DC2626]"
               title="Recently Joined"
               subtitle="New members in the Nadar community"
-              profiles={newMembers}
+              {...tile('recent')}
             />
             <ExploreTile
-              href="/search?verified=true"
+              href={TILE_HREFS.verified}
               icon={<ShieldCheck className="h-5 w-5" />}
               iconBg="bg-[#FEF3C7]"
               iconBorder="border-[#FDE68A]"
               iconColor="text-[#D97706]"
               title="Verified Members"
               subtitle="Identity verified profiles"
-              profiles={verifiedMembers}
+              {...tile('verified')}
             />
             <ExploreTile
               href={ownCity ? `/search?city=${encodeURIComponent(ownCity)}` : '/search'}
@@ -531,8 +571,8 @@ export function AuthenticatedHome() {
               iconBorder="border-[#FECDD3]"
               iconColor="text-[#E11D48]"
               title="Nearby Matches"
-              subtitle={ownCity ? `Members from ${ownCity} and nearby` : 'Members near you'}
-              profiles={nearbyMembers}
+              subtitle={ownCity ? `Members in ${ownCity}` : 'Members near you'}
+              {...tile('nearby')}
             />
             <ExploreTile
               href="/matches"
@@ -541,8 +581,9 @@ export function AuthenticatedHome() {
               iconBorder="border-[#FEF08A]"
               iconColor="text-[#CA8A04]"
               title="Most Compatible"
-              subtitle="Based on your preferences"
+              subtitle="Your top recommendations"
               profiles={matches ?? []}
+              failed={Boolean(matchesError)}
             />
           </div>
         </section>

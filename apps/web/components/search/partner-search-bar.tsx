@@ -666,6 +666,13 @@ export function PartnerSearchBar({
           <div className="space-y-1.5 text-left">
             <FieldLabel>Profile type</FieldLabel>
             <CheckboxField id="search-with-photo" label="Profiles with photo" checked={filters.withPhoto === 'true'} onChange={setFlag('withPhoto')} />
+            <CheckboxField
+              id="search-verified"
+              label="Verified profiles only"
+              hint="Members whose identity verification is complete."
+              checked={filters.verified === 'true'}
+              onChange={setFlag('verified')}
+            />
           </div>
           <div className="space-y-1.5 text-left">
             <FieldLabel>Don&apos;t show</FieldLabel>

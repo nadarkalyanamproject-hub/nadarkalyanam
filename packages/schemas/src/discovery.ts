@@ -52,6 +52,8 @@ export const searchProfilesQuerySchema = z.object({
     .optional(),
   withPhoto: queryFlag,
   excludeShortlisted: queryFlag,
+  // Only members whose identity verification completed (isVerified).
+  verified: queryFlag,
   // Any other key (e.g. a "coming soon" filter such as star or eating
   // habits) is stripped by z.object, never applied and never an error.
   // 'newest' trades cursor-pagination stability for createdAt-desc order —

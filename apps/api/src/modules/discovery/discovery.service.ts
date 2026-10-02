@@ -83,6 +83,7 @@ export class DiscoveryService {
     }
     if (query.joinedWithinDays) details.push(joinedWithinWhere(query.joinedWithinDays));
     if (query.withPhoto) details.push(WITH_PHOTO_WHERE);
+    if (query.verified) details.push({ isVerified: true });
     if (query.excludeShortlisted) {
       const shortlisted = await this.prisma.shortlist.findMany({
         where: { memberId: callerUserId },
