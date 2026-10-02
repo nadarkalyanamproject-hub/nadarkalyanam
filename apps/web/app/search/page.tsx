@@ -43,6 +43,15 @@ function SearchPageContent() {
   // Numbers each search; only the newest may update the page. Clear bumps it
   // too, so a response still in flight can't bring back old results.
   const requestSeq = useRef(0);
+  // The filter form is long, so results render far below the first screen.
+  // After every completed search (from the URL or the Search button) the
+  // page scrolls to its outcome — results, the empty state or the error —
+  // instead of leaving a blank-looking form in view.
+  const [outcomeVersion, setOutcomeVersion] = useState(0);
+  useEffect(() => {
+    if (outcomeVersion === 0) return;
+    document.querySelector('[data-search-outcome]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [outcomeVersion]);
 
   // Only ever real results: 0 matches shows the empty state and a failed call
   // shows the error state. No fake/demo profiles are ever substituted.
@@ -66,6 +75,7 @@ function SearchPageContent() {
     setSearchedFilters(ok ? outcome.filters : null);
     setError(ok ? null : outcome.error);
     setLoading(false);
+    setOutcomeVersion((v) => v + 1);
   }
 
   // Next page for the filters that produced the current results.
@@ -151,14 +161,14 @@ function SearchPageContent() {
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-2xl border border-red-200 bg-red-50/80 p-6 text-center text-sm font-medium text-[#7A1118]">
+            <div data-search-outcome className="scroll-mt-28 rounded-2xl border border-red-200 bg-red-50/80 p-6 text-center text-sm font-medium text-[#7A1118]">
               {error}
             </div>
           )}
 
           {/* Empty Results state */}
           {results && results.length === 0 && !error && (
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EADBBD] p-8 sm:p-12 text-center max-w-xl mx-auto shadow-xs">
+            <div data-search-outcome className="scroll-mt-28 bg-white rounded-2xl sm:rounded-3xl border border-[#EADBBD] p-8 sm:p-12 text-center max-w-xl mx-auto shadow-xs">
               <div className="h-12 w-12 rounded-full bg-[#FAF7F2] border border-[#DECDBB] flex items-center justify-center mx-auto mb-3 text-[#7A1118]">
                 <BotanicalSprig className="h-6 w-6 text-[#C4A882]" />
               </div>
@@ -180,7 +190,7 @@ function SearchPageContent() {
 
           {/* Search Results Grid */}
           {results && results.length > 0 && (
-            <div className="flex flex-col gap-5 pt-2">
+            <div data-search-outcome className="scroll-mt-28 flex flex-col gap-5 pt-2">
               <div className="flex items-center justify-between border-b border-[#EADBBD]/60 pb-3">
                 {/* The count is only shown for the filters it was computed for. */}
                 {countIsStale || total === null ? (
