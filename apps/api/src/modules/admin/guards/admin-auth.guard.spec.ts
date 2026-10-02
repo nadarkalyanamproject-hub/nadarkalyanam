@@ -12,12 +12,12 @@ function buildContext(headers: { authorization?: string }) {
 
 describe('AdminAuthGuard', () => {
   let jwtService: { verifyAsync: ReturnType<typeof vi.fn> };
-  let prisma: { adminUser: { findUnique: ReturnType<typeof vi.fn> } };
+  let prisma: { adminUser: { findUnique: ReturnType<typeof vi.fn> }; session: { findUnique: ReturnType<typeof vi.fn> } };
   let guard: AdminAuthGuard;
 
   beforeEach(() => {
     jwtService = { verifyAsync: vi.fn() };
-    prisma = { adminUser: { findUnique: vi.fn() } };
+    prisma = { adminUser: { findUnique: vi.fn() }, session: { findUnique: vi.fn() } };
     guard = new AdminAuthGuard(jwtService as never, prisma as never);
   });
 
@@ -68,10 +68,37 @@ describe('AdminAuthGuard', () => {
     await expect(guard.canActivate(context)).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
+  const activeAdmin = {
+    id: 'admin-1',
+    userId: 'user-1',
+    roleId: 'role-1',
+    isActive: true,
+    role: { name: 'Moderator', permissions: [{ permission: { code: 'reports.review' } }] },
+  };
+  const liveSession = { userId: 'user-1', revokedAt: null, expiresAt: new Date(Date.now() + 60 * 60 * 1000) };
+
+  it.each([
+    ['revoked by logout', { sub: 'admin-1', typ: 'admin', sid: 's1' }, { ...liveSession, revokedAt: new Date() }],
+    ['past its expiry', { sub: 'admin-1', typ: 'admin', sid: 's1' }, { ...liveSession, expiresAt: new Date(Date.now() - 1000) }],
+    ['missing', { sub: 'admin-1', typ: 'admin', sid: 's1' }, null],
+    ["another user's", { sub: 'admin-1', typ: 'admin', sid: 's1' }, { ...liveSession, userId: 'user-2' }],
+    ['not named in the token', { sub: 'admin-1', typ: 'admin' }, liveSession],
+  ])('rejects an active admin\'s token whose session is %s', async (_label, payload, session) => {
+    jwtService.verifyAsync.mockResolvedValue(payload);
+    prisma.adminUser.findUnique.mockResolvedValue(activeAdmin);
+    prisma.session.findUnique.mockResolvedValue(session);
+    const { context, request } = buildContext({ authorization: 'Bearer admin-token' });
+
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(request.adminUser).toBeUndefined();
+  });
+
   it('allows a valid typ:"admin" token for an active admin and attaches their resolved permissions', async () => {
-    jwtService.verifyAsync.mockResolvedValue({ sub: 'admin-1', typ: 'admin' });
+    jwtService.verifyAsync.mockResolvedValue({ sub: 'admin-1', typ: 'admin', sid: 's1' });
+    prisma.session.findUnique.mockResolvedValue(liveSession);
     prisma.adminUser.findUnique.mockResolvedValue({
       id: 'admin-1',
+      userId: 'user-1',
       roleId: 'role-1',
       isActive: true,
       role: {
@@ -84,6 +111,8 @@ describe('AdminAuthGuard', () => {
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(request.adminUser).toEqual({
       adminId: 'admin-1',
+      userId: 'user-1',
+      sessionId: 's1',
       roleId: 'role-1',
       roleName: 'Moderator',
       permissions: ['reports.review'],

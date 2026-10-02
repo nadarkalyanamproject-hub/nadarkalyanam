@@ -28,6 +28,8 @@ function adminRow(id: string, role: typeof superRole | typeof moderatorRole, isA
 
 const actor = (adminId: string): AuthenticatedAdmin => ({
   adminId,
+  userId: `user-${adminId}`,
+  sessionId: 'session-test',
   roleId: 'role-super',
   roleName: 'SUPER_ADMIN',
   permissions: [MANAGE],

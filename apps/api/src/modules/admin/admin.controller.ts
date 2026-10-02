@@ -1,4 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { revokeSession } from '../auth/session.util.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import {
   type AdminAuditLogsQuery,
   adminAuditLogsQuerySchema,
@@ -43,6 +45,7 @@ export class AdminController {
     private readonly moderationService: ModerationService,
     private readonly profilesService: ProfilesService,
     private readonly auditLogService: AuditLogService,
+    private readonly prisma: PrismaService,
   ) {}
 
   // The signed-in admin's own identity and resolved permission codes, so the
@@ -52,6 +55,15 @@ export class AdminController {
   @Get('me')
   getMe(@CurrentAdmin() admin: AuthenticatedAdmin) {
     return this.adminUsersService.getCurrentAdmin(admin);
+  }
+
+  // Admin logout: revokes this login session exactly like member logout
+  // (POST /auth/logout), so this admin token stops working at once. Any
+  // active admin may log themselves out — no permission required.
+  @Post('logout')
+  @HttpCode(204)
+  async logout(@CurrentAdmin() admin: AuthenticatedAdmin): Promise<void> {
+    await revokeSession(this.prisma, admin.userId, admin.sessionId);
   }
 
   // Reuses MEMBERS_VIEW rather than a new "dashboard.view" code: this is a

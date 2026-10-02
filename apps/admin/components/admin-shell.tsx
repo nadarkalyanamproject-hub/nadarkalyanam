@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@nadar-kalyanam/ui';
 import { useAdminAuth } from '../app/providers/admin-auth-provider';
+import { logoutAdmin } from '../lib/api-client';
 import { useCurrentAdmin } from '../lib/use-current-admin';
 
 // Each item is shown only to admins holding the permission its API routes
@@ -19,12 +20,20 @@ const NAV_ITEMS = [
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { clearAuth } = useAdminAuth();
+  const { data, clearAuth } = useAdminAuth();
   const { admin, can } = useCurrentAdmin();
 
-  function handleLogout() {
-    clearAuth();
-    router.push('/login');
+  // Revokes the session server-side first; a failed call (network, already
+  // expired token) still signs out locally rather than trapping the admin.
+  async function handleLogout() {
+    try {
+      if (data.accessToken) await logoutAdmin(data.accessToken);
+    } catch {
+      // Local sign-out below still happens.
+    } finally {
+      clearAuth();
+      router.push('/login');
+    }
   }
 
   return (
@@ -55,7 +64,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 {admin.email} · {admin.roleName}
               </span>
             )}
-            <Button type="button" variant="outline" size="sm" onClick={handleLogout}>
+            <Button type="button" variant="outline" size="sm" onClick={() => void handleLogout()}>
               Log out
             </Button>
           </div>

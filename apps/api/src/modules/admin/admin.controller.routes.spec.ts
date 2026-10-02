@@ -36,9 +36,11 @@ const NEW_ROUTES: { handler: Handler; method: RequestMethod; path: string; permi
 
 // Tokens are just labels here: the mocked JwtService maps each to the
 // payload a real token of that kind carries.
-const TOKEN_PAYLOADS: Record<string, { sub: string; typ?: string }> = {
-  member: { sub: 'member-user-1' },
-  ...Object.fromEntries(Object.keys(ROLE_PERMISSIONS).map((role) => [role, { sub: `admin-${role}`, typ: 'admin' }])),
+const TOKEN_PAYLOADS: Record<string, { sub: string; typ?: string; sid?: string }> = {
+  member: { sub: 'member-user-1', sid: 'session-member' },
+  ...Object.fromEntries(
+    Object.keys(ROLE_PERMISSIONS).map((role) => [role, { sub: `admin-${role}`, typ: 'admin', sid: `session-${role}` }]),
+  ),
 };
 
 async function runGuards(handler: Handler, token: string) {
@@ -55,11 +57,20 @@ async function runGuards(handler: Handler, token: string) {
         const role = where.id.replace(/^admin-/, '');
         return {
           id: where.id,
+          userId: `user-${role}`,
           roleId: `role-${role}`,
           isActive: true,
           role: { name: role, permissions: ROLE_PERMISSIONS[role].map((code) => ({ permission: { code } })) },
         };
       }),
+    },
+    // Every admin's login session is live in these route tests.
+    session: {
+      findUnique: vi.fn(async ({ where }: { where: { id: string } }) => ({
+        userId: `user-${where.id.replace(/^session-/, '')}`,
+        revokedAt: null,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      })),
     },
   };
   const request = { headers: { authorization: `Bearer ${token}` } };
@@ -144,10 +155,11 @@ describe('AdminController report + profile handlers', () => {
       moderationService as never,
       profilesService as never,
       auditLogService as never,
+      {} as never,
     );
     return { controller, moderationService, auditLogService, adminService, profilesService };
   }
-  const admin = { adminId: 'admin-1', roleId: 'r', roleName: 'MODERATOR', permissions: [] };
+  const admin = { adminId: 'admin-1', userId: 'user-1', sessionId: 'session-test', roleId: 'r', roleName: 'MODERATOR', permissions: [] };
 
   it('moving a report to IN_REVIEW is audited as report.review, with the note', async () => {
     const { controller, auditLogService } = buildController();

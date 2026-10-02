@@ -1,9 +1,14 @@
 import { type CanActivate, type ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { assertActiveSession } from '../../auth/session.util.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 export interface AuthenticatedAdmin {
   adminId: string;
+  // The admin's own User account and the login session this token belongs
+  // to (what admin logout revokes).
+  userId: string;
+  sessionId: string;
   roleId: string;
   roleName: string;
   permissions: string[];
@@ -36,9 +41,9 @@ export class AdminAuthGuard implements CanActivate {
     }
 
     const token = authHeader.slice('Bearer '.length);
-    let payload: { sub: string; typ?: string };
+    let payload: { sub: string; typ?: string; sid?: string };
     try {
-      payload = await this.jwtService.verifyAsync<{ sub: string; typ?: string }>(token);
+      payload = await this.jwtService.verifyAsync<{ sub: string; typ?: string; sid?: string }>(token);
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
     }
@@ -53,9 +58,15 @@ export class AdminAuthGuard implements CanActivate {
     if (!admin || !admin.isActive) {
       throw new UnauthorizedException('Admin account is inactive');
     }
+    // Same rule as members (JwtAuthGuard): the token's login session must
+    // still be live, so a logged-out admin token is refused immediately.
+    // The session belongs to the admin's User account, not the AdminUser.
+    await assertActiveSession(this.prisma, payload.sid, admin.userId);
 
     request.adminUser = {
       adminId: admin.id,
+      userId: admin.userId,
+      sessionId: payload.sid!,
       roleId: admin.roleId,
       roleName: admin.role.name,
       permissions: admin.role.permissions.map((rolePermission) => rolePermission.permission.code),

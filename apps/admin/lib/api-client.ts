@@ -93,6 +93,12 @@ export interface DashboardStats {
   recentSignups: { id: string; fullName: string | null; phoneNumber: string; createdAt: string }[];
 }
 
+// Ends this admin login session on the server (same session revocation as
+// member logout), so this token stops working at once.
+export function logoutAdmin(accessToken: string): Promise<void> {
+  return request<void>('/admin/logout', { method: 'POST', headers: authHeaders(accessToken) });
+}
+
 export function getDashboardStats(accessToken: string): Promise<DashboardStats> {
   return request('/admin/dashboard', { headers: authHeaders(accessToken) });
 }

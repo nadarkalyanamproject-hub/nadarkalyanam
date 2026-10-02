@@ -6,6 +6,7 @@ import type { VerifyOtpResponse } from '@nadar-kalyanam/schemas';
 import type { Redis } from 'ioredis';
 import type { Env } from '../config/env.schema.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { revokeSession } from './session.util.js';
 import { REDIS_CLIENT } from '../redis/redis.constants.js';
 
 const OTP_TTL_SECONDS = 300;
@@ -131,10 +132,7 @@ export class AuthService {
   // is rejected from then on (see assertActiveSession). Idempotent: an
   // already-revoked session stays revoked.
   async logout(userId: string, sessionId: string): Promise<void> {
-    await this.prisma.session.updateMany({
-      where: { id: sessionId, userId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+    await revokeSession(this.prisma, userId, sessionId);
   }
 
   private async findUserForLogin(phoneNumber: string) {

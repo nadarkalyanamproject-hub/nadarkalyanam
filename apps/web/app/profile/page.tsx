@@ -49,7 +49,7 @@ const PHYSICAL_STATUS_LABELS: Record<string, string> = {
 
 const DOSHAM_LABELS: Record<string, string> = {
   NO: 'No Dosham',
-  YES: 'Chevvai / Sevvai Dosham',
+  YES: 'Yes',
   DONT_KNOW: "Don't Know",
 };
 
