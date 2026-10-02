@@ -28,6 +28,7 @@ import { ConnectedBadge, RelationshipAction } from '../relationship/relationship
 import { useProfile } from '../../lib/use-profile';
 import { useRequireAuth } from '../../lib/use-require-auth';
 import { useRegistration } from '../../app/providers/registration-provider';
+import { matchCategoryHref } from '../../lib/match-categories';
 
 // One real avatar stack + honest count, reused by all four "More Profiles
 // to Explore" tiles — never a hardcoded stock photo or an invented total.
@@ -105,17 +106,23 @@ function ExploreTile({
   );
 }
 
-// Explore tiles: each opens Search with real filters, and its preview and
-// "+N" come from the same query. 30 days matches Matches' "Newly Joined".
+// Explore tiles. Recently Joined, Nearby and Most Compatible open their
+// existing Matches category pages; Verified Members has no such page, so it
+// opens Search with the real verified filter. Each preview and "+N" comes
+// from a Search query using the same rule as the tile's destination
+// (Newly Joined's 30 days, Nearby's same city or state, verified-only).
 type TileKey = 'recent' | 'verified' | 'nearby';
 type TilePreview = { items: SearchProfileResult[]; total: number } | 'failed';
-const TILE_QUERIES: Record<TileKey, (ownCity: string) => SearchProfilesParams | null> = {
-  recent: () => ({ joinedWithinDays: 30 }),
-  verified: () => ({ verified: true }),
-  nearby: (ownCity) => (ownCity ? { city: ownCity } : null),
+const TILE_QUERIES: Record<TileKey, SearchProfilesParams> = {
+  recent: { joinedWithinDays: 30 },
+  nearby: { nearby: true },
+  // Search always adds country=India, so the count matches what it shows.
+  verified: { verified: true, country: 'India' },
 };
-const TILE_HREFS = {
-  recent: '/search?joinedWithinDays=30',
+const TILE_HREFS: Record<TileKey | 'compatible', string> = {
+  recent: matchCategoryHref('newly-joined'),
+  nearby: matchCategoryHref('nearby'),
+  compatible: matchCategoryHref('your-matches'),
   verified: '/search?verified=true',
 };
 
@@ -158,11 +165,7 @@ export function AuthenticatedHome() {
         if (!cancelled) setMatchesError(err instanceof ApiError ? err.message : 'Could not load recommendations.');
       });
     for (const key of Object.keys(TILE_QUERIES) as TileKey[]) {
-      const query = TILE_QUERIES[key](ownCity);
-      if (!query) continue;
-      // Same filters the tile's link opens Search with (Search always sends
-      // country=India), so the preview and its count match what Search shows.
-      searchProfiles(token, { ...query, country: 'India', sort: 'newest', limit: 3 })
+      searchProfiles(token, { ...TILE_QUERIES[key], sort: 'newest', limit: 3 })
         .then((result) => {
           if (!cancelled) setPreviews((prev) => ({ ...prev, [key]: { items: result.items, total: result.total } }));
         })
@@ -173,7 +176,7 @@ export function AuthenticatedHome() {
     return () => {
       cancelled = true;
     };
-  }, [data.accessToken, profile, ownCity]);
+  }, [data.accessToken, profile]);
 
   function handleQuickSearch(e?: FormEvent) {
     e?.preventDefault();
@@ -564,17 +567,17 @@ export function AuthenticatedHome() {
               {...tile('verified')}
             />
             <ExploreTile
-              href={ownCity ? `/search?city=${encodeURIComponent(ownCity)}` : '/search'}
+              href={TILE_HREFS.nearby}
               icon={<MapPin className="h-5 w-5" />}
               iconBg="bg-[#FFE4E6]"
               iconBorder="border-[#FECDD3]"
               iconColor="text-[#E11D48]"
               title="Nearby Matches"
-              subtitle={ownCity ? `Members in ${ownCity}` : 'Members near you'}
+              subtitle={ownCity ? `Members in or near ${ownCity}` : 'Members near you'}
               {...tile('nearby')}
             />
             <ExploreTile
-              href="/matches"
+              href={TILE_HREFS.compatible}
               icon={<Star className="h-5 w-5" />}
               iconBg="bg-[#FEF9C3]"
               iconBorder="border-[#FEF08A]"
