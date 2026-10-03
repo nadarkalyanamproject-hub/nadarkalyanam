@@ -99,3 +99,37 @@ export const memberActivityResponseSchema = z.object({
   points: z.array(memberActivityPointSchema),
 });
 export type MemberActivityResponse = z.infer<typeof memberActivityResponseSchema>;
+
+// GET /admin/dashboard/recent-activity?limit= — real platform events, newest
+// first, merged from their own tables: registrations (users.createdAt),
+// verifications (a SUCCEEDED verification request's decidedAt, set in the
+// same transaction that marks the profile verified), reports filed
+// (reports.createdAt) and admin actions (the audit log).
+export const recentActivityQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type RecentActivityQuery = z.infer<typeof recentActivityQuerySchema>;
+
+const activityMember = z.object({ userId: z.string(), fullName: z.string().nullable(), phoneNumber: z.string() });
+
+export const recentActivityItemSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('registration'), id: z.string(), at: z.string(), member: activityMember }),
+  z.object({ type: z.literal('verification'), id: z.string(), at: z.string(), member: activityMember }),
+  z.object({ type: z.literal('report'), id: z.string(), at: z.string(), targetType: z.string(), status: z.string() }),
+  z.object({
+    type: z.literal('admin_action'),
+    id: z.string(),
+    at: z.string(),
+    action: z.string(),
+    actorEmail: z.string().nullable(),
+    targetType: z.string(),
+    // The member an action was about (name/phone), the admin it changed, or
+    // null for actions on a report.
+    member: activityMember.nullable(),
+    targetAdminEmail: z.string().nullable(),
+  }),
+]);
+export type RecentActivityItem = z.infer<typeof recentActivityItemSchema>;
+
+export const recentActivityResponseSchema = z.object({ items: z.array(recentActivityItemSchema) });
+export type RecentActivityResponse = z.infer<typeof recentActivityResponseSchema>;

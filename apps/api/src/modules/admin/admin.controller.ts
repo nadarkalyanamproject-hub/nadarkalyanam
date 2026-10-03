@@ -2,6 +2,8 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, Use
 import { revokeSession } from '../auth/session.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
+  type RecentActivityQuery,
+  recentActivityQuerySchema,
   type MemberActivityQuery,
   memberActivityQuerySchema,
   type AdminAuditLogsQuery,
@@ -33,6 +35,7 @@ import { ProfilesService } from '../profiles/profiles.service.js';
 import { AdminUsersService } from './admin-users.service.js';
 import { AdminService } from './admin.service.js';
 import { AuditLogService } from './audit-log.service.js';
+import { loadRecentActivity } from './recent-activity.js';
 import { CurrentAdmin } from './decorators/current-admin.decorator.js';
 import { RequirePermission } from './decorators/require-permission.decorator.js';
 import { AdminAuthGuard, type AuthenticatedAdmin } from './guards/admin-auth.guard.js';
@@ -85,6 +88,17 @@ export class AdminController {
   @RequirePermission(PERMISSIONS.MEMBERS_VIEW)
   getMemberActivity(@Query(new ZodValidationPipe(memberActivityQuerySchema)) query: MemberActivityQuery) {
     return this.adminService.getMemberActivity(query.days);
+  }
+
+  // Recent Activity feed. Same permission as the dashboard; which sources
+  // appear depends on this admin's permissions (see loadRecentActivity).
+  @Get('dashboard/recent-activity')
+  @RequirePermission(PERMISSIONS.MEMBERS_VIEW)
+  async getRecentActivity(
+    @CurrentAdmin() admin: AuthenticatedAdmin,
+    @Query(new ZodValidationPipe(recentActivityQuerySchema)) query: RecentActivityQuery,
+  ) {
+    return { items: await loadRecentActivity(this.prisma, admin, query.limit) };
   }
 
   @Get('members')

@@ -6,6 +6,7 @@ import { ArrowUpRight, FileBarChart, ScrollText, ShieldCheck, Users } from 'luci
 import { Card } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../components/admin-shell';
 import { CHART_COLORS, DonutChart, LineChart } from '../components/charts';
+import { RecentActivity } from '../components/recent-activity';
 import {
   ApiError,
   getDashboardStats,
@@ -276,6 +277,8 @@ export default function AdminHome() {
               </Card>
             </Link>
 
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {data.accessToken && <RecentActivity accessToken={data.accessToken} />}
             <Card className="overflow-hidden rounded-2xl p-0 shadow-sm">
               <div className="border-b border-border px-5 py-3">
                 <h2 className="text-sm font-semibold text-foreground">Recent signups</h2>
@@ -302,6 +305,7 @@ export default function AdminHome() {
                 </table>
               )}
             </Card>
+            </div>
           </>
         )}
       </div>

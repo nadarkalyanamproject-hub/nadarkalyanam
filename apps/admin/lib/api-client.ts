@@ -6,6 +6,7 @@ import type {
   ReportStatus,
   SendOtpResponse,
   UpdateAdminRequest,
+  RecentActivityResponse,
 } from '@nadar-kalyanam/schemas';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
@@ -112,6 +113,12 @@ export interface MemberActivity {
   days: number;
   timezone: 'Asia/Kolkata';
   points: { date: string; newSignups: number; totalMembers: number }[];
+}
+
+// Recent Activity: real registrations, verifications, reports and admin
+// actions, newest first (only the sources this admin may see).
+export function getRecentActivity(accessToken: string, limit = 20): Promise<RecentActivityResponse> {
+  return request(`/admin/dashboard/recent-activity?limit=${limit}`, { headers: authHeaders(accessToken) });
 }
 
 export function getMemberActivity(accessToken: string, days: 7 | 30 | 90): Promise<MemberActivity> {
