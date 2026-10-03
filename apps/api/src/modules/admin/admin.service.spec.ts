@@ -14,6 +14,8 @@ function buildService(overrides?: {
   groupByResult?: unknown[];
   reportCountResult?: number;
   profileCountResult?: number;
+  previousWeekSignupsResult?: number;
+  verificationsResult?: number;
 }) {
   const findUniqueResult =
     overrides && 'findUniqueResult' in overrides ? overrides.findUniqueResult : { id: USER_ID, status: 'ACTIVE' };
@@ -22,9 +24,13 @@ function buildService(overrides?: {
   // listMembers also calls user.count({ where }) where `where` can be `{}`
   // (no search term), so branch on the createdAt key specifically rather
   // than truthiness of `where` itself.
-  const userCount = vi.fn().mockImplementation((args?: { where?: { createdAt?: unknown } }) =>
+  const userCount = vi.fn().mockImplementation((args?: { where?: { createdAt?: { lt?: Date } } }) =>
     Promise.resolve(
-      args?.where?.createdAt ? (overrides?.newSignupsResult ?? 0) : (overrides?.totalMembersResult ?? overrides?.countResult ?? 0),
+      args?.where?.createdAt?.lt
+        ? (overrides?.previousWeekSignupsResult ?? 0)
+        : args?.where?.createdAt
+          ? (overrides?.newSignupsResult ?? 0)
+          : (overrides?.totalMembersResult ?? overrides?.countResult ?? 0),
     ),
   );
   const prisma = {
@@ -42,6 +48,9 @@ function buildService(overrides?: {
     },
     profile: {
       count: vi.fn().mockResolvedValue(overrides?.profileCountResult ?? 0),
+    },
+    verificationRequest: {
+      count: vi.fn().mockResolvedValue(overrides?.verificationsResult ?? 0),
     },
   };
   const photosService = { getPhotosForProfile: vi.fn().mockResolvedValue([]) };
@@ -227,6 +236,22 @@ describe('AdminService.getDashboardStats', () => {
     const result = await service.getDashboardStats();
 
     expect(result.membersByStatus).toEqual({ active: 10, suspended: 0, pendingDeletion: 0, deleted: 0 });
+  });
+
+  it('adds real week-over-week figures: signups the week before, and verifications completed this week', async () => {
+    const { service, prisma } = buildService({ newSignupsResult: 7, previousWeekSignupsResult: 3, verificationsResult: 2 });
+
+    const result = await service.getDashboardStats();
+
+    expect(result.newSignupsPrevious7Days).toBe(3);
+    expect(result.verificationsLast7Days).toBe(2);
+    const prev = prisma.user.count.mock.calls.find((c: unknown[]) => (c[0] as { where?: { createdAt?: { lt?: Date } } })?.where?.createdAt?.lt);
+    const { gte, lt } = (prev![0] as { where: { createdAt: { gte: Date; lt: Date } } }).where.createdAt;
+    expect(Math.round((lt.getTime() - gte.getTime()) / 86_400_000)).toBe(7);
+    expect(Math.round((Date.now() - lt.getTime()) / 86_400_000)).toBe(7);
+    const verArgs = prisma.verificationRequest.count.mock.calls[0][0] as { where: { status: string; decidedAt: { gte: Date } } };
+    expect(verArgs.where.status).toBe('SUCCEEDED');
+    expect(Math.round((Date.now() - verArgs.where.decidedAt.gte.getTime()) / 86_400_000)).toBe(7);
   });
 
   it('queries new signups with a 7-day createdAt lower bound', async () => {

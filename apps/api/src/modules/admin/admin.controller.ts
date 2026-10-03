@@ -2,6 +2,8 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, Use
 import { revokeSession } from '../auth/session.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
+  type MemberActivityQuery,
+  memberActivityQuerySchema,
   type AdminAuditLogsQuery,
   adminAuditLogsQuerySchema,
   type AdminMembersQuery,
@@ -75,6 +77,14 @@ export class AdminController {
   @RequirePermission(PERMISSIONS.MEMBERS_VIEW)
   getDashboard() {
     return this.adminService.getDashboardStats();
+  }
+
+  // Member Activity chart: per-day signups and running member total for the
+  // last 7, 30 or 90 days. Same permission as the dashboard itself.
+  @Get('dashboard/activity')
+  @RequirePermission(PERMISSIONS.MEMBERS_VIEW)
+  getMemberActivity(@Query(new ZodValidationPipe(memberActivityQuerySchema)) query: MemberActivityQuery) {
+    return this.adminService.getMemberActivity(query.days);
   }
 
   @Get('members')

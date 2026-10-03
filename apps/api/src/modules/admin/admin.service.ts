@@ -1,11 +1,12 @@
 import { ConflictException, Injectable, NotFoundException, NotImplementedException } from '@nestjs/common';
-import type { AccountStatus } from '@nadar-kalyanam/schemas';
+import type { AccountStatus, MemberActivityResponse } from '@nadar-kalyanam/schemas';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditLogService } from './audit-log.service.js';
 import { scheduledAnonymizationDate } from './member-removal.js';
+import { ACTIVITY_TZ_OFFSET_MINUTES, activityWindow, buildActivitySeries } from './member-activity.js';
 
 export interface MemberListFilters {
   status?: AccountStatus;
@@ -273,9 +274,18 @@ export class AdminService {
   // always matches what an admin sees if they click through to Reports.
   async getDashboardStats() {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
-    const [totalMembers, statusGroups, newSignupsLast7Days, pendingReportsCount, verifiedProfilesCount, recentUsers] =
-      await Promise.all([
+    const [
+      totalMembers,
+      statusGroups,
+      newSignupsLast7Days,
+      pendingReportsCount,
+      verifiedProfilesCount,
+      recentUsers,
+      newSignupsPrevious7Days,
+      verificationsLast7Days,
+    ] = await Promise.all([
         this.prisma.user.count(),
         this.prisma.user.groupBy({ by: ['status'], _count: { _all: true } }),
         this.prisma.user.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
@@ -286,6 +296,11 @@ export class AdminService {
           take: 5,
           include: { profile: { select: { fullName: true } } },
         }),
+        // The 7 days before the last 7, for New Signups' week-over-week.
+        this.prisma.user.count({ where: { createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } } }),
+        // isVerified has no timestamp, so "verified this week" counts
+        // identity verifications that completed successfully this week.
+        this.prisma.verificationRequest.count({ where: { status: 'SUCCEEDED', decidedAt: { gte: sevenDaysAgo } } }),
       ]);
 
     const membersByStatus = { active: 0, suspended: 0, pendingDeletion: 0, deleted: 0 };
@@ -300,8 +315,10 @@ export class AdminService {
       totalMembers,
       membersByStatus,
       newSignupsLast7Days,
+      newSignupsPrevious7Days,
       pendingReportsCount,
       verifiedProfilesCount,
+      verificationsLast7Days,
       recentSignups: recentUsers.map((user) => ({
         id: user.id,
         fullName: user.profile?.fullName ?? null,
@@ -309,6 +326,27 @@ export class AdminService {
         createdAt: user.createdAt.toISOString(),
       })),
     };
+  }
+
+  // Member Activity: per-day new signups and running member total over the
+  // last `days` India-time days, from real users.createdAt values. Accounts
+  // are never deleted (anonymization keeps the row), so the running total
+  // ends at the same number as Total Members.
+  async getMemberActivity(days: number, now = new Date()): Promise<MemberActivityResponse> {
+    const { dates, start } = activityWindow(days, now);
+    const [membersBeforeWindow, rows] = await Promise.all([
+      this.prisma.user.count({ where: { createdAt: { lt: start } } }),
+      // createdAt is stored in UTC; shifting by the fixed IST offset before
+      // taking the date buckets each signup on its India calendar day.
+      this.prisma.$queryRaw<{ day: string; count: number }[]>`
+        SELECT to_char(("createdAt" + make_interval(mins => ${ACTIVITY_TZ_OFFSET_MINUTES}))::date, 'YYYY-MM-DD') AS day,
+               count(*)::int AS count
+        FROM users
+        WHERE "createdAt" >= ${start}
+        GROUP BY 1`,
+    ]);
+    const signupsByDay = new Map(rows.map((row) => [row.day, Number(row.count)]));
+    return { days, timezone: 'Asia/Kolkata', points: buildActivitySeries(dates, membersBeforeWindow, signupsByDay) };
   }
 
   // FR-11.5. Needs an approved definition of "active subscription" and

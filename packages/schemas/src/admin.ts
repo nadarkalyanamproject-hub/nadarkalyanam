@@ -74,3 +74,28 @@ export const updateAdminRequestSchema = z
     message: 'Provide roleId and/or isActive',
   });
 export type UpdateAdminRequest = z.infer<typeof updateAdminRequestSchema>;
+
+// GET /admin/dashboard/activity?days=7|30|90 — per-day member activity in
+// India time: that day's new signups and the total member count at its end.
+export const MEMBER_ACTIVITY_WINDOWS = [7, 30, 90] as const;
+export const memberActivityQuerySchema = z.object({
+  days: z.coerce
+    .number()
+    .int()
+    .refine((days) => (MEMBER_ACTIVITY_WINDOWS as readonly number[]).includes(days), 'Use 7, 30 or 90'),
+});
+export type MemberActivityQuery = z.infer<typeof memberActivityQuerySchema>;
+
+export const memberActivityPointSchema = z.object({
+  date: z.string(), // YYYY-MM-DD, India time
+  newSignups: z.number(),
+  totalMembers: z.number(),
+});
+export type MemberActivityPoint = z.infer<typeof memberActivityPointSchema>;
+
+export const memberActivityResponseSchema = z.object({
+  days: z.number(),
+  timezone: z.literal('Asia/Kolkata'),
+  points: z.array(memberActivityPointSchema),
+});
+export type MemberActivityResponse = z.infer<typeof memberActivityResponseSchema>;

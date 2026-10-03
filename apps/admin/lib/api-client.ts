@@ -88,8 +88,12 @@ export interface DashboardStats {
   totalMembers: number;
   membersByStatus: { active: number; suspended: number; pendingDeletion: number; deleted: number };
   newSignupsLast7Days: number;
+  // Signups in the 7 days before the last 7 (week-over-week comparison).
+  newSignupsPrevious7Days: number;
   pendingReportsCount: number;
   verifiedProfilesCount: number;
+  // Identity verifications that completed successfully in the last 7 days.
+  verificationsLast7Days: number;
   recentSignups: { id: string; fullName: string | null; phoneNumber: string; createdAt: string }[];
 }
 
@@ -101,6 +105,17 @@ export function logoutAdmin(accessToken: string): Promise<void> {
 
 export function getDashboardStats(accessToken: string): Promise<DashboardStats> {
   return request('/admin/dashboard', { headers: authHeaders(accessToken) });
+}
+
+// Member Activity: per-day new signups and running member total (India time).
+export interface MemberActivity {
+  days: number;
+  timezone: 'Asia/Kolkata';
+  points: { date: string; newSignups: number; totalMembers: number }[];
+}
+
+export function getMemberActivity(accessToken: string, days: 7 | 30 | 90): Promise<MemberActivity> {
+  return request(`/admin/dashboard/activity?days=${days}`, { headers: authHeaders(accessToken) });
 }
 
 // --- Members -----------------------------------------------------------
