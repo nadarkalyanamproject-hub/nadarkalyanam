@@ -2,11 +2,12 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, FileBarChart, ScrollText, ShieldCheck, Users } from 'lucide-react';
+import { ArrowUpRight, ScrollText, ShieldCheck, Users } from 'lucide-react';
 import { Card } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../components/admin-shell';
 import { CHART_COLORS, DonutChart, LineChart } from '../components/charts';
 import { RecentActivity } from '../components/recent-activity';
+import { GenerateReport } from '../components/generate-report';
 import {
   ApiError,
   getDashboardStats,
@@ -226,20 +227,7 @@ export default function AdminHome() {
                       {label}
                     </Link>
                   ))}
-                  {/* Report generation is its own upcoming task: shown, not faked. */}
-                  <div
-                    aria-disabled="true"
-                    className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-border px-3 py-2.5 text-sm font-medium text-muted-foreground"
-                    data-testid="quick-action-reports"
-                  >
-                    <span className="flex items-center gap-3">
-                      <FileBarChart className="h-4 w-4" aria-hidden="true" />
-                      Generate Reports
-                    </span>
-                    <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
-                      Coming soon
-                    </span>
-                  </div>
+                  {data.accessToken && <GenerateReport accessToken={data.accessToken} />}
                 </div>
               </Card>
             </div>

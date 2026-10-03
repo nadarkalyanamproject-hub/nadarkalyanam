@@ -133,3 +133,13 @@ export type RecentActivityItem = z.infer<typeof recentActivityItemSchema>;
 
 export const recentActivityResponseSchema = z.object({ items: z.array(recentActivityItemSchema) });
 export type RecentActivityResponse = z.infer<typeof recentActivityResponseSchema>;
+
+// POST /admin/dashboard/summary-report — a PDF of platform-level figures,
+// with new signups over the same 7/30/90-day windows as Member Activity.
+export const summaryReportRequestSchema = z.object({
+  days: z.coerce
+    .number()
+    .int()
+    .refine((days) => (MEMBER_ACTIVITY_WINDOWS as readonly number[]).includes(days), 'Use 7, 30 or 90'),
+});
+export type SummaryReportRequest = z.infer<typeof summaryReportRequestSchema>;

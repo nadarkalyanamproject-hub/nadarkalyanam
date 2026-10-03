@@ -1,7 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, StreamableFile, UseGuards } from '@nestjs/common';
 import { revokeSession } from '../auth/session.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
+  type SummaryReportRequest,
+  summaryReportRequestSchema,
   type RecentActivityQuery,
   recentActivityQuerySchema,
   type MemberActivityQuery,
@@ -36,6 +38,7 @@ import { AdminUsersService } from './admin-users.service.js';
 import { AdminService } from './admin.service.js';
 import { AuditLogService } from './audit-log.service.js';
 import { loadRecentActivity } from './recent-activity.js';
+import { buildSummaryReportPdf, collectSummaryReportData, summaryReportFilename } from './summary-report/summary-report.js';
 import { CurrentAdmin } from './decorators/current-admin.decorator.js';
 import { RequirePermission } from './decorators/require-permission.decorator.js';
 import { AdminAuthGuard, type AuthenticatedAdmin } from './guards/admin-auth.guard.js';
@@ -99,6 +102,20 @@ export class AdminController {
     @Query(new ZodValidationPipe(recentActivityQuerySchema)) query: RecentActivityQuery,
   ) {
     return { items: await loadRecentActivity(this.prisma, admin, query.limit) };
+  }
+
+  // "Generate Reports": a one-page PDF of platform-level figures, queried
+  // fresh now (no member rows, no financial data). Same permission as the
+  // dashboard it summarises.
+  @Post('dashboard/summary-report')
+  @HttpCode(200)
+  @RequirePermission(PERMISSIONS.MEMBERS_VIEW)
+  async getSummaryReport(@Body(new ZodValidationPipe(summaryReportRequestSchema)) body: SummaryReportRequest) {
+    const data = await collectSummaryReportData(this.adminService, body.days);
+    return new StreamableFile(buildSummaryReportPdf(data), {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${summaryReportFilename(data)}"`,
+    });
   }
 
   @Get('members')

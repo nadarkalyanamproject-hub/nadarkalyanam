@@ -121,6 +121,24 @@ export function getRecentActivity(accessToken: string, limit = 20): Promise<Rece
   return request(`/admin/dashboard/recent-activity?limit=${limit}`, { headers: authHeaders(accessToken) });
 }
 
+// "Generate Reports": a fresh PDF summary. Returned as a Blob for download;
+// the file name comes from the response when the browser can read it,
+// otherwise the same name is built here.
+export async function downloadSummaryReport(accessToken: string, days: 7 | 30 | 90): Promise<{ blob: Blob; filename: string }> {
+  const response = await fetch(`${API_BASE_URL}/admin/dashboard/summary-report`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+    body: JSON.stringify({ days }),
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as NestErrorBody | null;
+    throw new ApiError(extractErrorMessage(body), response.status, body?.errorCode);
+  }
+  const fromHeader = response.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1];
+  const today = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
+  return { blob: await response.blob(), filename: fromHeader ?? `nadar-kalyanam-summary-${today}-${days}d.pdf` };
+}
+
 export function getMemberActivity(accessToken: string, days: 7 | 30 | 90): Promise<MemberActivity> {
   return request(`/admin/dashboard/activity?days=${days}`, { headers: authHeaders(accessToken) });
 }
