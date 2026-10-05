@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { recomputeSearchBoost } from '../../common/search-boost.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EntitlementsService } from './entitlements.service.js';
@@ -32,6 +33,9 @@ export class SubscriptionExpiryService {
       });
       if (count === 0) continue;
       expired.push(subscription.id);
+      // The plan that ended may have carried a search tier (or a queued
+      // renewal with a different one takes over now).
+      await recomputeSearchBoost(this.prisma, subscription.userId, now);
       if (!(await this.entitlements.getActivePlan(subscription.userId, now))) {
         this.notifications.notify({
           recipientUserId: subscription.userId,

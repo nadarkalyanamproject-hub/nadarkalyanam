@@ -134,9 +134,11 @@ function webhookWorld() {
   const payments: any[] = [];
   const subscriptions: any[] = [];
   const plans: Record<string, any> = {
-    gold: { id: 'gold', name: 'Gold', priceInPaise: 149900, durationDays: 90 },
-    plus: { id: 'plus', name: 'Gold Plus', priceInPaise: 229900, durationDays: 90 },
+    gold: { id: 'gold', code: 'GOLD', name: 'Gold', priceInPaise: 149900, durationDays: 90 },
+    plus: { id: 'plus', code: 'GOLD_PLUS', name: 'Gold Plus', priceInPaise: 229900, durationDays: 90 },
+    premium: { id: 'premium', code: 'GOLD_PREMIUM', name: 'Gold Premium', priceInPaise: 599900, durationDays: 365 },
   };
+  const profiles: Record<string, { searchBoost: number }> = { 'user-1': { searchBoost: 0 } };
   const unique = (field: string) => Object.assign(new Error(`Unique constraint failed on ${field}`), { code: 'P2002' });
   const prisma: any = {
     payment: {
@@ -162,6 +164,12 @@ function webhookWorld() {
         subscriptions
           .filter((s) => s.userId === where.userId && s.cancelledAt === null && s.expiresAt > where.expiresAt.gt)
           .sort((a, b) => b.expiresAt - a.expiresAt)[0] ?? null,
+      // findActiveSubscription (recomputeSearchBoost).
+      findMany: async ({ where }: any) =>
+        subscriptions
+          .filter((s) => s.userId === where.userId && s.cancelledAt === null && s.expiresAt > where.expiresAt.gt)
+          .sort((a, b) => a.startedAt - b.startedAt)
+          .map((s) => ({ ...s, plan: plans[s.planId] })),
       create: async ({ data }: any) => {
         if (subscriptions.some((s) => s.orderId === data.orderId)) throw unique('orderId');
         subscriptions.push({ id: `sub-${subscriptions.length + 1}`, cancelledAt: null, ...data });
@@ -170,6 +178,14 @@ function webhookWorld() {
         const hits = subscriptions.filter((s) => s.orderId === where.orderId && s.cancelledAt === null);
         hits.forEach((s) => Object.assign(s, data));
         return { count: hits.length };
+      },
+    },
+    profile: {
+      updateMany: async ({ where, data }: any) => {
+        const row = profiles[where.userId];
+        if (!row || row.searchBoost === data.searchBoost) return { count: 0 };
+        row.searchBoost = data.searchBoost;
+        return { count: 1 };
       },
     },
     $transaction: async (fn: (tx: any) => Promise<unknown>) => {
@@ -201,7 +217,7 @@ function webhookWorld() {
     const delivered = opts.tamper ? opts.tamper(raw) : raw;
     return service.handleWebhook(Buffer.from(delivered), signature, JSON.parse(delivered));
   };
-  return { orders, payments, subscriptions, notifications, order, send };
+  return { orders, payments, subscriptions, profiles, notifications, order, send };
 }
 
 describe('PaymentsService.handleWebhook', () => {
@@ -307,6 +323,29 @@ describe('PaymentsService.handleWebhook', () => {
     const [first, second] = w.subscriptions;
     expect(second.startedAt.getTime()).toBe(first.expiresAt.getTime());
     expect(second.expiresAt.getTime() - first.startedAt.getTime()).toBe(180 * DAY);
+  });
+
+  it('search tier follows the plan: Gold stays 0, Premium activation sets 2, refunding it drops back', async () => {
+    const w = webhookWorld();
+    w.order('o1', 'gold');
+    await w.send({ providerEventId: 'e1', orderId: 'o1', status: 'PAID' });
+    expect(w.profiles['user-1']!.searchBoost).toBe(0);
+
+    const v = webhookWorld();
+    v.order('o2', 'premium');
+    await v.send({ providerEventId: 'e2', orderId: 'o2', status: 'PAID' });
+    expect(v.profiles['user-1']!.searchBoost).toBe(2);
+    await v.send({ providerEventId: 'e3', orderId: 'o2', status: 'REFUNDED' });
+    expect(v.profiles['user-1']!.searchBoost).toBe(0);
+  });
+
+  it('a renewal queued behind the current plan does not change the tier until it starts', async () => {
+    const w = webhookWorld();
+    w.order('o1', 'gold');
+    w.order('o2', 'plus');
+    await w.send({ providerEventId: 'e1', orderId: 'o1', status: 'PAID' });
+    await w.send({ providerEventId: 'e2', orderId: 'o2', status: 'PAID' });
+    expect(w.profiles['user-1']!.searchBoost).toBe(0);
   });
 
   it('an unknown order is rejected with 400', async () => {

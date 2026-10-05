@@ -109,6 +109,7 @@ export default function MatchesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastUpgrade, setToastUpgrade] = useState(false);
 
   useEffect(() => {
     if (!ready || !data.accessToken) return;
@@ -146,14 +147,18 @@ export default function MatchesPage() {
     try {
       if (!data.accessToken) return;
       await sendInterest(data.accessToken, { targetProfileId: match.profileId });
+      setToastUpgrade(false);
       setTopMatches((prev) =>
         (prev ?? []).map((m) => (m.profileId === match.profileId ? { ...m, interestSent: true } : m)),
       );
       setToastMessage(`Interest sent to ${match.fullName}!`);
       setTimeout(() => setToastMessage(null), 3500);
     } catch (err) {
+      // The free monthly limit gets a link to the plans and stays up longer.
+      const limit = err instanceof ApiError && err.code === 'PLAN_LIMIT_REACHED';
+      setToastUpgrade(limit);
       setToastMessage(err instanceof ApiError ? err.message : 'Could not send interest. Please try again.');
-      setTimeout(() => setToastMessage(null), 3500);
+      setTimeout(() => setToastMessage(null), limit ? 8000 : 3500);
     } finally {
       setSendingId(null);
     }
@@ -218,7 +223,17 @@ export default function MatchesPage() {
           {/* Toast Notification */}
           {toastMessage && (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50/90 p-3.5 text-xs sm:text-sm font-medium text-emerald-800 flex items-center justify-between shadow-2xs">
-              <span>{toastMessage}</span>
+              <span>
+                {toastMessage}
+                {toastUpgrade && (
+                  <>
+                    {' '}
+                    <Link href="/membership" className="font-semibold underline">
+                      Upgrade
+                    </Link>
+                  </>
+                )}
+              </span>
               <button
                 type="button"
                 onClick={() => setToastMessage(null)}

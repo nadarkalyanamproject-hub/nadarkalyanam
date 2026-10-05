@@ -235,6 +235,8 @@ describe('ProfilesService', () => {
           },
           additional: validPayload.additional,
         },
+        // Nobody shares their phone number until they opt in.
+        phoneVisibility: 'NEVER',
         // Every counted field is filled; no photo yet: 20 of 21.
         completionScore: 95,
       },

@@ -8,8 +8,10 @@ import {
 import type { Connection, ListConnectionsResponse } from '@nadar-kalyanam/schemas';
 import { calculateAge } from '../../common/age.js';
 import { getBlockedUserIds, isBlockedEitherDirection } from '../../common/blocks.util.js';
+import { istMonthWindow } from '../../common/ist-calendar.js';
 import { getRelationshipStates } from '../../common/relationship.js';
 import { Prisma } from '../../generated/prisma/client.js';
+import { EntitlementsService } from '../membership/entitlements.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -34,6 +36,7 @@ export class InterestsService {
     private readonly profilesService: ProfilesService,
     private readonly photosService: PhotosService,
     private readonly notifications: NotificationsService,
+    private readonly entitlements: EntitlementsService,
   ) {}
 
   async sendInterest(callerUserId: string, targetProfileId: string) {
@@ -93,10 +96,33 @@ export class InterestsService {
       throw new ConflictException('You have already sent an interest to this profile');
     }
 
+    // Free members: FREE_INTERESTS_PER_MONTH per IST calendar month, every
+    // sent interest counting (whatever became of it). The count and the
+    // insert share a transaction holding a lock on the sender's user row, so
+    // two parallel sends can't both pass at the limit. Paid plans: no limit.
+    const isPaid = Boolean(await this.entitlements.getActivePlan(callerUserId));
+    const data = { senderId: callerUserId, targetId: targetProfile.userId };
     try {
-      const interest = await this.prisma.interest.create({
-        data: { senderId: callerUserId, targetId: targetProfile.userId },
-      });
+      const interest = isPaid
+        ? await this.prisma.interest.create({ data })
+        : await this.prisma.$transaction(async (tx) => {
+            await tx.$queryRaw`SELECT "id" FROM "users" WHERE "id" = ${callerUserId} FOR UPDATE`;
+            const { start, resetsAt } = istMonthWindow(new Date());
+            const used = await tx.interest.count({ where: { senderId: callerUserId, createdAt: { gte: start, lt: resetsAt } } });
+            const limit = this.entitlements.freeInterestsPerMonth();
+            if (used >= limit) {
+              const resets = resetsAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+              throw new ForbiddenException({
+                statusCode: 403,
+                errorCode: 'PLAN_LIMIT_REACHED',
+                message: `You've sent all ${limit} free interests for this month. More become available on ${resets}, or upgrade for unlimited interests.`,
+                limit,
+                used,
+                resetsAt: resetsAt.toISOString(),
+              });
+            }
+            return tx.interest.create({ data });
+          });
       this.notifications.notify({
         recipientUserId: targetProfile.userId,
         actorUserId: callerUserId,

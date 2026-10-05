@@ -11,8 +11,8 @@ export interface ContactInfoCardProps {
   className?: string;
 }
 
-// Explains a plan's phone-number feature honestly: it isn't available yet,
-// and today no member's phone number is shown to anyone.
+// Explains a plan's phone-number feature: what an unlock is, whose numbers
+// can be unlocked, and what "verified" means (OTP-confirmed, not ID).
 export function ContactInfoCard({ phoneUnlockLimit, position = 'bottom', align = 'center', className = '' }: ContactInfoCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -32,7 +32,7 @@ export function ContactInfoCard({ phoneUnlockLimit, position = 'bottom', align =
 
   const alignmentClass = align === 'left' ? 'left-0' : align === 'right' ? 'right-0' : 'left-1/2 -translate-x-1/2';
   const positionClass = position === 'top' ? 'bottom-full mb-2.5' : 'top-full mt-2.5';
-  const allowance = phoneUnlockLimit === null ? 'unlimited phone numbers' : `up to ${phoneUnlockLimit} phone numbers`;
+  const allowance = phoneUnlockLimit === null ? 'unlimited unlocks' : `up to ${phoneUnlockLimit} unlocks`;
 
   return (
     <div ref={containerRef} className={`relative inline-flex ${className}`}>
@@ -55,13 +55,17 @@ export function ContactInfoCard({ phoneUnlockLimit, position = 'bottom', align =
           data-testid="phone-info"
         >
           <div className="mb-1 flex items-center justify-between">
-            <span className="font-bold text-[#680A0E]">Phone numbers: coming soon</span>
+            <span className="font-bold text-[#680A0E]">Phone number unlocks</span>
             <button type="button" aria-label="Close" onClick={() => setIsOpen(false)} className="text-[#A88C78] hover:text-[#2B1515]">
               <X className="h-3 w-3" />
             </button>
           </div>
           <p>
-            Phone numbers aren&apos;t shown to other members on any plan yet. When this launches, this plan includes {allowance}.
+            Unlock the phone number of a member you&apos;re connected with, if they&apos;ve allowed it in their privacy
+            settings. This plan includes {allowance}; unlocking the same member again is free.
+          </p>
+          <p className="mt-1">
+            &ldquo;Verified&rdquo; means the number was confirmed with a one-time code (OTP), not an ID check.
           </p>
         </div>
       )}

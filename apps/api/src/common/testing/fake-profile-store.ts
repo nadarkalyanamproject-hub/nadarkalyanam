@@ -12,6 +12,8 @@ export interface FakeProfile {
   gender: string;
   dateOfBirth: Date;
   visibility: 'PUBLIC' | 'MEMBERS_ONLY' | 'HIDDEN';
+  // Listing tier (0 standard, 1 priority, 2 spotlight); omitted = 0.
+  searchBoost?: number;
   isVerified: boolean;
   createdAt: Date;
   details: Record<string, any>;
@@ -39,6 +41,10 @@ export function matchesProfileWhere(state: FakeState, p: FakeProfile, where: any
   if (typeof where.userId === 'string' && where.userId !== p.userId) return false;
   if (where.id?.in && !where.id.in.includes(p.id)) return false;
   if (where.id?.notIn?.includes(p.id)) return false;
+  if (where.id?.gt !== undefined && !(p.id > where.id.gt)) return false;
+  const boost = p.searchBoost ?? 0;
+  if (typeof where.searchBoost === 'number' && boost !== where.searchBoost) return false;
+  if (where.searchBoost?.lt !== undefined && !(boost < where.searchBoost.lt)) return false;
   if (typeof where.gender === 'string' && where.gender !== p.gender) return false;
   if (typeof where.isVerified === 'boolean' && where.isVerified !== p.isVerified) return false;
   if (where.dateOfBirth?.gte && p.dateOfBirth < where.dateOfBirth.gte) return false;
@@ -84,8 +90,23 @@ export function makeProfile(overrides: Partial<FakeProfile> & { userId: string }
 // A PrismaService-shaped fake over `state`, covering the calls made by
 // ShortlistsService, MatchCategoriesService and the shared helpers.
 export function fakePrisma(state: FakeState) {
-  const byOrder = (orderBy: any) => (a: FakeProfile, b: FakeProfile) =>
-    orderBy?.createdAt === 'desc' ? b.createdAt.getTime() - a.createdAt.getTime() : a.id.localeCompare(b.id);
+  // Evaluates an orderBy object or an array of them (e.g. the boosted
+  // [{ searchBoost: 'desc' }, { id: 'asc' }]); id ascending by default.
+  const compareOne = (key: string, dir: string, a: FakeProfile, b: FakeProfile) => {
+    const value = (p: FakeProfile): number | string =>
+      key === 'searchBoost' ? (p.searchBoost ?? 0) : key === 'createdAt' ? p.createdAt.getTime() : (p as any)[key];
+    const [x, y] = [value(a), value(b)];
+    const cmp = x < y ? -1 : x > y ? 1 : 0;
+    return dir === 'desc' ? -cmp : cmp;
+  };
+  const byOrder = (orderBy: any) => (a: FakeProfile, b: FakeProfile) => {
+    const keys: [string, string][] = (Array.isArray(orderBy) ? orderBy : orderBy ? [orderBy] : []).flatMap((o: any) => Object.entries(o));
+    for (const [key, dir] of [...keys, ['id', 'asc'] as [string, string]]) {
+      const cmp = compareOne(key, dir, a, b);
+      if (cmp !== 0) return cmp;
+    }
+    return 0;
+  };
   const sortRows = <T extends { createdAt: Date }>(rows: T[], orderBy: any) =>
     orderBy?.createdAt === 'desc' ? [...rows].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()) : rows;
 
@@ -107,11 +128,11 @@ export function fakePrisma(state: FakeState) {
         if (!p) return null;
         return include?.user ? { ...p, user: { status: state.userStatus[p.userId] } } : p;
       },
-      findMany: async ({ where, orderBy, take }: any) =>
+      findMany: async ({ where, orderBy, take, skip }: any) =>
         state.profiles
           .filter((p) => matchesProfileWhere(state, p, where))
           .sort(byOrder(orderBy))
-          .slice(0, take ?? Infinity),
+          .slice(skip ?? 0, (skip ?? 0) + (take ?? Infinity)),
       count: async ({ where }: any) => state.profiles.filter((p) => matchesProfileWhere(state, p, where)).length,
       findFirst: async ({ where }: any) => state.profiles.find((p) => matchesProfileWhere(state, p, where)) ?? null,
     },

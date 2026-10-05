@@ -69,16 +69,20 @@ export function RelationshipAction({
   const [status, setStatus] = useState<RelationshipStatus>(relationshipStatus);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  // The free monthly interest limit: shown with a link to the plans.
+  const [limitReached, setLimitReached] = useState(false);
   const view = relationshipActionView(status, conversationId);
 
   async function handleSend() {
     if (!data.accessToken) return;
     setSending(true);
     setError(undefined);
+    setLimitReached(false);
     try {
       await sendInterest(data.accessToken, { targetProfileId: profileId });
       setStatus('INTEREST_SENT');
     } catch (err) {
+      setLimitReached(err instanceof ApiError && err.code === 'PLAN_LIMIT_REACHED');
       setError(err instanceof ApiError ? err.message : 'Could not send interest. Please try again.');
     } finally {
       setSending(false);
@@ -170,7 +174,19 @@ export function RelationshipAction({
   return (
     <div className={`flex flex-col gap-1 ${className}`} data-relationship-status={status}>
       {control}
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      {error ? (
+        <p className="text-xs text-destructive" role="alert" data-testid={limitReached ? 'interest-limit' : undefined}>
+          {error}
+          {limitReached && (
+            <>
+              {' '}
+              <Link href="/membership" className="font-semibold underline">
+                Upgrade
+              </Link>
+            </>
+          )}
+        </p>
+      ) : null}
     </div>
   );
 }

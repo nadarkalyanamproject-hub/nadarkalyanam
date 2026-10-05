@@ -8,6 +8,7 @@ export * from './message.js';
 export * from './moderation.js';
 export * from './notifications.js';
 export * from './payments.js';
+export * from './phone.js';
 export * from './photo.js';
 export * from './profile.js';
 export * from './profile-card.js';

@@ -1,6 +1,10 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import {
   type CreateProfileRequest,
+  type PhoneStatusResponse,
+  type PhoneUnlockResponse,
+  type UpdatePhoneVisibilityRequest,
+  updatePhoneVisibilitySchema,
   type PhotoResponse,
   type ProfileListResponse,
   type ProfileResponse,
@@ -17,6 +21,7 @@ import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard.js';
 import type { Profile } from '../../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PhotosService } from '../photos/photos.service.js';
+import { PhoneUnlockService } from './phone-unlock.service.js';
 import { ProfilesService } from './profiles.service.js';
 import { toPublicProfileDetail, toPublicProfileSummary } from './public-profile.mapper.js';
 
@@ -32,6 +37,7 @@ function toProfileResponse(profile: Profile, photos: PhotoResponse[]): ProfileRe
     completionScore: profile.completionScore,
     completionMissing: missingCompletionFields(profile, photos.length),
     visibility: profile.visibility,
+    phoneVisibility: profile.phoneVisibility,
     isVerified: profile.isVerified,
     details: profile.details as unknown as ProfileResponse['details'],
     photos,
@@ -44,6 +50,7 @@ export class ProfilesController {
     private readonly profilesService: ProfilesService,
     private readonly photosService: PhotosService,
     private readonly notifications: NotificationsService,
+    private readonly phoneUnlocks: PhoneUnlockService,
   ) {}
 
   @Post()
@@ -87,6 +94,19 @@ export class ProfilesController {
   ): Promise<ProfileResponse> {
     const profile = await this.profilesService.updateVisibility(user.userId, body.visibility);
     // The owner sees all their photos, pending/rejected included.
+    const photos = await this.photosService.getPhotosForProfile(profile.id, { includeUnapproved: true });
+    return toProfileResponse(profile, photos);
+  }
+
+  // Phone privacy: CONNECTED lets connected members with a paid plan unlock
+  // the owner's number; NEVER (the default) lets nobody.
+  @Patch('me/phone-visibility')
+  @UseGuards(JwtAuthGuard)
+  async updateMyPhoneVisibility(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodValidationPipe(updatePhoneVisibilitySchema)) body: UpdatePhoneVisibilityRequest,
+  ): Promise<ProfileResponse> {
+    const profile = await this.profilesService.updatePhoneVisibility(user.userId, body.phoneVisibility);
     const photos = await this.photosService.getPhotosForProfile(profile.id, { includeUnapproved: true });
     return toProfileResponse(profile, photos);
   }
@@ -144,5 +164,22 @@ export class ProfilesController {
     const photos = await this.photosService.getPhotosForProfile(profile.id);
     const relationships = await this.profilesService.getRelationshipStates(user.userId, [profile.userId]);
     return toPublicProfileDetail(profile, photos, relationships.get(profile.userId));
+  }
+
+  // What the caller can do about this member's phone number. Never contains
+  // the number itself. Registered after `me` routes (see getOne).
+  @Get(':id/phone-status')
+  @UseGuards(JwtAuthGuard)
+  phoneStatus(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string): Promise<PhoneStatusResponse> {
+    return this.phoneUnlocks.status(user.userId, id);
+  }
+
+  // The only response that ever carries another member's phone number.
+  // Idempotent: unlocking the same member again returns it without quota.
+  @Post(':id/phone-unlock')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  phoneUnlock(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string): Promise<PhoneUnlockResponse> {
+    return this.phoneUnlocks.unlock(user.userId, id);
   }
 }

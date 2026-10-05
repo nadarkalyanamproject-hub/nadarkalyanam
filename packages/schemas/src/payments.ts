@@ -79,5 +79,14 @@ export const myMembershipResponseSchema = z.object({
   expiresAt: z.string().nullable(),
   // End of the last already-paid renewal (equals expiresAt when none).
   paidThroughAt: z.string().nullable(),
+  // Paid plans: phone unlocks used in the current plan period, and what's
+  // left (null = unlimited). null for free members.
+  phoneUnlocksUsed: z.number().nullable(),
+  phoneUnlocksRemaining: z.number().nullable(),
+  // Free members: interests sent this calendar month (India time), the
+  // monthly limit and when it resets. null for paid members (no limit).
+  interestsUsedThisMonth: z.number().nullable(),
+  interestsLimit: z.number().nullable(),
+  resetsAt: z.string().nullable(),
 });
 export type MyMembershipResponse = z.infer<typeof myMembershipResponseSchema>;

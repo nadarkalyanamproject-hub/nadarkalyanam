@@ -35,6 +35,7 @@ import { useRegistration } from '../../providers/registration-provider';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { ShortlistButton } from '../../../components/shortlist/shortlist-button';
 import { BlockMemberButton } from '../../../components/block/block-member-button';
+import { PhoneUnlockCard } from '../../../components/phone/phone-unlock-card';
 import { useBackNavigation } from '../../../lib/navigation-history';
 
 const MARITAL_STATUS_LABELS: Record<string, string> = {
@@ -318,6 +319,8 @@ export default function ViewProfilePage() {
                     </div>
                   </div>
                 )}
+
+                <PhoneUnlockCard profileId={profile.id} memberName={profile.fullName} />
               </div>
 
               {/* QUICK SNAPSHOT CHIPS BAR */}
@@ -447,7 +450,7 @@ export default function ViewProfilePage() {
                       </li>
                       <li className="flex items-center gap-2">
                         <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 text-[10px]">✓</span>
-                        <span>Phone and email are never shown to other members</span>
+                        <span>Email is never shown; a phone number only if its owner allows connected members with a paid plan to unlock it</span>
                       </li>
                     </ul>
 

@@ -46,6 +46,8 @@ model User {
   callsAsCaller              Call[]                    @relation("CallCaller")
   callsAsCallee              Call[]                    @relation("CallCallee")
   adminUser                  AdminUser?
+  phoneUnlocksMade           PhoneUnlock[]             @relation("PhoneUnlockViewer")
+  phoneUnlocksOfMe           PhoneUnlock[]             @relation("PhoneUnlockTarget")
 
   @@map("users")
 }
@@ -102,6 +104,14 @@ model RefreshToken {
 
 // --- Profile management (FR-2) ------------------------------------------
 
+// Who may unlock this member's phone number: NEVER (default — nobody), or
+// CONNECTED (a connected member with an active paid plan). The default is
+// DEFAULT_PHONE_VISIBILITY in packages/schemas; this column default mirrors it.
+enum PhoneVisibility {
+  CONNECTED
+  NEVER
+}
+
 enum ProfileVisibility {
   PUBLIC
   MEMBERS_ONLY
@@ -116,6 +126,10 @@ model Profile {
   gender          String
   dateOfBirth     DateTime
   visibility      ProfileVisibility @default(MEMBERS_ONLY)
+  phoneVisibility PhoneVisibility   @default(NEVER)
+  // Listing tier from the member's active plan: 0 standard, 1 priority,
+  // 2 spotlight. Maintained only by recomputeSearchBoost.
+  searchBoost     Int               @default(0)
   completionScore Int               @default(0)
   isVerified      Boolean           @default(false)
   details         Json              @default("{}")
@@ -126,6 +140,9 @@ model Profile {
   photos        ProfilePhoto[]
   shortlistedBy Shortlist[]    @relation("ShortlistedProfile")
 
+  // Search (default sort: id) and Browse (createdAt) order by tier first.
+  @@index([searchBoost(sort: Desc), id])
+  @@index([searchBoost(sort: Desc), createdAt(sort: Desc)])
   @@map("profiles")
 }
 
@@ -387,6 +404,8 @@ model Subscription {
   // Set when the order is refunded.
   cancelledAt DateTime?
 
+  phoneUnlocks PhoneUnlock[]
+
   @@index([userId])
   @@index([userId, status, expiresAt])
   @@map("subscriptions")
@@ -525,4 +544,23 @@ model AuditLog {
 
   @@index([adminId, createdAt])
   @@map("audit_logs")
+}
+
+// A paid member unlocked another member's phone number. One row per pair
+// (re-unlocking is free); counted against the subscription that paid for it
+// (quota is per plan period).
+model PhoneUnlock {
+  id             String       @id @default(uuid())
+  viewerId       String
+  viewer         User         @relation("PhoneUnlockViewer", fields: [viewerId], references: [id], onDelete: Cascade)
+  targetUserId   String
+  target         User         @relation("PhoneUnlockTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  createdAt      DateTime     @default(now())
+
+  @@unique([viewerId, targetUserId])
+  @@index([subscriptionId])
+  @@index([viewerId, createdAt])
+  @@map("phone_unlocks")
 }

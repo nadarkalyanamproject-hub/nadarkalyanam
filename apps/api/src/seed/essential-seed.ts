@@ -25,15 +25,19 @@ export async function seedEssential(prisma: PrismaClient, log: (message: string)
   }
 
   // Plan display copy. `available` is whether the product delivers that
-  // feature TODAY: only messaging your connections and viewing verified
-  // profiles exist; everything else is shown as Coming Soon. Limits are
-  // typed columns (phoneUnlockLimit: null = unlimited), never parsed from
-  // this copy.
+  // feature TODAY; everything else is shown as Coming Soon. Delivered:
+  // messaging your connections, viewing verified profiles, phone number
+  // unlocks (OTP-verified numbers of connected members who allow it),
+  // unlimited interests, and priority / spotlight listing. Limits are typed
+  // columns (phoneUnlockLimit: null = unlimited), never parsed from this copy.
   const feature = (key: string, label: string, available = false) => ({ key, label, available });
   const MESSAGES = feature('unlimitedMessages', 'Unlimited messages with your connections', true);
   const VERIFIED_PROFILES = feature('verifiedProfiles', 'View verified profiles with photos', true);
+  const UNLIMITED_INTERESTS = feature('unlimitedInterests', 'Unlimited interests (free members: 5 a month)', true);
   const HOROSCOPE = feature('horoscopeViews', 'Unlimited horoscope views');
-  const UNLIMITED_PHONES = feature('phoneNumbers', 'Unlimited phone numbers');
+  const phones = (allowance: string) =>
+    feature('phoneNumbers', `Unlock ${allowance} OTP-verified phone numbers of connected members who allow it`, true);
+  const SPOTLIGHT = feature('spotlight', 'Top-spot spotlight in search and browse', true);
 
   const MEMBERSHIP_PLANS = [
     {
@@ -45,7 +49,7 @@ export async function seedEssential(prisma: PrismaClient, log: (message: string)
       sortOrder: 1,
       phoneUnlockLimit: 50,
       isAssisted: false,
-      features: [feature('phoneNumbers', '50 verified phone numbers'), MESSAGES, HOROSCOPE, VERIFIED_PROFILES],
+      features: [phones('up to 50'), MESSAGES, UNLIMITED_INTERESTS, HOROSCOPE, VERIFIED_PROFILES],
     },
     {
       id: 'plan-gold-plus-3m',
@@ -57,10 +61,11 @@ export async function seedEssential(prisma: PrismaClient, log: (message: string)
       phoneUnlockLimit: null,
       isAssisted: false,
       features: [
-        UNLIMITED_PHONES,
+        phones('unlimited'),
         MESSAGES,
+        UNLIMITED_INTERESTS,
         HOROSCOPE,
-        feature('searchPriority', 'Priority placement in search'),
+        feature('searchPriority', 'Priority placement in search and browse', true),
         feature('whatsappConnect', 'WhatsApp direct connect'),
       ],
     },
@@ -74,11 +79,12 @@ export async function seedEssential(prisma: PrismaClient, log: (message: string)
       phoneUnlockLimit: null,
       isAssisted: false,
       features: [
-        UNLIMITED_PHONES,
+        phones('unlimited'),
         MESSAGES,
+        UNLIMITED_INTERESTS,
         HOROSCOPE,
         feature('relationshipManager', 'Dedicated relationship manager'),
-        feature('spotlight', 'Top-spot spotlight'),
+        SPOTLIGHT,
         feature('whatsappPriority', 'Priority WhatsApp assistance'),
         feature('weeklyMatches', 'Handpicked weekly matches'),
       ],
@@ -93,6 +99,9 @@ export async function seedEssential(prisma: PrismaClient, log: (message: string)
       phoneUnlockLimit: 75,
       isAssisted: true,
       features: [
+        phones('up to 75'),
+        UNLIMITED_INTERESTS,
+        SPOTLIGHT,
         feature('assistedContacts', '75 verified contacts handled on your behalf'),
         feature('seniorMatchmaker', 'Personal senior matchmaker'),
         feature('familyCoordination', 'Family call and meeting coordination'),

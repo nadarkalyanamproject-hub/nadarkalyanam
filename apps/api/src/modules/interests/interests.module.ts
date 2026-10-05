@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module.js';
+import { MembershipModule } from '../membership/membership.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { PhotosModule } from '../photos/photos.module.js';
 import { ProfilesModule } from '../profiles/profiles.module.js';
@@ -7,7 +8,7 @@ import { InterestsController } from './interests.controller.js';
 import { InterestsService } from './interests.service.js';
 
 @Module({
-  imports: [AuthModule, NotificationsModule, PhotosModule, ProfilesModule],
+  imports: [AuthModule, NotificationsModule, PhotosModule, ProfilesModule, MembershipModule],
   controllers: [InterestsController],
   providers: [InterestsService],
 })

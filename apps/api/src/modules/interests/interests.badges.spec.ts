@@ -44,7 +44,7 @@ function interestsFixture(opts: {
       ),
     },
   };
-  const service = new InterestsService(prisma as never, {} as never, {} as never, { notify: vi.fn(), markTargetRead: vi.fn() } as never);
+  const service = new InterestsService(prisma as never, {} as never, {} as never, { notify: vi.fn(), markTargetRead: vi.fn() } as never, { getActivePlan: async () => ({ plan: { code: 'GOLD' } }), freeInterestsPerMonth: () => 5 } as never);
   return { service, prisma };
 }
 
@@ -126,7 +126,7 @@ describe('accept -> marks the accepter\'s INTEREST_RECEIVED notification read', 
     };
     // The real NotificationsService logic, with a queue that just records.
     const notifications = new NotificationsService(prisma as never, { add: vi.fn().mockResolvedValue({}) } as never, {} as never);
-    const service = new InterestsService(prisma as never, {} as never, {} as never, notifications);
+    const service = new InterestsService(prisma as never, {} as never, {} as never, notifications, { getActivePlan: async () => ({ plan: { code: 'GOLD' } }), freeInterestsPerMonth: () => 5 } as never);
     return { service, txNotificationUpdateMany, outsideUpdateMany };
   }
 

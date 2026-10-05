@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import type { ProfileResponse, ProfileVisibility } from '@nadar-kalyanam/schemas';
+import type { PhoneVisibility, ProfileResponse, ProfileVisibility } from '@nadar-kalyanam/schemas';
 import { useRegistration } from '../../app/providers/registration-provider';
-import { ApiError, updateProfileVisibility } from '../../lib/api-client';
+import { ApiError, updatePhoneVisibility, updateProfileVisibility } from '../../lib/api-client';
 
 // The stored profile visibility values. PUBLIC and MEMBERS_ONLY behave the
 // same: there is no guest (signed-out) view of profiles, so "Everyone" still
@@ -18,7 +18,6 @@ const VISIBILITY_OPTIONS: { value: ProfileVisibility; label: string }[] = [
 // Shown as facts, not settings: there is no stored preference behind these,
 // so they describe what the app actually does today.
 const FIXED_RULES = [
-  { label: 'Phone number', value: 'Never shown to other members' },
   { label: 'Email', value: 'Never shown to other members' },
   { label: 'Photos', value: 'Visible to signed-in members once approved by our team' },
   { label: 'Online status', value: 'Not shown to anyone' },
@@ -35,6 +34,26 @@ export function PrivacySettingsCard({
 }) {
   const { data } = useRegistration();
   const [save, setSave] = useState<SaveState>({ kind: 'idle' });
+  const [pendingPhone, setPendingPhone] = useState<PhoneVisibility | null>(null);
+
+  // Consent for phone unlocks. Off (NEVER) by default; takes effect at once,
+  // including for anyone who unlocked the number earlier.
+  async function handlePhoneVisibilityChange(phoneVisibility: PhoneVisibility) {
+    if (!data.accessToken || phoneVisibility === profile.phoneVisibility) return;
+    // The switch moves at once; it goes back if the save fails.
+    setPendingPhone(phoneVisibility);
+    setSave({ kind: 'saving' });
+    try {
+      const updated = await updatePhoneVisibility(data.accessToken, phoneVisibility);
+      onSaved(updated);
+      setSave({ kind: 'saved' });
+    } catch (err) {
+      setSave({ kind: 'error', message: err instanceof ApiError ? err.message : 'Could not save. Please try again.' });
+    } finally {
+      setPendingPhone(null);
+    }
+  }
+  const phoneAllowed = (pendingPhone ?? profile.phoneVisibility) === 'CONNECTED';
 
   async function handleVisibilityChange(visibility: ProfileVisibility) {
     if (!data.accessToken || visibility === profile.visibility) return;
@@ -102,6 +121,30 @@ export function PrivacySettingsCard({
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between py-3 gap-2" data-testid="phone-privacy">
+          <div className="max-w-md">
+            <label htmlFor="privacy-phone-visibility" className="font-semibold text-[#2B211C]">
+              Phone number
+            </label>
+            <p className="text-xs text-[#776B62]">
+              Connected members with a paid plan can unlock and keep your phone number. If you turn this off later,
+              we stop showing it in the app, but a member who already unlocked it may still have a copy.
+            </p>
+          </div>
+          <label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs font-semibold text-[#2B211C]">
+            <input
+              id="privacy-phone-visibility"
+              type="checkbox"
+              role="switch"
+              checked={phoneAllowed}
+              disabled={save.kind === 'saving'}
+              onChange={(e) => void handlePhoneVisibilityChange(e.target.checked ? 'CONNECTED' : 'NEVER')}
+              className="h-4 w-4 accent-[#7A0710]"
+            />
+            {phoneAllowed ? 'Allowed' : 'Off'}
+          </label>
         </div>
 
         {FIXED_RULES.map((rule) => (

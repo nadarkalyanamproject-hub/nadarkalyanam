@@ -16,6 +16,7 @@ const COMPLETE_PROFILE: ProfileResponse = {
   completionScore: 100,
   completionMissing: [],
   visibility: 'MEMBERS_ONLY',
+  phoneVisibility: 'NEVER',
   isVerified: false,
   details: {
     motherTongue: 'Tamil',

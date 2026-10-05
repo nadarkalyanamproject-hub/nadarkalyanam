@@ -37,7 +37,7 @@ function interestsService(interestRow: Record<string, unknown> | null = null) {
   };
   const profilesService = { getOwnProfileOrThrow: vi.fn().mockResolvedValue({ id: A.profileId, userId: A.userId }) };
   const notifications = notifier();
-  const service = new InterestsService(prisma as never, profilesService as never, {} as never, notifications as never);
+  const service = new InterestsService(prisma as never, profilesService as never, {} as never, notifications as never, { getActivePlan: async () => ({ plan: { code: 'GOLD' } }), freeInterestsPerMonth: () => 5 } as never);
   return { service, notifications };
 }
 
@@ -124,6 +124,7 @@ describe('profile view trigger', () => {
       profilesService as never,
       { getPhotosForProfile: vi.fn().mockResolvedValue([]) } as never,
       notifications as never,
+      {} as never,
     );
     return { ctl, notifications };
   }

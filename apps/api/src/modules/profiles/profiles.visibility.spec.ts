@@ -18,7 +18,7 @@ function setup(initial: string | null = 'MEMBERS_ONLY') {
     },
   };
   const service = new ProfilesService(prisma as never);
-  const controller = new ProfilesController(service, { getPhotosForProfile: async () => [] } as never, {} as never);
+  const controller = new ProfilesController(service, { getPhotosForProfile: async () => [] } as never, {} as never, {} as never);
   return { prisma, controller, row };
 }
 const me = { userId: 'user-1', sessionId: 'session-test' };

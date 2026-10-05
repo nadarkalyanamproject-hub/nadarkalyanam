@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { photoResponseSchema } from './photo.js';
+import { phoneVisibilityEnum } from './phone.js';
 
 export const genderEnum = z.enum(['MALE', 'FEMALE', 'OTHER']);
 export type Gender = z.infer<typeof genderEnum>;
@@ -142,6 +143,8 @@ export const profileResponseSchema = z.object({
   // profile-completion.ts), e.g. ['employedIn', 'photo'].
   completionMissing: z.array(z.string()),
   visibility: profileVisibilityEnum,
+  // The owner's own phone-unlock consent (never another member's number).
+  phoneVisibility: phoneVisibilityEnum,
   // Set only by a completed identity verification.
   isVerified: z.boolean(),
   details: profileDetailsSchema,

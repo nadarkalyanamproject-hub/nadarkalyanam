@@ -85,7 +85,7 @@ function buildService(overrides?: {
     getPhotosForProfile: vi.fn().mockResolvedValue([]),
   };
 
-  const service = new InterestsService(prisma as never, profilesService as never, photosService as never, { notify: vi.fn(), markTargetRead: vi.fn().mockResolvedValue(0) } as never);
+  const service = new InterestsService(prisma as never, profilesService as never, photosService as never, { notify: vi.fn(), markTargetRead: vi.fn().mockResolvedValue(0) } as never, { getActivePlan: async () => ({ plan: { code: 'GOLD' } }), freeInterestsPerMonth: () => 5 } as never);
   return { service, prisma, profilesService, photosService, tx };
 }
 

@@ -1,4 +1,5 @@
 import { calculateAge } from '../../common/age.js';
+import { MATCH_SCORE_BOOST } from '../../common/search-boost.js';
 import type { Profile } from '../../generated/prisma/client.js';
 
 type ProfileDetails = {
@@ -52,8 +53,10 @@ export class MatchingEngine {
     return score;
   }
 
+  // Compatibility plus a small listing bonus for priority / spotlight plans
+  // (MATCH_SCORE_BOOST). Candidate preselection is unchanged.
   static computeScore(viewer: Profile, candidate: Profile): number {
-    return this.applySoftPreferences(viewer, candidate);
+    return this.applySoftPreferences(viewer, candidate) + (MATCH_SCORE_BOOST[candidate.searchBoost] ?? 0);
   }
 
   static rankCandidates(viewer: Profile, candidates: Profile[]): Array<{ profile: Profile; score: number }> {

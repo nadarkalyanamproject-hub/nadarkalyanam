@@ -17,6 +17,9 @@ import type {
   MyMembershipResponse,
   NearbyMatchesResponse,
   NotificationCategory,
+  PhoneStatusResponse,
+  PhoneUnlockResponse,
+  PhoneVisibility,
   OrderResponse,
   PhotoResponse,
   ProfileCardListResponse,
@@ -161,6 +164,31 @@ export function createProfile(
 
 export function getMyProfile(accessToken: string): Promise<ProfileResponse> {
   return request<ProfileResponse>('/profiles/me', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// Phone privacy: CONNECTED lets connected members with a paid plan unlock
+// your number; NEVER (the default) lets nobody.
+export function updatePhoneVisibility(accessToken: string, phoneVisibility: PhoneVisibility): Promise<ProfileResponse> {
+  return request<ProfileResponse>('/profiles/me/phone-visibility', {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ phoneVisibility }),
+  });
+}
+
+// What the caller can do about another member's phone number. Never the number.
+export function getPhoneStatus(accessToken: string, profileId: string): Promise<PhoneStatusResponse> {
+  return request<PhoneStatusResponse>(`/profiles/${encodeURIComponent(profileId)}/phone-status`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// Unlocks (or re-shows) another member's phone number.
+export function unlockPhone(accessToken: string, profileId: string): Promise<PhoneUnlockResponse> {
+  return request<PhoneUnlockResponse>(`/profiles/${encodeURIComponent(profileId)}/phone-unlock`, {
+    method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 }

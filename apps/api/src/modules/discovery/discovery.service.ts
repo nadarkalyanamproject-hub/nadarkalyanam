@@ -11,6 +11,7 @@ import {
   rangesOverlap,
 } from '../../common/profile-filters.js';
 import { visibleProfilesWhere } from '../../common/profile-cards.js';
+import { afterSearchCursor, encodeSearchCursor, parseSearchCursor } from '../../common/search-boost.js';
 import { getRelationshipStates, relationshipFields } from '../../common/relationship.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PhotosService } from '../photos/photos.service.js';
@@ -107,14 +108,26 @@ export class DiscoveryService {
     };
     const total = await this.prisma.profile.count({ where });
 
+    // Default sort: plan tier first (spotlight, priority, standard), then the
+    // existing id order; the cursor carries both. 'newest' is date-based and
+    // never boosted.
+    let afterCursor: Prisma.ProfileWhereInput | null = null;
+    if (query.cursor && query.sort === 'id') {
+      const parsed = parseSearchCursor(query.cursor);
+      const boost =
+        'boost' in parsed
+          ? parsed.boost
+          : ((await this.prisma.profile.findUnique({ where: { id: parsed.id }, select: { searchBoost: true } }))?.searchBoost ?? 0);
+      afterCursor = afterSearchCursor({ boost, id: parsed.id });
+    }
+
     // 'newest' has no cursor-pagination guarantee (createdAt ties aren't
     // disambiguated) — acceptable for its one caller, an unpaginated
     // "recently joined" preview strip; a real paginated newest-sort would
     // need a compound (createdAt, id) cursor instead.
     const profiles = await this.prisma.profile.findMany({
-      where,
-      orderBy: query.sort === 'newest' ? { createdAt: 'desc' } : { id: 'asc' },
-      ...(query.cursor && query.sort === 'id' ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+      where: afterCursor ? { AND: [where, afterCursor] } : where,
+      orderBy: query.sort === 'newest' ? { createdAt: 'desc' } : [{ searchBoost: 'desc' }, { id: 'asc' }],
       take: query.limit + 1,
     });
 
@@ -145,7 +158,8 @@ export class DiscoveryService {
       }),
     );
 
-    return { items, nextCursor: hasMore ? (page[page.length - 1]?.id ?? null) : null, total };
+    const last = page[page.length - 1];
+    return { items, nextCursor: hasMore && last ? encodeSearchCursor(last) : null, total };
   }
 
   // Height and income are stored as text, so a range can't be a JSON-path

@@ -2,6 +2,7 @@ import { BadRequestException, Inject, Injectable, Logger, NotFoundException } fr
 import { ConfigService } from '@nestjs/config';
 import type { MembershipPlanResponse, OrderResponse, OrderStatus, PlanFeature } from '@nadar-kalyanam/schemas';
 import { assertProviderConfigured } from '../../common/not-yet-available.exception.js';
+import { recomputeSearchBoost } from '../../common/search-boost.js';
 import type { Env } from '../config/env.schema.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
@@ -162,6 +163,7 @@ export class PaymentsService {
           await tx.subscription.create({
             data: { userId: order.userId, planId: order.planId, orderId: order.id, status: 'ACTIVE', startedAt, expiresAt },
           });
+          await recomputeSearchBoost(tx, order.userId, now);
           activated = { expiresAt };
         }
         if (event.status === 'REFUNDED') {
@@ -169,6 +171,7 @@ export class PaymentsService {
             where: { orderId: order.id, cancelledAt: null },
             data: { status: 'CANCELLED', cancelledAt: now },
           });
+          await recomputeSearchBoost(tx, order.userId, now);
         }
         return 'processed';
       });

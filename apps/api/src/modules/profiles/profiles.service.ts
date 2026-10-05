@@ -1,5 +1,11 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { PRIOR_MARRIAGE_STATUSES, type CreateProfileRequest, type ProfileVisibility } from '@nadar-kalyanam/schemas';
+import {
+  DEFAULT_PHONE_VISIBILITY,
+  PRIOR_MARRIAGE_STATUSES,
+  type CreateProfileRequest,
+  type PhoneVisibility,
+  type ProfileVisibility,
+} from '@nadar-kalyanam/schemas';
 import { computeCompletionScore } from '../../common/profile-completion.js';
 import { visibleProfilesWhere } from '../../common/profile-cards.js';
 import { getRelationshipStates, type RelationshipState } from '../../common/relationship.js';
@@ -60,7 +66,8 @@ export class ProfilesService {
     // A brand-new profile has no photos yet.
     const data = buildProfileData(input);
     return this.prisma.profile.create({
-      data: { userId, ...data, completionScore: computeCompletionScore(data, 0) },
+      // Nobody shares their phone number until they turn it on.
+      data: { userId, ...data, phoneVisibility: DEFAULT_PHONE_VISIBILITY, completionScore: computeCompletionScore(data, 0) },
     });
   }
 
@@ -86,6 +93,16 @@ export class ProfilesService {
     return this.prisma.profile.update({ where: { userId }, data: { visibility } });
   }
 
+  // The owner's consent for connected paid members to unlock their phone
+  // number. Takes effect immediately, including over earlier unlocks.
+  async updatePhoneVisibility(userId: string, phoneVisibility: PhoneVisibility) {
+    const existing = await this.prisma.profile.findUnique({ where: { userId } });
+    if (!existing) {
+      throw new NotFoundException('Profile not found for this user');
+    }
+    return this.prisma.profile.update({ where: { userId }, data: { phoneVisibility } });
+  }
+
   // "Browse Profiles" list: the app-wide visibility rule (visibleProfilesWhere,
   // shared with search, matches and shortlists) — never the caller, never
   // anyone blocked in either direction, never a HIDDEN profile, never an
@@ -95,7 +112,14 @@ export class ProfilesService {
     const where = await visibleProfilesWhere(this.prisma, callerUserId);
 
     const [profiles, total] = await Promise.all([
-      this.prisma.profile.findMany({ where, orderBy: { createdAt: 'desc' }, skip: offset, take: limit }),
+      // Plan tier first (spotlight, priority, standard), then newest; id
+      // makes the order total so offset pages never skip or repeat.
+      this.prisma.profile.findMany({
+        where,
+        orderBy: [{ searchBoost: 'desc' }, { createdAt: 'desc' }, { id: 'asc' }],
+        skip: offset,
+        take: limit,
+      }),
       this.prisma.profile.count({ where }),
     ]);
 

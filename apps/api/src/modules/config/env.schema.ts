@@ -68,6 +68,12 @@ export const envSchema = z.object({
     .enum(['true', 'false'])
     .default('true')
     .transform((value) => value === 'true'),
+  // Free members may send this many interests per calendar month (India
+  // time). Paid plans have no limit.
+  FREE_INTERESTS_PER_MONTH: z.coerce.number().int().min(0).default(5),
+  // Abuse guard: new phone unlocks one member may make per day (India time),
+  // on top of their plan's quota.
+  UNLOCK_DAILY_CAP: z.coerce.number().int().min(1).default(100),
   // FR-1.5's anonymization step for members whose 14-day removal grace
   // period has elapsed (see modules/admin/anonymization). Destructive and
   // irreversible, so OFF by default: when false no queue, scheduler or

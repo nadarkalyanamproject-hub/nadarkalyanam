@@ -130,6 +130,9 @@ export default function MembershipPage() {
           <p className="text-xs sm:text-sm text-[#73645C]">
             Choose a membership that fits your search. Features marked Coming Soon aren&apos;t available yet on any plan.
           </p>
+          <p className="text-[11px] text-[#8C7B73]" data-testid="tax-note">
+            Prices include applicable taxes.
+          </p>
         </div>
 
         {/* The member's own plan, from GET /me/membership. */}
@@ -147,11 +150,25 @@ export default function MembershipPage() {
                     : ''}
                   . A plan bought now starts when this one ends.
                 </p>
+                <p className="mt-1 text-xs text-[#5A493E]" data-testid="my-unlocks">
+                  {membership.phoneUnlocksRemaining === null
+                    ? `Phone number unlocks: unlimited (${membership.phoneUnlocksUsed ?? 0} used this plan).`
+                    : `Phone number unlocks: ${membership.phoneUnlocksUsed} used, ${membership.phoneUnlocksRemaining} left this plan.`}{' '}
+                  Interests: unlimited.
+                </p>
               </>
             ) : (
-              <p className="text-[#73645C]">
-                You&apos;re on the <span className="font-semibold text-[#2B1515]">free membership</span>.
-              </p>
+              <>
+                <p className="text-[#73645C]">
+                  You&apos;re on the <span className="font-semibold text-[#2B1515]">free membership</span>.
+                </p>
+                {membership.interestsLimit !== null && membership.resetsAt && (
+                  <p className="mt-1 text-xs text-[#5A493E]" data-testid="my-interests">
+                    Interests this month: {membership.interestsUsedThisMonth} of {membership.interestsLimit} · more on{' '}
+                    {formatPlanDate(membership.resetsAt)}. Phone number unlocks need a paid plan.
+                  </p>
+                )}
+              </>
             )}
           </Card>
         )}
@@ -301,8 +318,8 @@ export default function MembershipPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {[
               { icon: ShieldCheck, title: 'OTP-confirmed mobile numbers', text: 'Every account signs in with a one-time code sent to its mobile number.' },
-              { icon: MessageCircle, title: 'Messaging your connections', text: 'Once an interest is accepted you can message each other, with no limit.' },
-              { icon: Sparkles, title: 'Privacy & blocking', text: 'Hide your profile from lists, and block anyone. Your phone number is never shown to other members.' },
+              { icon: MessageCircle, title: 'Interests & messaging', text: 'Send up to 5 interests a month. Once one is accepted you can message each other, with no limit.' },
+              { icon: Sparkles, title: 'Privacy & blocking', text: 'Hide your profile from lists and block anyone. Your phone number stays hidden unless you allow connected members with a paid plan to unlock it.' },
             ].map(({ icon: Icon, title, text }) => (
               <div key={title} className="flex items-start gap-3 rounded-xl border border-[#E8DCCF] bg-white p-4 shadow-xs">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#EEDFCD] bg-[#FAF5EC] text-[#C89B3C]">
