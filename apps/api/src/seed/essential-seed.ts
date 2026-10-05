@@ -24,83 +24,91 @@ export async function seedEssential(prisma: PrismaClient, log: (message: string)
     }
   }
 
+  // Plan display copy. `available` is whether the product delivers that
+  // feature TODAY: only messaging your connections and viewing verified
+  // profiles exist; everything else is shown as Coming Soon. Limits are
+  // typed columns (phoneUnlockLimit: null = unlimited), never parsed from
+  // this copy.
+  const feature = (key: string, label: string, available = false) => ({ key, label, available });
+  const MESSAGES = feature('unlimitedMessages', 'Unlimited messages with your connections', true);
+  const VERIFIED_PROFILES = feature('verifiedProfiles', 'View verified profiles with photos', true);
+  const HOROSCOPE = feature('horoscopeViews', 'Unlimited horoscope views');
+  const UNLIMITED_PHONES = feature('phoneNumbers', 'Unlimited phone numbers');
+
   const MEMBERSHIP_PLANS = [
     {
       id: 'plan-gold-3m',
-      name: 'Gold - 3 months',
+      code: 'GOLD',
+      name: 'Gold',
       priceInPaise: 149900,
       durationDays: 90,
-      entitlements: {
-        phoneNumbers: 50,
-        unlimitedMessages: true,
-        unlimitedHoroscopes: true,
-        verifiedProfilesWithPhotos: true,
-      },
+      sortOrder: 1,
+      phoneUnlockLimit: 50,
+      isAssisted: false,
+      features: [feature('phoneNumbers', '50 verified phone numbers'), MESSAGES, HOROSCOPE, VERIFIED_PROFILES],
     },
     {
       id: 'plan-gold-plus-3m',
-      name: 'Gold + - 3 months',
+      code: 'GOLD_PLUS',
+      name: 'Gold Plus',
       priceInPaise: 229900,
       durationDays: 90,
-      entitlements: {
-        phoneNumbers: 'Unlimited',
-        newPhoneNumbersQuota: 75,
-        unlimitedMessages: true,
-        unlimitedHoroscopes: true,
-        verifiedProfilesWithPhotos: true,
-        priorityListing: true,
-      },
+      sortOrder: 2,
+      phoneUnlockLimit: null,
+      isAssisted: false,
+      features: [
+        UNLIMITED_PHONES,
+        MESSAGES,
+        HOROSCOPE,
+        feature('searchPriority', 'Priority placement in search'),
+        feature('whatsappConnect', 'WhatsApp direct connect'),
+      ],
     },
     {
       id: 'plan-gold-premium-12m',
-      name: 'Gold Premium - 12 months',
+      code: 'GOLD_PREMIUM',
+      name: 'Gold Premium',
       priceInPaise: 599900,
       durationDays: 365,
-      entitlements: {
-        phoneNumbers: 'Unlimited',
-        newPhoneNumbersQuota: 200,
-        unlimitedMessages: true,
-        unlimitedHoroscopes: true,
-        verifiedProfilesWithPhotos: true,
-        dedicatedManager: true,
-        prioritySpotlight: true,
-      },
+      sortOrder: 3,
+      phoneUnlockLimit: null,
+      isAssisted: false,
+      features: [
+        UNLIMITED_PHONES,
+        MESSAGES,
+        HOROSCOPE,
+        feature('relationshipManager', 'Dedicated relationship manager'),
+        feature('spotlight', 'Top-spot spotlight'),
+        feature('whatsappPriority', 'Priority WhatsApp assistance'),
+        feature('weeklyMatches', 'Handpicked weekly matches'),
+      ],
     },
     {
       id: 'plan-vip-assisted-6m',
-      name: 'VIP Assisted - 6 months',
+      code: 'VIP_ASSISTED',
+      name: 'VIP Assisted',
       priceInPaise: 1499900,
       durationDays: 180,
-      entitlements: {
-        phoneNumbers: 75,
-        unlimitedMessages: true,
-        unlimitedHoroscopes: true,
-        verifiedProfilesWithPhotos: true,
-        dedicatedRelationshipManager: true,
-        familyAssistance: true,
-        confidentialSearch: true,
-      },
+      sortOrder: 4,
+      phoneUnlockLimit: 75,
+      isAssisted: true,
+      features: [
+        feature('assistedContacts', '75 verified contacts handled on your behalf'),
+        feature('seniorMatchmaker', 'Personal senior matchmaker'),
+        feature('familyCoordination', 'Family call and meeting coordination'),
+        feature('preScreenedMatches', 'Pre-screened, handpicked matches'),
+        feature('vipWhatsappDesk', 'VIP WhatsApp desk'),
+        feature('confidentiality', 'Confidential search'),
+      ],
     },
   ];
 
-  for (const plan of MEMBERSHIP_PLANS) {
+  for (const { features, ...plan } of MEMBERSHIP_PLANS) {
+    const data = { ...plan, entitlements: { features }, isActive: true };
     await prisma.membershipPlan.upsert({
       where: { id: plan.id },
-      update: {
-        name: plan.name,
-        priceInPaise: plan.priceInPaise,
-        durationDays: plan.durationDays,
-        entitlements: plan.entitlements,
-        isActive: true,
-      },
-      create: {
-        id: plan.id,
-        name: plan.name,
-        priceInPaise: plan.priceInPaise,
-        durationDays: plan.durationDays,
-        entitlements: plan.entitlements,
-        isActive: true,
-      },
+      update: data,
+      create: data,
     });
   }
 

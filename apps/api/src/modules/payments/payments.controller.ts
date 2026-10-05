@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Headers, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
 import {
   type CreateOrderRequest,
   createOrderRequestSchema,
@@ -36,19 +36,19 @@ export class PaymentsController {
   }
 
   // No JwtAuthGuard: the caller is the payment provider, authenticated by
-  // the HMAC signature (FR-7.3), not a member bearer token.
-  //
-  // NOTE: verifies the signature over JSON.stringify(body) — the
-  // body-parser-decoded and re-serialized payload, not the exact bytes the
-  // provider signed. This is a scaffolding simplification; the real
-  // integration must capture the true raw request body (e.g. via a raw-body
-  // middleware scoped to this route) before this can pass a live provider's
-  // signature check.
+  // the HMAC signature (FR-7.3), not a member bearer token. The signature
+  // is checked over the exact request bytes (`rawBody`, kept for this route
+  // only — see main.ts). 200 for processed, duplicate and ignored events,
+  // so the provider stops retrying; 400 for a bad signature, an unknown
+  // order or a mismatched amount.
   @Post('payments/webhook')
+  @HttpCode(200)
   handleWebhook(
     @Headers('x-webhook-signature') signature: string | undefined,
+    @Req() request: { rawBody?: Buffer },
     @Body(new ZodValidationPipe(paymentWebhookEventSchema)) body: PaymentWebhookEventInput,
   ) {
-    return this.paymentsService.handleWebhook(JSON.stringify(body), signature, body);
+    if (!request.rawBody) throw new BadRequestException('Missing request body');
+    return this.paymentsService.handleWebhook(request.rawBody, signature, body);
   }
 }

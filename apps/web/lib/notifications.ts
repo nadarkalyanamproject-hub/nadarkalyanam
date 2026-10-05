@@ -33,6 +33,9 @@ export function notificationDestination(n: NotificationTarget): NotificationDest
     case 'REMOVAL_SCHEDULED':
     case 'REMOVAL_CANCELLED':
       return { kind: 'navigate', href: '/profile' };
+    case 'PLAN_ACTIVATED':
+    case 'PLAN_EXPIRED':
+      return { kind: 'navigate', href: '/membership' };
     default:
       return { kind: 'unavailable', message: 'There is nothing more to open for this notification.' };
   }

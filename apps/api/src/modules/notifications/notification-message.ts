@@ -25,6 +25,15 @@ export function notificationMessage(type: string, actorName: string, data: Recor
     }
     case 'REMOVAL_CANCELLED':
       return 'The scheduled removal of your account was cancelled';
+    case 'PLAN_ACTIVATED': {
+      const plan = typeof data.planName === 'string' ? `Your ${data.planName}` : 'Your';
+      const until = typeof data.expiresAt === 'string' ? new Date(data.expiresAt) : null;
+      return until && !Number.isNaN(until.getTime())
+        ? `${plan} membership is active until ${until.toISOString().slice(0, 10)}`
+        : `${plan} membership is active`;
+    }
+    case 'PLAN_EXPIRED':
+      return typeof data.planName === 'string' ? `Your ${data.planName} membership has ended` : 'Your membership has ended';
     default:
       return 'You have a new notification';
   }

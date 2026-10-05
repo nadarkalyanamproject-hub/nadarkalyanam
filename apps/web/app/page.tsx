@@ -851,8 +851,8 @@ function HomeContent() {
               </svg>
             </div>
             <div className="trust-text">
-              <h4 className="trust-value">100% Verified</h4>
-              <p className="trust-sub">Genuine Family Profiles</p>
+              <h4 className="trust-value">OTP Verified</h4>
+              <p className="trust-sub">Every Mobile Number Confirmed</p>
             </div>
           </div>
 

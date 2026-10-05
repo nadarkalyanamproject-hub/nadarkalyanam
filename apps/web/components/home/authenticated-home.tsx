@@ -602,44 +602,23 @@ export function AuthenticatedHome() {
             <div className="space-y-3 max-w-2xl text-center lg:text-left">
               <div className="inline-flex items-center gap-2 rounded-full bg-[#FAF0DC] px-3.5 py-1 text-xs font-bold text-[#7B1118] border border-[#EADBBD]">
                 <Crown className="h-3.5 w-3.5 text-[#C89B3C]" />
-                <span className="tracking-wider uppercase">PREMIUM MEMBERSHIP</span>
+                <span className="tracking-wider uppercase">MEMBERSHIP</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-[#2B1515] font-[family-name:var(--font-heading,serif)] tracking-tight">
-                Unlock Direct Phone Numbers &amp; Unlimited Chats
+                Membership Plans
               </h2>
               <p className="text-xs sm:text-sm text-[#73645C] leading-relaxed">
-                Connect with compatible families with zero barriers. Upgrade to view verified contact details, express unlimited interest, and receive priority profile placement.
+                Messaging the members you&apos;re connected with is already free for everyone. Paid plans are being set
+                up: phone numbers, horoscope views and priority placement are coming soon, and online payment opens
+                shortly.
               </p>
-
-              {/* Perks quick list */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                <div className="bg-white/80 rounded-xl p-3 border border-[#EADFD5] text-center">
-                  <div className="text-base font-extrabold text-[#7B1118]">50+</div>
-                  <div className="text-[11px] text-[#73645C] font-medium">Verified Contacts</div>
-                </div>
-                <div className="bg-white/80 rounded-xl p-3 border border-[#EADFD5] text-center">
-                  <div className="text-base font-extrabold text-[#7B1118]">Direct</div>
-                  <div className="text-[11px] text-[#73645C] font-medium">WhatsApp Sharing</div>
-                </div>
-                <div className="bg-white/80 rounded-xl p-3 border border-[#EADFD5] text-center">
-                  <div className="text-base font-extrabold text-[#7B1118]">Unlimited</div>
-                  <div className="text-[11px] text-[#73645C] font-medium">Horoscope Views</div>
-                </div>
-                <div className="bg-white/80 rounded-xl p-3 border border-[#EADFD5] text-center">
-                  <div className="text-base font-extrabold text-[#7B1118]">Top Spot</div>
-                  <div className="text-[11px] text-[#73645C] font-medium">Search Priority</div>
-                </div>
-              </div>
             </div>
 
             {/* CTA Box */}
             <div className="bg-white rounded-2xl p-6 border-2 border-[#C89B3C] shadow-md flex flex-col items-center text-center shrink-0 w-full sm:w-80">
-              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#C89B3C] mb-1">
-                Starting from ₹1,499
-              </span>
               <h3 className="text-lg font-bold text-[#2B1515]">Gold &amp; Premium Plans</h3>
               <p className="text-xs text-[#73645C] mt-1 mb-4">
-                Transparent pricing with instant activation and dedicated support.
+                See each plan&apos;s price and exactly what&apos;s available today.
               </p>
               <Link
                 href="/membership"

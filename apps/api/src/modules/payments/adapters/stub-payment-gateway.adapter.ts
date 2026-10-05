@@ -18,8 +18,8 @@ export class StubPaymentGatewayAdapter implements PaymentGatewayAdapter {
     throw new NotImplementedException('No payment gateway is configured yet');
   }
 
-  verifyWebhookSignature(rawBody: string, signature: string | undefined): boolean {
-    if (!signature) {
+  verifyWebhookSignature(rawBody: Buffer, signature: string | undefined): boolean {
+    if (!signature || !/^[0-9a-f]+$/i.test(signature)) {
       return false;
     }
     const secret = this.configService.get('PAYMENT_WEBHOOK_SECRET', { infer: true });

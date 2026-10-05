@@ -11,7 +11,8 @@ export interface ProviderOrder {
 // same principle as the component diagram's infra-adapter boxes.
 export interface PaymentGatewayAdapter {
   createProviderOrder(orderId: string, amountInPaise: number): Promise<ProviderOrder>;
-  verifyWebhookSignature(rawBody: string, signature: string | undefined): boolean;
+  // Over the exact bytes received — never a re-serialized body.
+  verifyWebhookSignature(rawBody: Buffer, signature: string | undefined): boolean;
   // Set (to `true`) only by the stub implementation — see
   // common/not-yet-available.exception.ts.
   readonly isStub?: boolean;

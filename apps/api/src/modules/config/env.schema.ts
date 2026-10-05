@@ -61,6 +61,13 @@ export const envSchema = z.object({
   // dev stub — photos are approved on upload. Unset: 'pending' in
   // production, 'auto_approve' elsewhere.
   PHOTO_MODERATION: z.enum(['pending', 'auto_approve']).optional(),
+  // Sweep that marks past-due subscriptions EXPIRED and sends PLAN_EXPIRED.
+  // On by default; entitlement checks go by dates, so turning it off never
+  // grants extra time. Same safe-boolean pattern as above.
+  ENABLE_SUBSCRIPTION_EXPIRY_JOB: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
   // FR-1.5's anonymization step for members whose 14-day removal grace
   // period has elapsed (see modules/admin/anonymization). Destructive and
   // irreversible, so OFF by default: when false no queue, scheduler or

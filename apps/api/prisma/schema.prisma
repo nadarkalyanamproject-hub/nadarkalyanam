@@ -338,13 +338,23 @@ model Call {
 // --- Membership & payments (FR-7) -----------------------------------------
 
 model MembershipPlan {
-  id           String   @id @default(uuid())
-  name         String
-  priceInPaise Int
-  durationDays Int
-  entitlements Json     @default("{}")
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  id               String   @id @default(uuid())
+  // Stable identifier (GOLD, GOLD_PLUS, GOLD_PREMIUM, VIP_ASSISTED) — clients
+  // and code key on this or the id, never on the display name.
+  code             String   @unique
+  name             String
+  priceInPaise     Int
+  durationDays     Int
+  sortOrder        Int      @default(0)
+  // Phone number unlocks per subscription; null = unlimited. Not enforced
+  // yet (phone unlocks are not built).
+  phoneUnlockLimit Int?
+  // Assisted (staff-run) plan rather than self-serve.
+  isAssisted       Boolean  @default(false)
+  // Display copy only: { features: [{ key, label, available }] }.
+  entitlements     Json     @default("{}")
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
 
   orders        Order[]
   subscriptions Subscription[]
@@ -362,16 +372,23 @@ enum SubscriptionStatus {
 // order can exist before a payment settles it, and only a verified-successful
 // payment event activates (or renews) the entitlement here — see FR-7.5.
 model Subscription {
-  id        String             @id @default(uuid())
-  userId    String
-  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planId    String
-  plan      MembershipPlan     @relation(fields: [planId], references: [id])
-  status    SubscriptionStatus @default(ACTIVE)
-  startedAt DateTime           @default(now())
-  expiresAt DateTime
+  id          String             @id @default(uuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId      String
+  plan        MembershipPlan     @relation(fields: [planId], references: [id])
+  status      SubscriptionStatus @default(ACTIVE)
+  // One subscription per paid order.
+  orderId     String?            @unique
+  order       Order?             @relation(fields: [orderId], references: [id])
+  // A renewal bought while a plan is active starts when that one ends.
+  startedAt   DateTime           @default(now())
+  expiresAt   DateTime
+  // Set when the order is refunded.
+  cancelledAt DateTime?
 
   @@index([userId])
+  @@index([userId, status, expiresAt])
   @@map("subscriptions")
 }
 
@@ -384,17 +401,21 @@ enum OrderStatus {
 }
 
 model Order {
-  id            String         @id @default(uuid())
-  userId        String
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planId        String
-  plan          MembershipPlan @relation(fields: [planId], references: [id])
-  amountInPaise Int
-  status        OrderStatus    @default(CREATED)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id              String         @id @default(uuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId          String
+  plan            MembershipPlan @relation(fields: [planId], references: [id])
+  amountInPaise   Int
+  status          OrderStatus    @default(CREATED)
+  // The gateway's own order id, once a real gateway exists.
+  providerOrderId String?        @unique
+  paidAt          DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
-  payments Payment[]
+  payments     Payment[]
+  subscription Subscription?
 
   @@map("orders")
 }

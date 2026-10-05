@@ -14,6 +14,7 @@ import type {
   MembershipPlanResponse,
   MessageListResponse,
   MessageResponse,
+  MyMembershipResponse,
   NearbyMatchesResponse,
   NotificationCategory,
   OrderResponse,
@@ -441,6 +442,11 @@ export function markAllNotificationsRead(accessToken: string): Promise<{ updated
 
 export function listMembershipPlans(): Promise<{ items: MembershipPlanResponse[] }> {
   return request('/membership-plans');
+}
+
+// The member's current plan (plan: null for a free member) and its expiry.
+export function getMyMembership(accessToken: string): Promise<MyMembershipResponse> {
+  return request<MyMembershipResponse>('/me/membership', { headers: { Authorization: `Bearer ${accessToken}` } });
 }
 
 export function createOrder(accessToken: string, payload: CreateOrderRequest): Promise<OrderResponse> {

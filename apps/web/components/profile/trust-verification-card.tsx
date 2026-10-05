@@ -181,7 +181,7 @@ export function TrustVerificationCard({ email }: { email?: string }) {
               </button>
             </div>
             <p className="text-xs text-[#776B62] leading-relaxed">
-              To maintain the highest authenticity on Nadar Kalyanam, all profiles undergo standard government ID verification (Aadhaar, Passport, or Voter ID).
+              Submit a government ID (Aadhaar, Passport, or Voter ID) to request a Verified badge on your profile.
             </p>
             <div className="my-4 rounded-xl bg-[#FFF9ED] border border-[#E8DCC8] p-3 text-xs text-[#7A0710]">
               🔒 Your document details are encrypted and never displayed publicly to other members.

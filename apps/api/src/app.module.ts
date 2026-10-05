@@ -10,6 +10,7 @@ import { HealthModule } from './modules/health/health.module.js';
 import { InterestsModule } from './modules/interests/interests.module.js';
 import { MatchCategoriesModule } from './modules/match-categories/match-categories.module.js';
 import { MatchingModule } from './modules/matching/matching.module.js';
+import { MembershipModule } from './modules/membership/membership.module.js';
 import { MessagesModule } from './modules/messages/messages.module.js';
 import { ModerationModule } from './modules/moderation/moderation.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
@@ -57,6 +58,7 @@ import { VerificationModule } from './modules/verification/verification.module.j
     ModerationModule,
     NotificationsModule,
     PaymentsModule,
+    MembershipModule,
     VerificationModule,
     CallsModule,
     AdminModule,
