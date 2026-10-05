@@ -2,10 +2,9 @@ import { BadRequestException, Inject, Injectable, Logger, NotFoundException } fr
 import { ConfigService } from '@nestjs/config';
 import type { MembershipPlanResponse, OrderResponse, OrderStatus, PlanFeature } from '@nadar-kalyanam/schemas';
 import { assertProviderConfigured } from '../../common/not-yet-available.exception.js';
-import { recomputeSearchBoost } from '../../common/search-boost.js';
 import type { Env } from '../config/env.schema.js';
 import { Prisma } from '../../generated/prisma/client.js';
-import { NotificationsService } from '../notifications/notifications.service.js';
+import { SubscriptionService, type Activation } from '../membership/subscription.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PAYMENT_GATEWAY_ADAPTER, type PaymentGatewayAdapter } from './adapters/payment-gateway.adapter.js';
 
@@ -15,8 +14,6 @@ function isUniqueConstraintViolation(error: unknown): boolean {
 
 // Every order is in Indian rupees (amounts are paise).
 export const ORDER_CURRENCY = 'INR';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 // The only order status changes a webhook may make. Anything else (a late
 // FAILED after PAID, a second PAID, …) is recorded and ignored, so a paid
@@ -61,7 +58,7 @@ export class PaymentsService {
     private readonly prisma: PrismaService,
     @Inject(PAYMENT_GATEWAY_ADAPTER) private readonly gateway: PaymentGatewayAdapter,
     private readonly configService: ConfigService<Env, true>,
-    private readonly notifications: NotificationsService,
+    private readonly subscriptions: SubscriptionService,
   ) {}
 
   async listPlans(): Promise<{ items: MembershipPlanResponse[] }> {
@@ -129,7 +126,7 @@ export class PaymentsService {
       throw new BadRequestException('Amount or currency does not match the order');
     }
 
-    let activated: { expiresAt: Date } | null = null;
+    let activated: Activation | null = null;
     let outcome: WebhookOutcome;
     try {
       outcome = await this.prisma.$transaction(async (tx) => {
@@ -153,25 +150,22 @@ export class PaymentsService {
         });
         if (count === 0) return 'ignored';
 
+        // Activation and cancellation go through SubscriptionService (the one
+        // place that holds the chaining rule), inside this transaction.
         if (event.status === 'PAID') {
-          const latest = await tx.subscription.findFirst({
-            where: { userId: order.userId, cancelledAt: null, expiresAt: { gt: now } },
-            orderBy: { expiresAt: 'desc' },
-          });
-          const startedAt = latest ? latest.expiresAt : now;
-          const expiresAt = new Date(startedAt.getTime() + order.plan.durationDays * DAY_MS);
-          await tx.subscription.create({
-            data: { userId: order.userId, planId: order.planId, orderId: order.id, status: 'ACTIVE', startedAt, expiresAt },
-          });
-          await recomputeSearchBoost(tx, order.userId, now);
-          activated = { expiresAt };
+          const result = await this.subscriptions.activateInTx(
+            tx,
+            { userId: order.userId, planId: order.planId, source: 'PAYMENT', orderId: order.id },
+            now,
+          );
+          if (result.created) activated = result;
         }
         if (event.status === 'REFUNDED') {
-          await tx.subscription.updateMany({
-            where: { orderId: order.id, cancelledAt: null },
-            data: { status: 'CANCELLED', cancelledAt: now },
-          });
-          await recomputeSearchBoost(tx, order.userId, now);
+          const subscription = await tx.subscription.findUnique({ where: { orderId: order.id } });
+          if (subscription && !subscription.cancelledAt && subscription.expiresAt > now) {
+            await this.subscriptions.cancelInTx(tx, subscription.id, { adminId: null, reason: 'Refunded by the payment provider' }, now);
+          }
+          await tx.order.update({ where: { id: order.id }, data: { refundedAt: now, refundReason: 'Refunded by the payment provider' } });
         }
         return 'processed';
       });
@@ -185,14 +179,7 @@ export class PaymentsService {
     if (outcome === 'ignored') {
       this.logger.warn(`Ignored ${event.status} event ${event.providerEventId} for order ${order.id} in status ${order.status}`);
     }
-    if (activated) {
-      this.notifications.notify({
-        recipientUserId: order.userId,
-        type: 'PLAN_ACTIVATED',
-        targetType: 'Account',
-        data: { planName: order.plan.name, expiresAt: (activated as { expiresAt: Date }).expiresAt.toISOString() },
-      });
-    }
+    if (activated) this.subscriptions.notifyActivated(activated);
     return { outcome };
   }
 

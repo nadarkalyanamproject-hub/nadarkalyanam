@@ -15,6 +15,12 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'report.resolve': 'Closed report',
   'admin.create': 'Added admin',
   'admin.update': 'Changed admin role/access',
+  'plan.update': 'Edited membership plan',
+  'subscription.grant': 'Granted plan',
+  'subscription.cancel': 'Cancelled plan',
+  'order.activate': 'Activated plan for paid order',
+  'order.refund': 'Recorded order refund',
+  'vip.update': 'Updated VIP enquiry',
 };
 
 export function auditActionLabel(action: string): string {

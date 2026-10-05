@@ -3,6 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotYetAvailableException } from '../../common/not-yet-available.exception.js';
 import { StubPaymentGatewayAdapter } from './adapters/stub-payment-gateway.adapter.js';
+import { SubscriptionService } from '../membership/subscription.service.js';
 import { PaymentsService, type PaymentWebhookEvent } from './payments.service.js';
 
 function buildService(overrides?: { nodeEnv?: string; gatewayIsStub?: boolean }) {
@@ -158,8 +159,20 @@ function webhookWorld() {
         hits.forEach((o) => Object.assign(o, data));
         return { count: hits.length };
       },
+      update: async ({ where, data }: any) => Object.assign(orders.find((o) => o.id === where.id), data),
     },
+    membershipPlan: { findUnique: async ({ where }: any) => plans[where.id] ?? null },
+    // SubscriptionService locks the member's row; nothing to lock here.
+    $queryRaw: async () => [],
     subscription: {
+      findUnique: async ({ where, include }: any) => {
+        const row = subscriptions.find((s) => (where.orderId ? s.orderId === where.orderId : s.id === where.id));
+        return row ? (include?.plan ? { ...row, plan: plans[row.planId] } : row) : null;
+      },
+      update: async ({ where, data, include }: any) => {
+        const row = Object.assign(subscriptions.find((s) => s.id === where.id), data);
+        return include?.plan ? { ...row, plan: plans[row.planId] } : row;
+      },
       findFirst: async ({ where }: any) =>
         subscriptions
           .filter((s) => s.userId === where.userId && s.cancelledAt === null && s.expiresAt > where.expiresAt.gt)
@@ -172,7 +185,9 @@ function webhookWorld() {
           .map((s) => ({ ...s, plan: plans[s.planId] })),
       create: async ({ data }: any) => {
         if (subscriptions.some((s) => s.orderId === data.orderId)) throw unique('orderId');
-        subscriptions.push({ id: `sub-${subscriptions.length + 1}`, cancelledAt: null, ...data });
+        const row = { id: `sub-${subscriptions.length + 1}`, cancelledAt: null, createdAt: new Date(), ...data };
+        subscriptions.push(row);
+        return row;
       },
       updateMany: async ({ where, data }: any) => {
         const hits = subscriptions.filter((s) => s.orderId === where.orderId && s.cancelledAt === null);
@@ -204,7 +219,12 @@ function webhookWorld() {
   };
   const config = { get: (key: string) => ({ PAYMENT_WEBHOOK_SECRET: SECRET, NODE_ENV: 'test' })[key] };
   const notifications = { notify: vi.fn() };
-  const service = new PaymentsService(prisma, new StubPaymentGatewayAdapter(config as never), config as never, notifications as never);
+  const service = new PaymentsService(
+    prisma,
+    new StubPaymentGatewayAdapter(config as never),
+    config as never,
+    new SubscriptionService(prisma, notifications as never),
+  );
 
   const order = (id: string, planId = 'gold', userId = 'user-1') => {
     orders.push({ id, userId, planId, amountInPaise: plans[planId].priceInPaise, status: 'CREATED', paidAt: null });

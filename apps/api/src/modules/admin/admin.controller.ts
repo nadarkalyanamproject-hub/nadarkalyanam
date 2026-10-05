@@ -300,10 +300,4 @@ export class AdminController {
   ) {
     return this.adminUsersService.updateAdmin(admin, id, body);
   }
-
-  @Get('finance/dashboard')
-  @RequirePermission(PERMISSIONS.FINANCE_DASHBOARD_VIEW)
-  getFinanceDashboard() {
-    return this.adminService.getFinanceDashboard();
-  }
 }

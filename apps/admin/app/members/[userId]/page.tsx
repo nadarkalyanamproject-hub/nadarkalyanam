@@ -22,6 +22,7 @@ import {
 import { useAdminAuth } from '../../providers/admin-auth-provider';
 import { useRequireAdminAuth } from '../../../lib/use-require-admin-auth';
 import { useCurrentAdmin } from '../../../lib/use-current-admin';
+import { MemberMembership } from '../../../components/member-membership';
 
 type FormState = {
   fullName: string;
@@ -403,6 +404,14 @@ export default function MemberDetailPage() {
                 </div>
               )}
             </Card>
+
+            {can('members.view') && (
+              <MemberMembership
+                userId={member.id}
+                memberLabel={`${member.profile?.fullName ?? '(no profile)'} · ${member.phoneNumber}`}
+                disabled={isDeleted}
+              />
+            )}
 
             {!member.profile && (
               <Card className="rounded-2xl p-6 text-sm text-muted-foreground">

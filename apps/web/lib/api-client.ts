@@ -15,6 +15,8 @@ import type {
   MessageListResponse,
   MessageResponse,
   MyMembershipResponse,
+  MyVipEnquiryResponse,
+  VipEnquiryResponse,
   NearbyMatchesResponse,
   NotificationCategory,
   PhoneStatusResponse,
@@ -475,6 +477,19 @@ export function listMembershipPlans(): Promise<{ items: MembershipPlanResponse[]
 // The member's current plan (plan: null for a free member) and its expiry.
 export function getMyMembership(accessToken: string): Promise<MyMembershipResponse> {
   return request<MyMembershipResponse>('/me/membership', { headers: { Authorization: `Bearer ${accessToken}` } });
+}
+
+// VIP Assisted: ask to be called back (name and phone come from the account).
+export function createVipEnquiry(accessToken: string, payload: { message?: string }): Promise<VipEnquiryResponse> {
+  return request<VipEnquiryResponse>('/vip-enquiries', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getMyVipEnquiry(accessToken: string): Promise<MyVipEnquiryResponse> {
+  return request<MyVipEnquiryResponse>('/vip-enquiries/me', { headers: { Authorization: `Bearer ${accessToken}` } });
 }
 
 export function createOrder(accessToken: string, payload: CreateOrderRequest): Promise<OrderResponse> {

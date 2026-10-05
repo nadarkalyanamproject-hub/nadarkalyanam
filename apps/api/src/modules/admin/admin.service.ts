@@ -380,13 +380,6 @@ export class AdminService {
     return { days, timezone: 'Asia/Kolkata', points: buildActivitySeries(dates, membersBeforeWindow, signupsByDay) };
   }
 
-  // FR-11.5. Needs an approved definition of "active subscription" and
-  // refund-reporting scope before the aggregation query is meaningful —
-  // tracked as an open decision, not a missing capability of this service.
-  getFinanceDashboard(): never {
-    throw new NotImplementedException('Finance dashboard aggregation is not yet defined');
-  }
-
   // FR-11.6 (Could-have). No CMS content model exists yet.
   listCmsContent(): never {
     throw new NotImplementedException('CMS content management is not yet implemented');

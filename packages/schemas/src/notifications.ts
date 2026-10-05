@@ -15,6 +15,7 @@ export const notificationTypeEnum = z.enum([
   'REMOVAL_CANCELLED',
   'PLAN_ACTIVATED',
   'PLAN_EXPIRED',
+  'PLAN_CANCELLED',
 ]);
 export type NotificationType = z.infer<typeof notificationTypeEnum>;
 

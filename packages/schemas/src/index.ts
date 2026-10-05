@@ -1,5 +1,6 @@
 export * from './admin.js';
 export * from './auth.js';
+export * from './billing-admin.js';
 export * from './calls.js';
 export * from './discovery.js';
 export * from './interest.js';

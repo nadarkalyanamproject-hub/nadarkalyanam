@@ -48,6 +48,7 @@ model User {
   adminUser                  AdminUser?
   phoneUnlocksMade           PhoneUnlock[]             @relation("PhoneUnlockViewer")
   phoneUnlocksOfMe           PhoneUnlock[]             @relation("PhoneUnlockTarget")
+  vipEnquiries               VipEnquiry[]
 
   @@map("users")
 }
@@ -379,6 +380,13 @@ model MembershipPlan {
   @@map("membership_plans")
 }
 
+// How a subscription came about: a payment (webhook, or an admin activating
+// a paid order) or a complimentary admin grant (never counted as revenue).
+enum SubscriptionSource {
+  PAYMENT
+  ADMIN_GRANT
+}
+
 enum SubscriptionStatus {
   ACTIVE
   EXPIRED
@@ -389,20 +397,29 @@ enum SubscriptionStatus {
 // order can exist before a payment settles it, and only a verified-successful
 // payment event activates (or renews) the entitlement here — see FR-7.5.
 model Subscription {
-  id          String             @id @default(uuid())
-  userId      String
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planId      String
-  plan        MembershipPlan     @relation(fields: [planId], references: [id])
-  status      SubscriptionStatus @default(ACTIVE)
+  id                 String             @id @default(uuid())
+  userId             String
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId             String
+  plan               MembershipPlan     @relation(fields: [planId], references: [id])
+  status             SubscriptionStatus @default(ACTIVE)
   // One subscription per paid order.
-  orderId     String?            @unique
-  order       Order?             @relation(fields: [orderId], references: [id])
+  orderId            String?            @unique
+  order              Order?             @relation(fields: [orderId], references: [id])
   // A renewal bought while a plan is active starts when that one ends.
-  startedAt   DateTime           @default(now())
-  expiresAt   DateTime
-  // Set when the order is refunded.
-  cancelledAt DateTime?
+  startedAt          DateTime           @default(now())
+  expiresAt          DateTime
+  // Set when an admin cancels it or its order is refunded.
+  cancelledAt        DateTime?
+  source             SubscriptionSource @default(PAYMENT)
+  // Admin grants: who granted it and why; paymentReference is free text for
+  // an offline payment (never summed into revenue).
+  grantedByAdminId   String?
+  grantReason        String?
+  paymentReference   String?
+  cancelledByAdminId String?
+  cancelReason       String?
+  createdAt          DateTime           @default(now())
 
   phoneUnlocks PhoneUnlock[]
 
@@ -420,18 +437,22 @@ enum OrderStatus {
 }
 
 model Order {
-  id              String         @id @default(uuid())
-  userId          String
-  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planId          String
-  plan            MembershipPlan @relation(fields: [planId], references: [id])
-  amountInPaise   Int
-  status          OrderStatus    @default(CREATED)
+  id                String         @id @default(uuid())
+  userId            String
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId            String
+  plan              MembershipPlan @relation(fields: [planId], references: [id])
+  amountInPaise     Int
+  status            OrderStatus    @default(CREATED)
   // The gateway's own order id, once a real gateway exists.
-  providerOrderId String?        @unique
-  paidAt          DateTime?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  providerOrderId   String?        @unique
+  paidAt            DateTime?
+  // Recorded by an admin; the money itself is returned in the gateway.
+  refundedAt        DateTime?
+  refundReason      String?
+  refundedByAdminId String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   payments     Payment[]
   subscription Subscription?
@@ -563,4 +584,33 @@ model PhoneUnlock {
   @@index([subscriptionId])
   @@index([viewerId, createdAt])
   @@map("phone_unlocks")
+}
+
+enum VipEnquiryStatus {
+  NEW
+  CONTACTED
+  ONBOARDED
+  CLOSED
+}
+
+// A member asking to be contacted about the VIP Assisted plan. Name and phone
+// are copied from their profile/account when they enquire. At most one OPEN
+// (NEW or CONTACTED) enquiry per member: a partial unique index added by hand
+// in the migration SQL (Prisma's DSL has no partial indexes).
+model VipEnquiry {
+  id              String           @id @default(uuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  phone           String
+  message         String?
+  status          VipEnquiryStatus @default(NEW)
+  assignedAdminId String?
+  adminNotes      String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([status, createdAt])
+  @@index([userId])
+  @@map("vip_enquiries")
 }

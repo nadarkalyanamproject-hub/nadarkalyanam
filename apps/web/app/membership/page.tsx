@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { MembershipPlanResponse, MyMembershipResponse, OrderResponse, PlanFeature } from '@nadar-kalyanam/schemas';
 import { Card } from '@/components/ui/card';
 import { ContactInfoCard } from '@/components/ui/contact-info-card';
+import { VipEnquiry } from '@/components/membership/vip-enquiry';
 import { ComingSoonPill } from '@/components/ui/coming-soon-note';
 import { AppHeader } from '../../components/app-header';
 import { ApiError, createOrder, getMyMembership, listMembershipPlans } from '../../lib/api-client';
@@ -291,6 +292,7 @@ export default function MembershipPage() {
                   >
                     {chooseLabel(plan, `Choose ${plan.name}`)}
                   </button>
+                  <VipEnquiry />
                   {VIP_WHATSAPP && (
                     <a
                       href={VIP_WHATSAPP}

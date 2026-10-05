@@ -443,3 +443,8 @@ export function updateAdmin(accessToken: string, adminId: string, payload: Updat
     body: JSON.stringify(payload),
   });
 }
+
+// Shared JSON request with the admin's bearer token (used by billing-api.ts).
+export function adminRequest<T>(accessToken: string, path: string, init: RequestInit = {}): Promise<T> {
+  return request<T>(path, { ...init, headers: { ...authHeaders(accessToken), ...(init.headers as Record<string, string> | undefined) } });
+}

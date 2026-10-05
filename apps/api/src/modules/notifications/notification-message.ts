@@ -32,6 +32,8 @@ export function notificationMessage(type: string, actorName: string, data: Recor
         ? `${plan} membership is active until ${until.toISOString().slice(0, 10)}`
         : `${plan} membership is active`;
     }
+    case 'PLAN_CANCELLED':
+      return typeof data.planName === 'string' ? `Your ${data.planName} membership was cancelled` : 'Your membership was cancelled';
     case 'PLAN_EXPIRED':
       return typeof data.planName === 'string' ? `Your ${data.planName} membership has ended` : 'Your membership has ended';
     default:

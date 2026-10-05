@@ -5,13 +5,14 @@ import { EntitlementsService } from './entitlements.service.js';
 import { MembershipController } from './membership.controller.js';
 import { SubscriptionExpiryProcessor } from './subscription-expiry.processor.js';
 import { SubscriptionExpiryService } from './subscription-expiry.service.js';
+import { SubscriptionService } from './subscription.service.js';
 
 // What plan a member has (EntitlementsService, the single place paid
 // features will check), GET /me/membership, and the expiry sweep.
 @Module({
   imports: [AuthModule, NotificationsModule],
   controllers: [MembershipController],
-  providers: [EntitlementsService, SubscriptionExpiryService, SubscriptionExpiryProcessor],
-  exports: [EntitlementsService],
+  providers: [EntitlementsService, SubscriptionService, SubscriptionExpiryService, SubscriptionExpiryProcessor],
+  exports: [EntitlementsService, SubscriptionService],
 })
 export class MembershipModule {}

@@ -15,6 +15,11 @@ export const PERMISSIONS = {
   FINANCE_DASHBOARD_VIEW: 'finance.dashboard.view',
   CMS_MANAGE: 'cms.manage',
   ADMIN_USERS_MANAGE: 'admin_users.manage',
+  // Membership plans (name, price, active, order), subscriptions (grant,
+  // cancel, activate a paid order) and VIP enquiries.
+  PLANS_MANAGE: 'plans.manage',
+  SUBSCRIPTIONS_MANAGE: 'subscriptions.manage',
+  VIP_MANAGE: 'vip.manage',
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Bell, ChevronDown, Flag, LayoutDashboard, LogOut, Menu, ScrollText, ShieldCheck, Users, X } from 'lucide-react';
+import { Bell, ChevronDown, Crown, Flag, IndianRupee, LayoutDashboard, LogOut, Menu, Receipt, ScrollText, ShieldCheck, Tags, Users, WalletCards, X } from 'lucide-react';
 import { useAdminAuth } from '../app/providers/admin-auth-provider';
 import { listReports, logoutAdmin } from '../lib/api-client';
 import { useCurrentAdmin } from '../lib/use-current-admin';
@@ -14,6 +14,11 @@ const NAV_ITEMS = [
   { href: '/', label: 'Dashboard', permission: 'members.view', icon: LayoutDashboard },
   { href: '/members', label: 'Members', permission: 'members.view', icon: Users },
   { href: '/reports', label: 'Reports', permission: 'reports.review', icon: Flag },
+  { href: '/plans', label: 'Plans', permission: 'plans.manage', icon: Tags },
+  { href: '/subscriptions', label: 'Subscriptions', permission: 'subscriptions.manage', icon: WalletCards },
+  { href: '/orders', label: 'Orders', permission: 'finance.dashboard.view', icon: Receipt },
+  { href: '/finance', label: 'Finance', permission: 'finance.dashboard.view', icon: IndianRupee },
+  { href: '/vip-enquiries', label: 'VIP enquiries', permission: 'vip.manage', icon: Crown },
   { href: '/audit-logs', label: 'Audit Log', permission: 'admin_users.manage', icon: ScrollText },
   { href: '/admins', label: 'Admins', permission: 'admin_users.manage', icon: ShieldCheck },
 ];
