@@ -98,7 +98,9 @@ export class AdminService {
       throw new NotFoundException('Member not found');
     }
 
-    const photos = user.profile ? await this.photosService.getPhotosForProfile(user.profile.id) : [];
+    const photos = user.profile
+      ? await this.photosService.getPhotosForProfile(user.profile.id, { includeUnapproved: true })
+      : [];
 
     return {
       id: user.id,
@@ -196,7 +198,9 @@ export class AdminService {
     const deletionRequestedAt = new Date();
     const updated = await this.prisma.user.update({
       where: { id: userId },
-      data: { status: 'PENDING_DELETION', deletionRequestedAt },
+      // Remembered so "Cancel removal" restores it (a suspended member
+      // stays suspended).
+      data: { status: 'PENDING_DELETION', deletionRequestedAt, statusBeforeDeletion: user.status },
     });
     const scheduledAt = scheduledAnonymizationDate(deletionRequestedAt);
     await this.auditLog.record(adminId, 'member.remove', 'User', userId, {
@@ -220,8 +224,9 @@ export class AdminService {
   // Cancels a pending removal. Only valid strictly before the scheduled
   // anonymization date — from that instant on the member is eligible for
   // the anonymization job (see anonymizationCutoff), and the two windows
-  // must not overlap. Status goes back to ACTIVE, not whatever it was before
-  // removal (that isn't recorded on User). The conditional updateMany
+  // must not overlap. Status goes back to what it was when removal was
+  // requested (statusBeforeDeletion; ACTIVE for removals recorded before
+  // that was stored). The conditional updateMany
   // re-checks the exact state read above, so a concurrent restore or job
   // run can't be double-applied.
   async restoreMember(adminId: string, userId: string) {
@@ -234,9 +239,13 @@ export class AdminService {
       throw new ConflictException('The grace period has already elapsed; this removal can no longer be cancelled');
     }
 
+    const restoredStatus =
+      user.statusBeforeDeletion && user.statusBeforeDeletion !== 'PENDING_DELETION' && user.statusBeforeDeletion !== 'DELETED'
+        ? user.statusBeforeDeletion
+        : 'ACTIVE';
     const { count } = await this.prisma.user.updateMany({
       where: { id: userId, status: 'PENDING_DELETION', deletionRequestedAt: user.deletionRequestedAt },
-      data: { status: 'ACTIVE', deletionRequestedAt: null },
+      data: { status: restoredStatus, deletionRequestedAt: null, statusBeforeDeletion: null },
     });
     if (count === 0) {
       throw new ConflictException('Member state changed concurrently; reload and try again');
@@ -245,8 +254,9 @@ export class AdminService {
     await this.auditLog.record(adminId, 'member.restore', 'User', userId, {
       deletionRequestedAt: user.deletionRequestedAt.toISOString(),
       scheduledAnonymizationAt: scheduledAt.toISOString(),
+      restoredStatus,
     });
-    return { id: userId, status: 'ACTIVE' as const };
+    return { id: userId, status: restoredStatus };
   }
 
   // Admin photo moderation. PhotosService.deletePhoto is already scoped to
@@ -263,6 +273,27 @@ export class AdminService {
       objectKey: removed.objectKey,
     });
     return { id: photoId, removed: true };
+  }
+
+  // Photo moderation hold: approving makes the photo visible to other
+  // members; rejecting keeps it hidden and shows the owner the reason. Same
+  // member scoping as removeMemberPhoto. Every decision is audited.
+  async moderateMemberPhoto(
+    adminId: string,
+    userId: string,
+    photoId: string,
+    decision: { approve: true } | { approve: false; reason: string },
+  ) {
+    await this.getActionableMember(userId, decision.approve ? 'approve photo' : 'reject photo');
+    const photo = await this.photosService.moderatePhoto(userId, photoId, decision);
+    await this.auditLog.record(
+      adminId,
+      decision.approve ? 'member.photo.approve' : 'member.photo.reject',
+      'ProfilePhoto',
+      photoId,
+      decision.approve ? { userId } : { userId, reason: decision.reason },
+    );
+    return photo;
   }
 
   // Platform-overview landing page. The status breakdown covers all four

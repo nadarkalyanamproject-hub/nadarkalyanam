@@ -34,6 +34,7 @@ import { ConnectedBadge, RelationshipAction } from '../../../components/relation
 import { useRegistration } from '../../providers/registration-provider';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { ShortlistButton } from '../../../components/shortlist/shortlist-button';
+import { BlockMemberButton } from '../../../components/block/block-member-button';
 import { useBackNavigation } from '../../../lib/navigation-history';
 
 const MARITAL_STATUS_LABELS: Record<string, string> = {
@@ -104,6 +105,7 @@ export default function ViewProfilePage() {
   const [reporting, setReporting] = useState(false);
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [reportError, setReportError] = useState<string | undefined>();
+  const [blockedName, setBlockedName] = useState<string | null>(null);
   const [enlargedPhotoUrl, setEnlargedPhotoUrl] = useState<string | null>(null);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const { goBack, hasHistory } = useBackNavigation('/browse');
@@ -194,7 +196,19 @@ export default function ViewProfilePage() {
             </Card>
           )}
 
-          {profile && (
+          {blockedName && (
+            <Card className="rounded-2xl p-8 text-center" data-testid="profile-blocked">
+              <p className="text-sm font-semibold text-[#241C1A]">You blocked {blockedName}.</p>
+              <p className="mt-1 text-sm text-[#7E6F65]">
+                They no longer appear in your lists, and neither of you can message the other.
+              </p>
+              <Link href="/profile#blocked-members" className="mt-3 inline-block text-sm font-semibold text-[#7A1C32] hover:underline">
+                Manage blocked members
+              </Link>
+            </Card>
+          )}
+
+          {profile && !blockedName && (
             <>
               {/* HERO PROFILE CARD - Matching Reference Mockup */}
               <div className="overflow-hidden rounded-3xl border border-[#EFEAE2] bg-white p-6 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.03)]">
@@ -259,6 +273,11 @@ export default function ViewProfilePage() {
                       <Check className="h-3.5 w-3.5" /> Report submitted — thank you
                     </span>
                   )}
+                  <BlockMemberButton
+                    target={{ targetProfileId: profile.id }}
+                    memberName={profile.fullName}
+                    onBlocked={() => setBlockedName(profile.fullName)}
+                  />
                 </div>
 
                 {/* Inline Report Form */}

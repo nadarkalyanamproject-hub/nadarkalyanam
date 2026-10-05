@@ -24,7 +24,10 @@ export async function assertActiveSession(
 }
 
 // Logout, for members and admins alike: revokes this one login session, so
-// every token carrying its `sid` is refused from then on. Idempotent.
+// every token carrying its `sid` is refused from then on — access tokens via
+// assertActiveSession, and every refresh token of the session via
+// AuthService.refresh, which refuses any token whose session is revoked.
+// Idempotent.
 export async function revokeSession(prisma: PrismaService, userId: string, sessionId: string): Promise<void> {
   await prisma.session.updateMany({
     where: { id: sessionId, userId, revokedAt: null },

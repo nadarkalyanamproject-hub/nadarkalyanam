@@ -51,6 +51,16 @@ export const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
+  // How many reverse proxies sit in front of the API, so Express reads the
+  // real client IP from X-Forwarded-For (used by the per-IP OTP limit).
+  // Unset: 1 in production (Render's proxy), 0 elsewhere — trusting the
+  // header with no proxy in front would let a client spoof its IP.
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).optional(),
+  // Photo moderation hold. 'pending': new photos wait for an admin to
+  // approve them before other members can see them. 'auto_approve': the
+  // dev stub — photos are approved on upload. Unset: 'pending' in
+  // production, 'auto_approve' elsewhere.
+  PHOTO_MODERATION: z.enum(['pending', 'auto_approve']).optional(),
   // FR-1.5's anonymization step for members whose 14-day removal grace
   // period has elapsed (see modules/admin/anonymization). Destructive and
   // irreversible, so OFF by default: when false no queue, scheduler or

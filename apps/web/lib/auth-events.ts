@@ -15,6 +15,20 @@ export function onUnauthorized(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
+// Same bridge for a silent token refresh (api-client.ts): the provider
+// adopts the new tokens so every page re-renders with them.
+type TokensListener = (tokens: { accessToken: string; refreshToken: string }) => void;
+const tokenListeners = new Set<TokensListener>();
+
+export function notifyTokensRefreshed(tokens: { accessToken: string; refreshToken: string }): void {
+  tokenListeners.forEach((listener) => listener(tokens));
+}
+
+export function onTokensRefreshed(listener: TokensListener): () => void {
+  tokenListeners.add(listener);
+  return () => tokenListeners.delete(listener);
+}
+
 // Any deliberate "clear auth state" action (a 401, or a manual logout) is
 // immediately followed by its own explicit navigation. But clearing auth
 // state also flips data.accessToken (and, via clearAuth's full reset, every

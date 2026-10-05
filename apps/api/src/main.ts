@@ -16,6 +16,10 @@ async function bootstrap(): Promise<void> {
   );
 
   const configService = app.get(ConfigService<Env, true>);
+  const proxyHops =
+    configService.get('TRUST_PROXY_HOPS', { infer: true }) ??
+    (configService.get('NODE_ENV', { infer: true }) === 'production' ? 1 : 0);
+  app.getHttpAdapter().getInstance().set('trust proxy', proxyHops);
   app.enableCors({ origin: parseCorsOrigins(configService.get('CORS_ORIGIN', { infer: true })) });
 
   const port = configService.get('PORT', { infer: true });

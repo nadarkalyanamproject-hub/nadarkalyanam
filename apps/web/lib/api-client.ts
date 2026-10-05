@@ -1,4 +1,5 @@
 import type {
+  BlockedMembersResponse,
   ConversationDetail,
   ConversationListResponse,
   CreateOrderRequest,
@@ -36,7 +37,9 @@ import type {
   VerifyOtpRequest,
   VerifyOtpResponse,
 } from '@nadar-kalyanam/schemas';
-import { notifyUnauthorized } from './auth-events';
+import { bearerTokenOf, createSessionRefresher } from '@nadar-kalyanam/ui/session-refresh';
+import { notifyTokensRefreshed, notifyUnauthorized } from './auth-events';
+import { REGISTRATION_STORAGE_KEY, type RegistrationDraft } from './registration-types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
@@ -62,21 +65,56 @@ function extractErrorMessage(body: NestErrorBody | null): string {
   return body.message.map((issue) => issue.message).join(', ');
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+function readStoredDraft(): RegistrationDraft {
+  try {
+    return JSON.parse(window.localStorage.getItem(REGISTRATION_STORAGE_KEY) ?? '{}') as RegistrationDraft;
+  } catch {
+    return {};
+  }
+}
+
+// Access tokens last 15 minutes; on a 401 the session's refresh token gets
+// a new one (see @nadar-kalyanam/ui/session-refresh). New tokens are written
+// to storage straight away (other tabs read them there) and handed to
+// RegistrationProvider, which owns the in-memory auth state.
+const refreshSession = createSessionRefresher({
+  apiBaseUrl: API_BASE_URL,
+  lockName: 'nk-member-token-refresh',
+  read: () => readStoredDraft(),
+  write: (tokens) => {
+    try {
+      window.localStorage.setItem(REGISTRATION_STORAGE_KEY, JSON.stringify({ ...readStoredDraft(), ...tokens }));
+    } catch {
+      // Storage unavailable: the provider below still gets the tokens.
+    }
+    notifyTokensRefreshed(tokens);
+  },
+});
+
+async function request<T>(path: string, init?: RequestInit, isRetry = false): Promise<T> {
   const headers = { 'Content-Type': 'application/json', ...init?.headers };
   const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as NestErrorBody | null;
-    // Centralized here so every authenticated call gets this for free: a
-    // 401 on a request that carried a bearer token means that token is
-    // invalid/expired, so clear it and send the user back to the homepage
-    // rather than leaving them on a page that will just keep failing the
-    // same way. Gated on the Authorization header so this never fires for
-    // /auth/otp/verify's unrelated 401 (wrong/expired OTP code, no token
-    // involved at all).
-    if (response.status === 401 && 'Authorization' in headers) {
-      notifyUnauthorized();
+    // Centralized here so every authenticated call gets this for free. A
+    // 401 on a request that carried a bearer token means the access token
+    // expired or was revoked: refresh it once and retry. If the session
+    // itself is over, clear auth and send the user back to the homepage
+    // rather than leaving them on a page that will keep failing. Gated on
+    // the Authorization header so this never fires for /auth/otp/verify's
+    // unrelated 401 (wrong/expired OTP code, no token involved at all).
+    const bearer = bearerTokenOf(headers);
+    if (response.status === 401 && bearer) {
+      if (!isRetry) {
+        const outcome = await refreshSession(bearer);
+        if (outcome.kind === 'refreshed') {
+          return request<T>(path, { ...init, headers: { ...headers, Authorization: `Bearer ${outcome.accessToken}` } }, true);
+        }
+        if (outcome.kind === 'expired') notifyUnauthorized();
+      } else {
+        notifyUnauthorized();
+      }
     }
     throw new ApiError(extractErrorMessage(body), response.status, body?.errorCode);
   }
@@ -422,6 +460,32 @@ export function initiateVerification(accessToken: string): Promise<InitiateVerif
 
 export function getVerificationStatus(accessToken: string): Promise<VerificationStatusResponse> {
   return request<VerificationStatusResponse>('/verification/status', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// --- Blocking -----------------------------------------------------------------
+
+// Block by user id (chat header) or profile id (profile page). After this the
+// member disappears from every list and chat with them is closed.
+export function blockMember(
+  accessToken: string,
+  target: { targetUserId: string } | { targetProfileId: string },
+): Promise<{ id: string }> {
+  return request<{ id: string }>('/blocks', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(target),
+  });
+}
+
+export function listBlockedMembers(accessToken: string): Promise<BlockedMembersResponse> {
+  return request<BlockedMembersResponse>('/blocks', { headers: { Authorization: `Bearer ${accessToken}` } });
+}
+
+export function unblockMember(accessToken: string, targetUserId: string): Promise<void> {
+  return request<void>(`/blocks/${encodeURIComponent(targetUserId)}`, {
+    method: 'DELETE',
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 }

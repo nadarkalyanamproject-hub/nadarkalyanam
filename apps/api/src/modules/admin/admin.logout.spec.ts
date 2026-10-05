@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { UnauthorizedException, type ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { describe, expect, it } from 'vitest';
+import { noopOtpRateLimiter } from '../../common/testing/noop-otp-rate-limiter.js';
 import { AuthService } from '../auth/auth.service.js';
 import { AdminController } from './admin.controller.js';
 import { AdminAuthGuard, type AuthenticatedAdmin } from './guards/admin-auth.guard.js';
@@ -39,7 +40,7 @@ function setup() {
   const jwtService = new JwtService({ secret: 'test-secret', signOptions: { expiresIn: 900 } });
   const config = { get: (key: string) => ({ NODE_ENV: 'test', JWT_REFRESH_TOKEN_TTL_SECONDS: 3600, ALLOW_OTP_DEBUG_VISIBILITY: false })[key] };
   const redis = { get: async () => createHash('sha256').update(otp).digest('hex'), del: async () => 1, set: async () => 'OK' };
-  const auth = new AuthService(prisma as never, jwtService, config as never, redis as never);
+  const auth = new AuthService(prisma as never, jwtService, config as never, redis as never, noopOtpRateLimiter as never);
   const guard = new AdminAuthGuard(jwtService, prisma as never);
   const controller = new AdminController({} as never, {} as never, {} as never, {} as never, {} as never, prisma as never);
   const authorize = async (token: string): Promise<AuthenticatedAdmin> => {

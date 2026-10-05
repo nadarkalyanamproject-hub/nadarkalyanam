@@ -6,7 +6,9 @@ import { useRegistration } from '../../app/providers/registration-provider';
 import { ApiError, updateProfileVisibility } from '../../lib/api-client';
 
 // The stored profile visibility values. PUBLIC and MEMBERS_ONLY behave the
-// same today because only signed-in members can browse profiles.
+// same: there is no guest (signed-out) view of profiles, so "Everyone" still
+// means signed-in members with an active account (the API's single
+// visibility rule, visibleProfilesWhere).
 const VISIBILITY_OPTIONS: { value: ProfileVisibility; label: string }[] = [
   { value: 'PUBLIC', label: 'Everyone' },
   { value: 'MEMBERS_ONLY', label: 'Registered members only' },
@@ -18,7 +20,7 @@ const VISIBILITY_OPTIONS: { value: ProfileVisibility; label: string }[] = [
 const FIXED_RULES = [
   { label: 'Phone number', value: 'Never shown to other members' },
   { label: 'Email', value: 'Never shown to other members' },
-  { label: 'Photos', value: 'Visible to signed-in members' },
+  { label: 'Photos', value: 'Visible to signed-in members once approved by our team' },
   { label: 'Online status', value: 'Not shown to anyone' },
 ];
 
@@ -81,8 +83,10 @@ export function PrivacySettingsCard({
               Profile visibility
             </label>
             <p className="text-xs text-[#776B62]">
-              Who can discover your profile. &ldquo;Everyone&rdquo; and &ldquo;Registered members only&rdquo; work the same
-              today: only signed-in members can browse.
+              Who can discover your profile. &ldquo;Everyone&rdquo; and &ldquo;Registered members only&rdquo; work the same:
+              there is no public (signed-out) view of profiles yet, so either way only signed-in members with an
+              active account can find you. &ldquo;Hidden&rdquo; keeps you out of every list; members you&apos;re already
+              connected with can still message you.
             </p>
           </div>
           <select

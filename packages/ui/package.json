@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./globals.css": "./src/globals.css",
-    "./relative-time": "./src/lib/relative-time.ts"
+    "./relative-time": "./src/lib/relative-time.ts",
+    "./session-refresh": "./src/lib/session-refresh.ts"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

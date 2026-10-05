@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { noopOtpRateLimiter } from '../../common/testing/noop-otp-rate-limiter.js';
 import { AuthService } from './auth.service.js';
 
 function buildService(overrides?: {
@@ -44,6 +45,7 @@ function buildService(overrides?: {
     jwtService as never,
     configService as never,
     redis as never,
+    noopOtpRateLimiter as never,
   );
 
   return { service, prisma, jwtService, redis };

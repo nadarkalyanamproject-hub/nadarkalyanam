@@ -5,6 +5,7 @@ import type { Env } from '../config/env.schema.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import { OtpRateLimiter } from './otp-rate-limiter.js';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAuthGuard],
+  providers: [AuthService, JwtAuthGuard, OtpRateLimiter],
   exports: [JwtModule, JwtAuthGuard],
 })
 export class AuthModule {}

@@ -20,7 +20,9 @@ export interface FakeProfile {
 export interface FakeState {
   profiles: FakeProfile[];
   userStatus: Record<string, string>; // userId -> AccountStatus
-  photos: { profileId: string }[];
+  // `approved: false` is a photo still in (or rejected by) moderation;
+  // omitted means approved.
+  photos: { profileId: string; approved?: boolean }[];
   blocks: { initiatorId: string; targetId: string }[];
   shortlists: { id: string; memberId: string; profileId: string; createdAt: Date }[];
   notifications: { userId: string; actorUserId: string | null; type: string; createdAt: Date }[];
@@ -31,6 +33,7 @@ export function matchesProfileWhere(state: FakeState, p: FakeProfile, where: any
   if (where.AND && !where.AND.every((w: any) => matchesProfileWhere(state, p, w))) return false;
   if (where.OR && !where.OR.some((w: any) => matchesProfileWhere(state, p, w))) return false;
   if (where.visibility?.not && p.visibility === where.visibility.not) return false;
+  if (where.visibility?.in && !where.visibility.in.includes(p.visibility)) return false;
   if (where.userId?.notIn?.includes(p.userId)) return false;
   if (where.userId?.in && !where.userId.in.includes(p.userId)) return false;
   if (typeof where.userId === 'string' && where.userId !== p.userId) return false;
@@ -43,7 +46,13 @@ export function matchesProfileWhere(state: FakeState, p: FakeProfile, where: any
   if (typeof where.id === 'string' && where.id !== p.id) return false;
   if (where.user?.status && state.userStatus[p.userId] !== where.user.status) return false;
   if (where.createdAt?.gte && p.createdAt < where.createdAt.gte) return false;
-  if (where.photos?.some && !state.photos.some((photo) => photo.profileId === p.id)) return false;
+  if (
+    where.photos?.some &&
+    !state.photos.some(
+      (photo) => photo.profileId === p.id && (where.photos.some.isApproved !== true || photo.approved !== false),
+    )
+  )
+    return false;
   if (where.details) {
     const value = (where.details.path as string[]).reduce<any>((node, key) => node?.[key], p.details);
     if (typeof value !== 'string') return false;
@@ -81,6 +90,17 @@ export function fakePrisma(state: FakeState) {
     orderBy?.createdAt === 'desc' ? [...rows].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()) : rows;
 
   return {
+    // The viewer lookup in visibleProfilesWhere (status + whether they have
+    // a profile).
+    user: {
+      findUnique: async ({ where }: any) =>
+        where.id in state.userStatus || state.profiles.some((p) => p.userId === where.id)
+          ? {
+              status: state.userStatus[where.id],
+              profile: state.profiles.some((p) => p.userId === where.id) ? { id: `profile-${where.id}` } : null,
+            }
+          : null,
+    },
     profile: {
       findUnique: async ({ where, include }: any) => {
         const p = state.profiles.find((x) => (where.id ? x.id === where.id : x.userId === where.userId));

@@ -60,7 +60,8 @@ export class ProfilesController {
   @UseGuards(JwtAuthGuard)
   async getMe(@CurrentUser() user: AuthenticatedUser): Promise<ProfileResponse> {
     const profile = await this.profilesService.getMyProfile(user.userId);
-    const photos = await this.photosService.getPhotosForProfile(profile.id);
+    // The owner sees all their photos, pending/rejected included.
+    const photos = await this.photosService.getPhotosForProfile(profile.id, { includeUnapproved: true });
     return toProfileResponse(profile, photos);
   }
 
@@ -71,7 +72,8 @@ export class ProfilesController {
     @Body(new ZodValidationPipe(createProfileSchema)) body: CreateProfileRequest,
   ): Promise<ProfileResponse> {
     const profile = await this.profilesService.updateProfile(user.userId, body);
-    const photos = await this.photosService.getPhotosForProfile(profile.id);
+    // The owner sees all their photos, pending/rejected included.
+    const photos = await this.photosService.getPhotosForProfile(profile.id, { includeUnapproved: true });
     return toProfileResponse(profile, photos);
   }
 
@@ -84,7 +86,8 @@ export class ProfilesController {
     @Body(new ZodValidationPipe(updateProfileVisibilitySchema)) body: UpdateProfileVisibilityRequest,
   ): Promise<ProfileResponse> {
     const profile = await this.profilesService.updateVisibility(user.userId, body.visibility);
-    const photos = await this.photosService.getPhotosForProfile(profile.id);
+    // The owner sees all their photos, pending/rejected included.
+    const photos = await this.photosService.getPhotosForProfile(profile.id, { includeUnapproved: true });
     return toProfileResponse(profile, photos);
   }
 

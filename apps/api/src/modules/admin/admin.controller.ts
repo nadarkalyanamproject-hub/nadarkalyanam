@@ -18,6 +18,8 @@ import {
   createAdminRequestSchema,
   type CreateProfileRequest,
   createProfileSchema,
+  type RejectPhotoRequest,
+  rejectPhotoRequestSchema,
   type RemoveMemberPhotoRequest,
   removeMemberPhotoRequestSchema,
   type RemoveMemberRequest,
@@ -160,6 +162,31 @@ export class AdminController {
     @Body(new ZodValidationPipe(removeMemberPhotoRequestSchema)) body: RemoveMemberPhotoRequest,
   ) {
     return this.adminService.removeMemberPhoto(admin.adminId, userId, photoId, body.reason);
+  }
+
+  // Photo moderation hold: approve makes the photo visible to other
+  // members; reject (reason required) keeps it hidden and tells the owner.
+  @Post('members/:userId/photos/:photoId/approve')
+  @HttpCode(200)
+  @RequirePermission(PERMISSIONS.MEMBERS_EDIT)
+  approveMemberPhoto(
+    @CurrentAdmin() admin: AuthenticatedAdmin,
+    @Param('userId') userId: string,
+    @Param('photoId') photoId: string,
+  ) {
+    return this.adminService.moderateMemberPhoto(admin.adminId, userId, photoId, { approve: true });
+  }
+
+  @Post('members/:userId/photos/:photoId/reject')
+  @HttpCode(200)
+  @RequirePermission(PERMISSIONS.MEMBERS_EDIT)
+  rejectMemberPhoto(
+    @CurrentAdmin() admin: AuthenticatedAdmin,
+    @Param('userId') userId: string,
+    @Param('photoId') photoId: string,
+    @Body(new ZodValidationPipe(rejectPhotoRequestSchema)) body: RejectPhotoRequest,
+  ) {
+    return this.adminService.moderateMemberPhoto(admin.adminId, userId, photoId, { approve: false, reason: body.reason });
   }
 
   @Post('members/:userId/suspend')

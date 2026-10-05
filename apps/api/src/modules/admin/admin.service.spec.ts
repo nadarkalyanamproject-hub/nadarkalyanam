@@ -155,7 +155,8 @@ describe('AdminService.getMemberDetail', () => {
 
     const result = await service.getMemberDetail(USER_ID);
 
-    expect(photosService.getPhotosForProfile).toHaveBeenCalledWith('profile-1');
+    // Admins see every photo, pending and rejected included.
+    expect(photosService.getPhotosForProfile).toHaveBeenCalledWith('profile-1', { includeUnapproved: true });
     expect(result.profile?.photos[0].url).toBe(signedUrl);
   });
 
@@ -289,7 +290,7 @@ describe('AdminService.removeMember', () => {
 
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: USER_ID },
-      data: { status: 'PENDING_DELETION', deletionRequestedAt: expect.any(Date) },
+      data: { status: 'PENDING_DELETION', deletionRequestedAt: expect.any(Date), statusBeforeDeletion: 'ACTIVE' },
     });
     expect(result.status).toBe('PENDING_DELETION');
     expect(result.scheduledAnonymizationAt).toBeTruthy();

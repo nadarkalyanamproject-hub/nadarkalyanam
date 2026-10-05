@@ -12,6 +12,7 @@ import { PhotoGalleryCard } from '../../components/profile/photo-gallery-card';
 import { TrustVerificationCard } from '../../components/profile/trust-verification-card';
 import { CompletionChecklistCard } from '../../components/profile/completion-checklist-card';
 import { PrivacySettingsCard } from '../../components/profile/privacy-settings-card';
+import { BlockedMembersCard } from '../../components/profile/blocked-members-card';
 import { ComingSoonNote, ComingSoonPill } from '../../components/ui/coming-soon-note';
 import { CulturalDivider, LotusOrnament } from '../../components/profile/cultural-divider';
 import { useProfile } from '../../lib/use-profile';
@@ -592,6 +593,10 @@ export default function ProfilePage() {
 
               {/* 9. Privacy & Visibility */}
               <PrivacySettingsCard profile={profile} onSaved={setProfile} />
+
+              <div className="mt-6">
+                <BlockedMembersCard />
+              </div>
             </div>
           </div>
         )}

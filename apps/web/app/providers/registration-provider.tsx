@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { claimAuthRedirect, onUnauthorized, releaseAuthRedirectClaim } from '../../lib/auth-events';
+import { claimAuthRedirect, onTokensRefreshed, onUnauthorized, releaseAuthRedirectClaim } from '../../lib/auth-events';
 import {
   REGISTRATION_STORAGE_KEY,
   type RegistrationDraft,
@@ -133,6 +133,14 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   // data tied to it shouldn't carry over into whatever session comes next.
   const clearAuth = useCallback(() => {
     setData({});
+  }, []);
+
+  // A silent refresh (api-client.ts) swapped the tokens: adopt them, keeping
+  // everything else in the draft.
+  useEffect(() => {
+    return onTokensRefreshed((tokens) => {
+      setData((prev) => (prev.accessToken ? { ...prev, ...tokens } : prev));
+    });
   }, []);
 
   useEffect(() => {

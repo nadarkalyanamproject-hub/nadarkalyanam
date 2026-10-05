@@ -10,6 +10,7 @@ import { ApiError, getConversation, listMessages, sendMessage } from '../../../l
 import { announceMessagesChanged } from '../../../lib/notifications';
 import { useRegistration } from '../../providers/registration-provider';
 import { useRequireAuth } from '../../../lib/use-require-auth';
+import { BlockMemberButton } from '../../../components/block/block-member-button';
 
 // Plain interval-based refetch — deliberately not WebSocket-backed, per this
 // task's explicit scope decision to stay polling-based for now.
@@ -49,6 +50,7 @@ export default function ConversationThreadPage() {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | undefined>();
+  const [blocked, setBlocked] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
   const accessToken = data.accessToken;
@@ -71,7 +73,8 @@ export default function ConversationThreadPage() {
   }, [ready, accessToken, conversationId]);
 
   useEffect(() => {
-    if (!ready || !accessToken) return;
+    // Once blocked the thread is closed server-side; stop polling it.
+    if (!ready || !accessToken || blocked) return;
     let cancelled = false;
     let lastSeenId: string | null = null;
 
@@ -110,7 +113,7 @@ export default function ConversationThreadPage() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [ready, accessToken, conversationId]);
+  }, [ready, accessToken, conversationId, blocked]);
 
   // Keep the list pinned to the newest message only while the reader is
   // already at the bottom. Scrolls the LIST, never the window (the old
@@ -187,6 +190,14 @@ export default function ConversationThreadPage() {
                 <p className="text-xs text-muted-foreground">This member is no longer active.</p>
               )}
             </div>
+            {other?.available && other.userId && !blocked && (
+              <BlockMemberButton
+                target={{ targetUserId: other.userId }}
+                memberName={other.fullName}
+                onBlocked={() => setBlocked(true)}
+                appearance="compact"
+              />
+            )}
           </div>
 
           <div ref={listRef} onScroll={handleListScroll} className="min-h-0 flex-1 overflow-y-auto p-4">
@@ -194,13 +205,20 @@ export default function ConversationThreadPage() {
               <p className="mt-8 text-center text-sm text-muted-foreground">Loading messages…</p>
             )}
 
-            {error && <p className="mt-8 text-center text-sm text-destructive">{error}</p>}
+            {blocked ? (
+              <div className="mt-8 text-center text-sm" data-testid="conversation-blocked">
+                <p className="font-semibold text-foreground">You blocked {other?.fullName ?? 'this member'}.</p>
+                <p className="mt-1 text-muted-foreground">This chat is closed. You can unblock them from Profile → Blocked members.</p>
+              </div>
+            ) : (
+              error && <p className="mt-8 text-center text-sm text-destructive">{error}</p>
+            )}
 
-            {messages && messages.length === 0 && (
+            {!blocked && messages && messages.length === 0 && (
               <p className="mt-8 text-center text-sm text-muted-foreground">No messages yet. Say hello!</p>
             )}
 
-            {messages && messages.length > 0 && (
+            {!blocked && messages && messages.length > 0 && (
               <div className="flex flex-col gap-2">
                 {messages.map((message) => {
                   const isOwn = message.senderId === data.userId;
@@ -228,11 +246,11 @@ export default function ConversationThreadPage() {
               type="text"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="Type a message…"
-              disabled={sending}
+              placeholder={blocked ? 'Chat closed' : 'Type a message…'}
+              disabled={sending || blocked}
               className="flex-1"
             />
-            <Button type="submit" size="md" disabled={sending || !draft.trim()}>
+            <Button type="submit" size="md" disabled={sending || blocked || !draft.trim()}>
               Send
             </Button>
           </form>

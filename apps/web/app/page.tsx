@@ -273,7 +273,8 @@ function HomeContent() {
       setLoginDevOtp(devOtp);
       setLoginStep('otp');
     } catch (error) {
-      setLoginPhoneError(true);
+      // The number itself was valid (checked above); show the API's reason
+      // (e.g. too many requests) instead of an "invalid number" hint.
       showToast(
         'Could not send OTP',
         error instanceof ApiError ? error.message : 'Please try again.',

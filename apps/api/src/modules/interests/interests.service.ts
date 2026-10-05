@@ -238,10 +238,19 @@ export class InterestsService {
     return { viewedAt: viewedAt.toISOString() };
   }
 
+  // Interests with a member blocked in either direction are left out (the
+  // same blocked set every other list uses); unblocking brings them back.
   async listForUser(callerUserId: string) {
+    const blocked = [...(await getBlockedUserIds(this.prisma, callerUserId))];
     const [sentRows, receivedRows] = await Promise.all([
-      this.prisma.interest.findMany({ where: { senderId: callerUserId }, orderBy: { createdAt: 'desc' } }),
-      this.prisma.interest.findMany({ where: { targetId: callerUserId }, orderBy: { createdAt: 'desc' } }),
+      this.prisma.interest.findMany({
+        where: { senderId: callerUserId, targetId: { notIn: blocked } },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.interest.findMany({
+        where: { targetId: callerUserId, senderId: { notIn: blocked } },
+        orderBy: { createdAt: 'desc' },
+      }),
     ]);
 
     const otherUserIds = [

@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { UnauthorizedException, type ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { describe, expect, it } from 'vitest';
+import { noopOtpRateLimiter } from '../../common/testing/noop-otp-rate-limiter.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtAuthGuard, type AuthenticatedRequest } from './guards/jwt-auth.guard.js';
@@ -33,7 +34,7 @@ function setup() {
   const jwtService = new JwtService({ secret: 'test-secret', signOptions: { expiresIn: 900 } });
   const config = { get: (key: string) => ({ NODE_ENV: 'test', JWT_REFRESH_TOKEN_TTL_SECONDS: 3600, ALLOW_OTP_DEBUG_VISIBILITY: false })[key] };
   const redis = { get: async () => createHash('sha256').update(otp).digest('hex'), del: async () => 1, set: async () => 'OK' };
-  const service = new AuthService(prisma as never, jwtService, config as never, redis as never);
+  const service = new AuthService(prisma as never, jwtService, config as never, redis as never, noopOtpRateLimiter as never);
   const guard = new JwtAuthGuard(jwtService, prisma as never);
   const controller = new AuthController(service);
   const login = () => service.verifyOtp('+919876543210', otp, 'login');

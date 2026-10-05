@@ -1,8 +1,9 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { ADMIN_AUTH_STORAGE_KEY, onSessionExpired, onTokensRefreshed } from '../../lib/auth-events';
 
-const STORAGE_KEY = 'nadar-admin-auth';
+const STORAGE_KEY = ADMIN_AUTH_STORAGE_KEY;
 
 interface AdminAuthData {
   accessToken?: string;
@@ -54,6 +55,19 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const clearAuth = useCallback(() => {
     setData({});
   }, []);
+
+  // Silent refresh (api-client.ts) swapped the tokens; an ended session
+  // signs the admin out.
+  useEffect(() => {
+    const offTokens = onTokensRefreshed((tokens) => {
+      setData((prev) => (prev.accessToken ? { ...prev, ...tokens } : prev));
+    });
+    const offExpired = onSessionExpired(clearAuth);
+    return () => {
+      offTokens();
+      offExpired();
+    };
+  }, [clearAuth]);
 
   return (
     <AdminAuthContext.Provider value={{ data, hydrated, setAuth, clearAuth }}>{children}</AdminAuthContext.Provider>

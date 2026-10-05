@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { SearchProfileResult, SearchProfilesQuery, SearchProfilesResponse } from '@nadar-kalyanam/schemas';
 import { calculateAge } from '../../common/age.js';
-import { getBlockedUserIds } from '../../common/blocks.util.js';
 import {
   WITH_PHOTO_WHERE,
   getCallerLocation,
@@ -11,6 +10,7 @@ import {
   parseIncomeLakhs,
   rangesOverlap,
 } from '../../common/profile-filters.js';
+import { visibleProfilesWhere } from '../../common/profile-cards.js';
 import { getRelationshipStates, relationshipFields } from '../../common/relationship.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PhotosService } from '../photos/photos.service.js';
@@ -71,7 +71,7 @@ export class DiscoveryService {
   // excludes hidden, blocked (either direction), non-active-account and
   // self profiles before any ranking is applied.
   async search(callerUserId: string, query: SearchProfilesQuery): Promise<SearchProfilesResponse> {
-    const blockedUserIds = await getBlockedUserIds(this.prisma, callerUserId);
+    const visible = await visibleProfilesWhere(this.prisma, callerUserId);
     const dobRange = ageRangeToDobRange(query.ageMin, query.ageMax);
     const details = detailFilters(query);
 
@@ -95,16 +95,15 @@ export class DiscoveryService {
     if (parsedIds) details.push({ id: { in: parsedIds } });
 
     const where: Prisma.ProfileWhereInput = {
-      visibility: { not: 'HIDDEN' },
-      userId: { notIn: [callerUserId, ...blockedUserIds] },
-      user: { status: 'ACTIVE' },
       ...(Object.keys(dobRange).length > 0 ? { dateOfBirth: dobRange } : {}),
       ...(query.gender ? { gender: query.gender } : {}),
       // Every `details` filter targets the same JSON column, so each must be
       // its own AND entry — as sibling `details:` keys they overwrote each
       // other and only the last filter applied. The same goes for the
       // several `id` filters (shortlist exclusion, height/income ranges).
-      ...(details.length > 0 ? { AND: details } : {}),
+      // The shared visibility rule (visibleProfilesWhere) is one more AND
+      // entry, so it can't be overwritten by a filter either.
+      AND: [visible, ...details],
     };
     const total = await this.prisma.profile.count({ where });
 

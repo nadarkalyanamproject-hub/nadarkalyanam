@@ -22,6 +22,7 @@ interface FakeProfile {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function matchesWhere(profile: FakeProfile, where: any): boolean {
   if (where.visibility?.not && profile.visibility === where.visibility.not) return false;
+  if (where.visibility?.in && !where.visibility.in.includes(profile.visibility)) return false;
   if (where.userId?.notIn?.includes(profile.userId)) return false;
   if (where.user?.status && profile.user.status !== where.user.status) return false;
   if (where.gender && profile.gender !== where.gender) return false;
@@ -81,6 +82,8 @@ function buildService(profiles: FakeProfile[]) {
   const count = vi.fn(async ({ where }: { where: unknown }) => profiles.filter((p) => matchesWhere(p, where)).length);
   const prisma = {
     profile: { findMany, count },
+    // The caller is an active member with a profile (visibleProfilesWhere).
+    user: { findUnique: vi.fn().mockResolvedValue({ status: 'ACTIVE', profile: { id: 'caller-profile' } }) },
     block: { findMany: vi.fn().mockResolvedValue([]) },
     interest: { findMany: vi.fn().mockResolvedValue([]) },
   };
@@ -105,9 +108,11 @@ describe('DiscoveryService.search filters', () => {
     const { items } = await search(service, { city: 'Madurai', educationLevel: 'Masters', profession: 'Doctor' });
 
     expect(items.map((item) => item.profileId)).toEqual([target.id]);
-    // All three reach the query as separate AND clauses (none overwritten).
+    // All three reach the query as separate AND clauses (none overwritten),
+    // after the shared visibility rule.
     expect(findMany.mock.calls[0][0].where).toMatchObject({
       AND: [
+        { visibility: { in: ['PUBLIC', 'MEMBERS_ONLY'] }, user: { status: 'ACTIVE' } },
         { details: { path: ['location', 'city'], equals: 'Madurai' } },
         { details: { path: ['education', 'educationLevel'], equals: 'Masters' } },
         { details: { path: ['education', 'profession'], equals: 'Doctor' } },
@@ -165,6 +170,9 @@ describe('DiscoveryService.search filters', () => {
     const { items } = await search(service, { city: '   ', profession: '' });
 
     expect(items).toHaveLength(1);
-    expect(findMany.mock.calls[0][0].where).not.toHaveProperty('AND');
+    // Only the shared visibility rule — no details clause for the blanks.
+    const where = findMany.mock.calls[0][0].where as { AND: unknown[] };
+    expect(where.AND).toHaveLength(1);
+    expect(where.AND[0]).not.toHaveProperty('details');
   });
 });

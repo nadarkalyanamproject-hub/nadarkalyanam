@@ -34,6 +34,8 @@ export function PhotoGalleryCard({
   const photos = [...(profile.photos || [])].sort((a, b) => a.sortOrder - b.sortOrder);
   const primaryPhoto = photos.find((p) => p.isPrimary) || photos[0];
   const emptySlotsCount = Math.max(0, MAX_PHOTOS - photos.length);
+  const pendingCount = photos.filter((photo) => photo.status === 'PENDING').length;
+  const rejected = photos.filter((photo) => photo.status === 'REJECTED');
 
   async function handleFileSelected(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -139,6 +141,24 @@ export function PhotoGalleryCard({
         </div>
       )}
 
+      {/* Moderation hold: only approved photos are shown to other members. */}
+      {pendingCount > 0 && (
+        <p className="mb-3 rounded-lg border border-[#EADBBD] bg-[#FFF9ED] p-2.5 text-xs text-[#5A493E]" data-testid="photos-pending-note">
+          {pendingCount === 1 ? '1 photo is' : `${pendingCount} photos are`} waiting for review. Other members will see{' '}
+          {pendingCount === 1 ? 'it' : 'them'} once approved; until then only you can.
+        </p>
+      )}
+      {rejected.length > 0 && (
+        <ul className="mb-3 flex flex-col gap-1 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-[#94151C]" data-testid="photos-rejected-note">
+          {rejected.map((photo, index) => (
+            <li key={photo.id}>
+              Photo {photos.indexOf(photo) + 1} was not approved{photo.rejectionReason ? `: ${photo.rejectionReason}` : ''}. Other
+              members can&apos;t see it{index === rejected.length - 1 ? ' — you can delete it and upload another.' : '.'}
+            </li>
+          ))}
+        </ul>
+      )}
+
       {/* Photo Gallery Grid */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {photos.map((photo) => {
@@ -154,6 +174,18 @@ export function PhotoGalleryCard({
               {isPrimary && (
                 <span className="absolute left-2.5 top-2.5 z-10 inline-flex items-center gap-1 rounded bg-[#7A0710]/95 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-[#F2D58A] shadow-sm">
                   Primary
+                </span>
+              )}
+
+              {/* Moderation status (owner-only view) */}
+              {photo.status !== 'APPROVED' && (
+                <span
+                  data-testid="photo-status"
+                  className={`absolute right-2.5 top-2.5 z-10 rounded px-2 py-0.5 text-[10px] font-semibold shadow-sm ${
+                    photo.status === 'PENDING' ? 'bg-[#FFF2D6] text-[#7A4A00]' : 'bg-red-600/95 text-white'
+                  }`}
+                >
+                  {photo.status === 'PENDING' ? 'Pending review' : 'Rejected'}
                 </span>
               )}
 

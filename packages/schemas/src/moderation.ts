@@ -1,9 +1,30 @@
 import { z } from 'zod';
 
-export const blockRequestSchema = z.object({
-  targetUserId: z.string().min(1, 'targetUserId is required'),
-});
+// Who to block: a member's user id (chat header) or profile id (profile
+// page) - exactly one of the two.
+export const blockRequestSchema = z
+  .object({
+    targetUserId: z.string().min(1).optional(),
+    targetProfileId: z.string().min(1).optional(),
+  })
+  .refine((body) => Boolean(body.targetUserId) !== Boolean(body.targetProfileId), {
+    message: 'Provide either targetUserId or targetProfileId',
+  });
 export type BlockRequest = z.infer<typeof blockRequestSchema>;
+
+// GET /blocks - members the caller has blocked, most recent first. Blocks
+// made by the other side are never listed (and can't be undone here).
+export const blockedMemberSchema = z.object({
+  userId: z.string(),
+  profileId: z.string().nullable(),
+  fullName: z.string(),
+  primaryPhotoUrl: z.string().nullable(),
+  blockedAt: z.string(),
+});
+export type BlockedMember = z.infer<typeof blockedMemberSchema>;
+
+export const blockedMembersResponseSchema = z.object({ items: z.array(blockedMemberSchema) });
+export type BlockedMembersResponse = z.infer<typeof blockedMembersResponseSchema>;
 
 export const reportRequestSchema = z.object({
   targetType: z.enum(['PROFILE', 'MESSAGE']),

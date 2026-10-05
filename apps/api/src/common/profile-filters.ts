@@ -1,5 +1,6 @@
 import type { Prisma } from '../generated/prisma/client.js';
 import type { PrismaService } from '../modules/prisma/prisma.service.js';
+import { APPROVED_PHOTO_WHERE } from './photo-visibility.js';
 
 // Profile filters shared by the Matches categories and Search, so a rule like
 // "nearby" means exactly the same thing on both pages.
@@ -11,8 +12,9 @@ export function joinedWithinWhere(days: number, now = new Date()): Prisma.Profil
   return { createdAt: { gte: new Date(now.getTime() - days * DAY_MS) } };
 }
 
-// At least one photo ("With Photos").
-export const WITH_PHOTO_WHERE: Prisma.ProfileWhereInput = { photos: { some: {} } };
+// At least one photo other members can see ("With Photos") — a photo still
+// awaiting moderation doesn't count.
+export const WITH_PHOTO_WHERE: Prisma.ProfileWhereInput = { photos: { some: APPROVED_PHOTO_WHERE } };
 
 export interface CallerLocation {
   city: string | null;

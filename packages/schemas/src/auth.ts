@@ -21,6 +21,13 @@ export const authTokensSchema = z.object({
 });
 export type AuthTokens = z.infer<typeof authTokensSchema>;
 
+// POST /auth/refresh: the refresh token is spent and a new pair returned
+// (AuthTokens). Presenting a spent token again revokes the whole session.
+export const refreshTokenRequestSchema = z.object({
+  refreshToken: z.string().min(1, 'refreshToken is required'),
+});
+export type RefreshTokenRequest = z.infer<typeof refreshTokenRequestSchema>;
+
 export const sendOtpResponseSchema = z.object({
   expiresInSeconds: z.number(),
   devOtp: z.string().optional(),

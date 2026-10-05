@@ -4,6 +4,8 @@
 export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'member.profile.update': 'Edited member profile',
   'member.photo.remove': 'Removed member photo',
+  'member.photo.approve': 'Approved member photo',
+  'member.photo.reject': 'Rejected member photo',
   'member.suspend': 'Suspended member',
   'member.reinstate': 'Reinstated member',
   'member.remove': 'Scheduled member removal',

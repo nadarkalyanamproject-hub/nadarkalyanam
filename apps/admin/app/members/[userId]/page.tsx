@@ -11,6 +11,8 @@ import {
   getMember,
   reinstateMember,
   removeMember,
+  approveMemberPhoto,
+  rejectMemberPhoto,
   removeMemberPhoto,
   restoreMember,
   suspendMember,
@@ -19,6 +21,7 @@ import {
 } from '../../../lib/api-client';
 import { useAdminAuth } from '../../providers/admin-auth-provider';
 import { useRequireAdminAuth } from '../../../lib/use-require-admin-auth';
+import { useCurrentAdmin } from '../../../lib/use-current-admin';
 
 type FormState = {
   fullName: string;
@@ -118,6 +121,7 @@ function toCreateProfileRequest(form: FormState): CreateProfileRequest {
 export default function MemberDetailPage() {
   const { ready } = useRequireAdminAuth();
   const { data } = useAdminAuth();
+  const { can } = useCurrentAdmin();
   const router = useRouter();
   const params = useParams<{ userId: string }>();
 
@@ -132,6 +136,8 @@ export default function MemberDetailPage() {
   const [removeReason, setRemoveReason] = useState('');
   const [photoToRemove, setPhotoToRemove] = useState<string | null>(null);
   const [photoReason, setPhotoReason] = useState('');
+  const [photoToReject, setPhotoToReject] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   // Whether the removal can still be cancelled — evaluated when the member
   // loads (the API re-checks on the actual request).
   const [graceElapsed, setGraceElapsed] = useState(false);
@@ -212,15 +218,56 @@ export default function MemberDetailPage() {
 
   async function handleRestore() {
     if (!data.accessToken) return;
-    if (!window.confirm('Cancel this removal? The member becomes ACTIVE again and will not be anonymized.')) return;
+    if (
+      !window.confirm(
+        'Cancel this removal? The member goes back to the status they had before removal was requested and will not be anonymized.',
+      )
+    )
+      return;
     setActionPending(true);
     setActionMessage(undefined);
     try {
-      await restoreMember(data.accessToken, params.userId);
-      setActionMessage('Removal cancelled — member is active again.');
+      const result = await restoreMember(data.accessToken, params.userId);
+      setActionMessage(
+        result.status === 'SUSPENDED'
+          ? 'Removal cancelled — member is back to SUSPENDED, as before the removal.'
+          : 'Removal cancelled — member is active again.',
+      );
       reload();
     } catch (err) {
       setActionMessage(err instanceof ApiError ? err.message : 'Could not cancel the removal.');
+    } finally {
+      setActionPending(false);
+    }
+  }
+
+  async function handleApprovePhoto(photoId: string) {
+    if (!data.accessToken) return;
+    setActionPending(true);
+    setActionMessage(undefined);
+    try {
+      await approveMemberPhoto(data.accessToken, params.userId, photoId);
+      setActionMessage('Photo approved — other members can now see it.');
+      reload();
+    } catch (err) {
+      setActionMessage(err instanceof ApiError ? err.message : 'Could not approve photo.');
+    } finally {
+      setActionPending(false);
+    }
+  }
+
+  async function handleRejectPhoto(photoId: string) {
+    if (!data.accessToken || !rejectReason.trim()) return;
+    setActionPending(true);
+    setActionMessage(undefined);
+    try {
+      await rejectMemberPhoto(data.accessToken, params.userId, photoId, rejectReason.trim());
+      setActionMessage('Photo rejected — it stays hidden and the member sees your reason.');
+      setPhotoToReject(null);
+      setRejectReason('');
+      reload();
+    } catch (err) {
+      setActionMessage(err instanceof ApiError ? err.message : 'Could not reject photo.');
     } finally {
       setActionPending(false);
     }
@@ -246,6 +293,7 @@ export default function MemberDetailPage() {
   if (!ready) return null;
 
   const isDeleted = member?.status === 'DELETED';
+  const canModeratePhotos = can('members.edit');
   const isPendingDeletion = member?.status === 'PENDING_DELETION';
 
   return (
@@ -377,7 +425,77 @@ export default function MemberDetailPage() {
                               Primary
                             </span>
                           )}
+                          <span
+                            data-testid="admin-photo-status"
+                            className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                              photo.status === 'APPROVED'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : photo.status === 'PENDING'
+                                  ? 'bg-amber-100 text-amber-900'
+                                  : 'bg-red-100 text-red-800'
+                            }`}
+                          >
+                            {photo.status === 'APPROVED' ? 'Approved' : photo.status === 'PENDING' ? 'Pending review' : 'Rejected'}
+                          </span>
                         </div>
+                        {photo.status === 'REJECTED' && photo.rejectionReason && (
+                          <p className="text-xs text-muted-foreground">Reason: {photo.rejectionReason}</p>
+                        )}
+                        {canModeratePhotos && !isDeleted && photoToReject !== photo.id && (
+                          <div className="flex gap-2">
+                            {photo.status !== 'APPROVED' && (
+                              <Button type="button" size="sm" disabled={actionPending} onClick={() => void handleApprovePhoto(photo.id)}>
+                                Approve
+                              </Button>
+                            )}
+                            {photo.status !== 'REJECTED' && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={actionPending}
+                                onClick={() => {
+                                  setPhotoToReject(photo.id);
+                                  setRejectReason('');
+                                }}
+                              >
+                                Reject
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                        {photoToReject === photo.id && (
+                          <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/50 p-2">
+                            <Textarea
+                              aria-label="Reason for rejecting this photo"
+                              placeholder="Reason shown to the member (required)"
+                              rows={2}
+                              value={rejectReason}
+                              onChange={(e) => setRejectReason(e.target.value)}
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                disabled={!rejectReason.trim() || actionPending}
+                                onClick={() => void handleRejectPhoto(photo.id)}
+                              >
+                                Confirm reject
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setPhotoToReject(null);
+                                  setRejectReason('');
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                         {photoToRemove === photo.id ? (
                           <div className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-2">
                             <Textarea

@@ -56,6 +56,7 @@ function buildService(overrides?: {
     },
     block: {
       findFirst: vi.fn().mockResolvedValue(overrides?.block ?? null),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     interest: {
       findUnique: vi.fn().mockResolvedValue(null),
@@ -442,5 +443,18 @@ describe('InterestsService.listForUser', () => {
     expect(typeof result.sent[0].sender.age).toBe('number');
     expect(typeof result.sent[0].target.age).toBe('number');
     expect(result.sent[0].target.fullName).toBe('Target Person');
+  });
+  it('leaves out interests with a member blocked in either direction (sent and received)', async () => {
+    const { service, prisma } = buildService();
+    prisma.block.findMany.mockResolvedValueOnce([
+      { initiatorId: CALLER_USER_ID, targetId: TARGET_USER_ID },
+      { initiatorId: 'user-other', targetId: CALLER_USER_ID },
+    ]);
+
+    await service.listForUser(CALLER_USER_ID);
+
+    const [sentQuery, receivedQuery] = prisma.interest.findMany.mock.calls.map((call) => call[0]);
+    expect(sentQuery.where).toEqual({ senderId: CALLER_USER_ID, targetId: { notIn: [TARGET_USER_ID, 'user-other'] } });
+    expect(receivedQuery.where).toEqual({ targetId: CALLER_USER_ID, senderId: { notIn: [TARGET_USER_ID, 'user-other'] } });
   });
 });

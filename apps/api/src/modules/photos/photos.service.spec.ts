@@ -13,7 +13,7 @@ interface TxMock {
   };
 }
 
-function buildService(nodeEnv: string = 'test') {
+function buildService(nodeEnv: string = 'test', photoModeration?: 'pending' | 'auto_approve') {
   const tx: TxMock = {
     profilePhoto: {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -31,6 +31,7 @@ function buildService(nodeEnv: string = 'test') {
       findUnique: vi.fn(),
       delete: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
+      update: vi.fn(),
     },
     $transaction: vi.fn(async (callback: (tx: TxMock) => unknown) => callback(tx)),
   };
@@ -39,7 +40,8 @@ function buildService(nodeEnv: string = 'test') {
     deleteObject: vi.fn().mockResolvedValue(undefined),
     getObjectUrl: vi.fn((objectKey: string) => Promise.resolve(`https://minio.example/bucket/${objectKey}`)),
   };
-  const configService = { get: vi.fn().mockReturnValue(nodeEnv) };
+  const env: Record<string, unknown> = { NODE_ENV: nodeEnv, PHOTO_MODERATION: photoModeration };
+  const configService = { get: vi.fn((key: string) => env[key]) };
 
   const service = new PhotosService(prisma as never, storage as never, configService as never);
   return { service, prisma, storage, tx, configService };
@@ -87,12 +89,9 @@ describe('PhotosService.confirmPhoto', () => {
   it('creates the first photo as primary and auto-approves it outside production', async () => {
     const { service, prisma } = buildService('development');
     const objectKey = `profiles/${PROFILE_ID}/photo-1.jpg`;
-    prisma.profilePhoto.create.mockResolvedValueOnce({
-      id: 'photo-1',
-      objectKey,
-      isPrimary: true,
-      sortOrder: 0,
-    });
+    prisma.profilePhoto.create.mockImplementationOnce(({ data }: { data: Record<string, unknown> }) =>
+      Promise.resolve({ id: 'photo-1', rejectionReason: null, ...data }),
+    );
 
     const result = await service.confirmPhoto(USER_ID, objectKey);
 
@@ -111,7 +110,29 @@ describe('PhotosService.confirmPhoto', () => {
       url: `https://minio.example/bucket/${objectKey}`,
       isPrimary: true,
       sortOrder: 0,
+      status: 'APPROVED',
+      rejectionReason: null,
     });
+  });
+
+  it('holds a new photo for review (PENDING) when PHOTO_MODERATION=pending, even outside production', async () => {
+    const { service, prisma } = buildService('development', 'pending');
+    const objectKey = `profiles/${PROFILE_ID}/photo-1.jpg`;
+    prisma.profilePhoto.create.mockImplementationOnce(({ data }: { data: Record<string, unknown> }) =>
+      Promise.resolve({ id: 'photo-1', rejectionReason: null, ...data }),
+    );
+
+    const result = await service.confirmPhoto(USER_ID, objectKey);
+
+    expect(prisma.profilePhoto.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ isModerated: false, isApproved: false }),
+    });
+    expect(result.status).toBe('PENDING');
+  });
+
+  it('PHOTO_MODERATION=auto_approve keeps the dev stub even in production', () => {
+    const { service } = buildService('production', 'auto_approve');
+    expect(service.moderationMode()).toBe('auto_approve');
   });
 
   it('does not auto-approve in production', async () => {
@@ -288,20 +309,82 @@ describe('PhotosService.deletePhoto', () => {
 describe('PhotosService.getPhotosForProfile', () => {
   it('maps stored photos to display URLs ordered by sortOrder', async () => {
     const { service, prisma } = buildService();
+    const approved = { isModerated: true, isApproved: true, rejectionReason: null };
     prisma.profilePhoto.findMany.mockResolvedValueOnce([
-      { id: 'photo-1', objectKey: `profiles/${PROFILE_ID}/a.jpg`, isPrimary: true, sortOrder: 0 },
-      { id: 'photo-2', objectKey: `profiles/${PROFILE_ID}/b.jpg`, isPrimary: false, sortOrder: 1 },
+      { id: 'photo-1', objectKey: `profiles/${PROFILE_ID}/a.jpg`, isPrimary: true, sortOrder: 0, ...approved },
+      { id: 'photo-2', objectKey: `profiles/${PROFILE_ID}/b.jpg`, isPrimary: false, sortOrder: 1, ...approved },
     ]);
 
     const result = await service.getPhotosForProfile(PROFILE_ID);
 
+    expect(result).toEqual([
+      { id: 'photo-1', url: `https://minio.example/bucket/profiles/${PROFILE_ID}/a.jpg`, isPrimary: true, sortOrder: 0, status: 'APPROVED', rejectionReason: null },
+      { id: 'photo-2', url: `https://minio.example/bucket/profiles/${PROFILE_ID}/b.jpg`, isPrimary: false, sortOrder: 1, status: 'APPROVED', rejectionReason: null },
+    ]);
+  });
+
+  it('by default (what other members get) only queries approved photos', async () => {
+    const { service, prisma } = buildService();
+
+    await service.getPhotosForProfile(PROFILE_ID);
+
     expect(prisma.profilePhoto.findMany).toHaveBeenCalledWith({
-      where: { profileId: PROFILE_ID },
+      where: { profileId: PROFILE_ID, isModerated: true, isApproved: true },
       orderBy: { sortOrder: 'asc' },
     });
-    expect(result).toEqual([
-      { id: 'photo-1', url: `https://minio.example/bucket/profiles/${PROFILE_ID}/a.jpg`, isPrimary: true, sortOrder: 0 },
-      { id: 'photo-2', url: `https://minio.example/bucket/profiles/${PROFILE_ID}/b.jpg`, isPrimary: false, sortOrder: 1 },
+  });
+
+  it('with includeUnapproved (owner/admin) returns pending and rejected photos too, labelled', async () => {
+    const { service, prisma } = buildService();
+    prisma.profilePhoto.findMany.mockResolvedValueOnce([
+      { id: 'p1', objectKey: 'k1', isPrimary: true, sortOrder: 0, isModerated: false, isApproved: false, rejectionReason: null },
+      { id: 'p2', objectKey: 'k2', isPrimary: false, sortOrder: 1, isModerated: true, isApproved: false, rejectionReason: 'Blurry' },
     ]);
+
+    const result = await service.getPhotosForProfile(PROFILE_ID, { includeUnapproved: true });
+
+    expect(prisma.profilePhoto.findMany).toHaveBeenCalledWith({ where: { profileId: PROFILE_ID }, orderBy: { sortOrder: 'asc' } });
+    expect(result.map((photo) => [photo.status, photo.rejectionReason])).toEqual([
+      ['PENDING', null],
+      ['REJECTED', 'Blurry'],
+    ]);
+  });
+});
+
+describe('PhotosService.moderatePhoto', () => {
+  it('approve marks the photo moderated and approved, clearing any old rejection reason', async () => {
+    const { service, prisma } = buildService();
+    prisma.profilePhoto.findUnique.mockResolvedValueOnce({ id: 'photo-1', profileId: PROFILE_ID });
+    prisma.profilePhoto.update.mockImplementationOnce(({ data }: { data: Record<string, unknown> }) =>
+      Promise.resolve({ id: 'photo-1', objectKey: 'k', isPrimary: true, sortOrder: 0, ...data }),
+    );
+
+    const result = await service.moderatePhoto(USER_ID, 'photo-1', { approve: true });
+
+    expect(prisma.profilePhoto.update).toHaveBeenCalledWith({
+      where: { id: 'photo-1' },
+      data: { isModerated: true, isApproved: true, rejectionReason: null },
+    });
+    expect(result.status).toBe('APPROVED');
+  });
+
+  it('reject keeps the photo hidden and stores the reason for the owner', async () => {
+    const { service, prisma } = buildService();
+    prisma.profilePhoto.findUnique.mockResolvedValueOnce({ id: 'photo-1', profileId: PROFILE_ID });
+    prisma.profilePhoto.update.mockImplementationOnce(({ data }: { data: Record<string, unknown> }) =>
+      Promise.resolve({ id: 'photo-1', objectKey: 'k', isPrimary: true, sortOrder: 0, ...data }),
+    );
+
+    const result = await service.moderatePhoto(USER_ID, 'photo-1', { approve: false, reason: 'Group photo' });
+
+    expect(result).toMatchObject({ status: 'REJECTED', rejectionReason: 'Group photo' });
+  });
+
+  it('404s for a photo on another member\'s profile', async () => {
+    const { service, prisma } = buildService();
+    prisma.profilePhoto.findUnique.mockResolvedValueOnce({ id: 'photo-9', profileId: 'other-profile' });
+
+    await expect(service.moderatePhoto(USER_ID, 'photo-9', { approve: true })).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.profilePhoto.update).not.toHaveBeenCalled();
   });
 });

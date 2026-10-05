@@ -9,7 +9,52 @@ import type {
   RecentActivityResponse,
 } from '@nadar-kalyanam/schemas';
 
+import { bearerTokenOf, createSessionRefresher } from '@nadar-kalyanam/ui/session-refresh';
+import { ADMIN_AUTH_STORAGE_KEY, notifySessionExpired, notifyTokensRefreshed } from './auth-events';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+
+function readStoredAuth(): { accessToken?: string; refreshToken?: string } {
+  try {
+    return JSON.parse(window.localStorage.getItem(ADMIN_AUTH_STORAGE_KEY) ?? '{}') as { accessToken?: string; refreshToken?: string };
+  } catch {
+    return {};
+  }
+}
+
+// Admin access tokens (typ:'admin') last 15 minutes; on a 401 the session's
+// refresh token gets a new one — still an admin token, the API keeps that
+// per session. See @nadar-kalyanam/ui/session-refresh.
+const refreshSession = createSessionRefresher({
+  apiBaseUrl: API_BASE_URL,
+  lockName: 'nk-admin-token-refresh',
+  read: () => readStoredAuth(),
+  write: (tokens) => {
+    try {
+      window.localStorage.setItem(ADMIN_AUTH_STORAGE_KEY, JSON.stringify({ ...readStoredAuth(), ...tokens }));
+    } catch {
+      // Storage unavailable: the provider still gets the tokens.
+    }
+    notifyTokensRefreshed(tokens);
+  },
+});
+
+// fetch with the admin's bearer token, refreshing it once on a 401 and
+// retrying. If the session is over the admin is signed out (-> /login).
+async function authorizedFetch(url: string, init: RequestInit): Promise<Response> {
+  const response = await fetch(url, init);
+  const bearer = bearerTokenOf(init.headers);
+  if (response.status !== 401 || !bearer) return response;
+  const outcome = await refreshSession(bearer);
+  if (outcome.kind === 'expired') notifySessionExpired();
+  if (outcome.kind !== 'refreshed') return response;
+  const retried = await fetch(url, {
+    ...init,
+    headers: { ...(init.headers as Record<string, string>), Authorization: `Bearer ${outcome.accessToken}` },
+  });
+  if (retried.status === 401) notifySessionExpired();
+  return retried;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -35,7 +80,7 @@ function extractErrorMessage(body: NestErrorBody | null): string {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = { 'Content-Type': 'application/json', ...init?.headers };
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
+  const response = await authorizedFetch(`${API_BASE_URL}${path}`, { ...init, headers });
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as NestErrorBody | null;
@@ -125,7 +170,7 @@ export function getRecentActivity(accessToken: string, limit = 20): Promise<Rece
 // the file name comes from the response when the browser can read it,
 // otherwise the same name is built here.
 export async function downloadSummaryReport(accessToken: string, days: 7 | 30 | 90): Promise<{ blob: Blob; filename: string }> {
-  const response = await fetch(`${API_BASE_URL}/admin/dashboard/summary-report`, {
+  const response = await authorizedFetch(`${API_BASE_URL}/admin/dashboard/summary-report`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
     body: JSON.stringify({ days }),
@@ -188,7 +233,14 @@ export interface MemberDetail {
     completionScore: number;
     isVerified: boolean;
     details: Record<string, unknown>;
-    photos: { id: string; url: string; isPrimary: boolean; sortOrder: number }[];
+    photos: {
+      id: string;
+      url: string;
+      isPrimary: boolean;
+      sortOrder: number;
+      status: 'PENDING' | 'APPROVED' | 'REJECTED';
+      rejectionReason: string | null;
+    }[];
   } | null;
 }
 
@@ -242,6 +294,20 @@ export function restoreMember(accessToken: string, userId: string): Promise<{ id
   return request(`/admin/members/${userId}/restore`, {
     method: 'POST',
     headers: authHeaders(accessToken),
+  });
+}
+
+// Photo moderation hold: approved photos become visible to other members;
+// rejected ones stay hidden and the member sees the reason.
+export function approveMemberPhoto(accessToken: string, userId: string, photoId: string): Promise<unknown> {
+  return request(`/admin/members/${userId}/photos/${photoId}/approve`, { method: 'POST', headers: authHeaders(accessToken) });
+}
+
+export function rejectMemberPhoto(accessToken: string, userId: string, photoId: string, reason: string): Promise<unknown> {
+  return request(`/admin/members/${userId}/photos/${photoId}/reject`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ reason }),
   });
 }
 

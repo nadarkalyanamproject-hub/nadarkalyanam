@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { PhotoResponse } from '@nadar-kalyanam/schemas';
+import { APPROVED_PHOTO_WHERE, photoStatus } from '../../common/photo-visibility.js';
 import { refreshCompletionScore } from '../../common/profile-completion.js';
 import type { Env } from '../config/env.schema.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -56,16 +57,12 @@ export class PhotosService {
       where: { profileId: profile.id },
     });
 
-    // DEV STUB: there is no real async photo-moderation pipeline in this
-    // project (no job queue infrastructure like BullMQ exists yet, despite
-    // ioredis already being used elsewhere for OTP). Outside production,
-    // photos are auto-approved immediately on confirm so the profile page
-    // has something to display. This bypasses real moderation and MUST be
-    // replaced with an actual review workflow (a queue + admin review that
-    // sets isModerated/isApproved) before any production use — mirrors the
-    // devOtp dev-stub pattern in auth.service.ts.
-    const photoAutoApproveDevStub =
-      this.configService.get('NODE_ENV', { infer: true }) !== 'production';
+    // Moderation hold: in 'pending' mode the photo waits for an admin to
+    // approve it (Admin > member > Photos) and other members don't see it
+    // until then. 'auto_approve' is the dev stub that approves on upload so
+    // local profiles have something to show. PHOTO_MODERATION picks the
+    // mode; unset, production holds and everything else auto-approves.
+    const photoAutoApproveDevStub = this.moderationMode() === 'auto_approve';
 
     const photo = await this.prisma.profilePhoto.create({
       data: {
@@ -116,13 +113,47 @@ export class PhotosService {
     return { id: photo.id, objectKey: photo.objectKey };
   }
 
-  async getPhotosForProfile(profileId: string): Promise<PhotoResponse[]> {
+  // Photos as OTHER members may see them: approved only. Pass
+  // includeUnapproved for the owner's own profile and for admins, who see
+  // pending and rejected photos too (with their status).
+  async getPhotosForProfile(
+    profileId: string,
+    options: { includeUnapproved?: boolean } = {},
+  ): Promise<PhotoResponse[]> {
     const photos = await this.prisma.profilePhoto.findMany({
-      where: { profileId },
+      where: options.includeUnapproved ? { profileId } : { profileId, ...APPROVED_PHOTO_WHERE },
       orderBy: { sortOrder: 'asc' },
     });
 
     return Promise.all(photos.map((photo) => this.toPhotoResponse(photo)));
+  }
+
+  // Admin decision on one of a member's photos. Scoped like deletePhoto: a
+  // photo that isn't on this member's profile 404s. Re-deciding is allowed
+  // (e.g. approving a photo rejected by mistake).
+  async moderatePhoto(
+    userId: string,
+    photoId: string,
+    decision: { approve: true } | { approve: false; reason: string },
+  ): Promise<PhotoResponse> {
+    const profile = await this.getOwnedProfile(userId);
+    const photo = await this.getOwnedPhoto(profile.id, photoId);
+    const updated = await this.prisma.profilePhoto.update({
+      where: { id: photo.id },
+      data: {
+        isModerated: true,
+        isApproved: decision.approve,
+        rejectionReason: decision.approve ? null : decision.reason,
+      },
+    });
+    return this.toPhotoResponse(updated);
+  }
+
+  moderationMode(): 'pending' | 'auto_approve' {
+    return (
+      this.configService.get('PHOTO_MODERATION', { infer: true }) ??
+      (this.configService.get('NODE_ENV', { infer: true }) === 'production' ? 'pending' : 'auto_approve')
+    );
   }
 
   private async getOwnedPhoto(profileId: string, photoId: string) {
@@ -138,12 +169,17 @@ export class PhotosService {
     objectKey: string;
     isPrimary: boolean;
     sortOrder: number;
+    isModerated: boolean;
+    isApproved: boolean;
+    rejectionReason: string | null;
   }): Promise<PhotoResponse> {
     return {
       id: photo.id,
       url: await this.storage.getObjectUrl(photo.objectKey),
       isPrimary: photo.isPrimary,
       sortOrder: photo.sortOrder,
+      status: photoStatus(photo),
+      rejectionReason: photo.rejectionReason,
     };
   }
 }

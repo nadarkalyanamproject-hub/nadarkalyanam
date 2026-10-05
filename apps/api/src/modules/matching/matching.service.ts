@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { ListMatchesResponse } from '@nadar-kalyanam/schemas';
-import { getBlockedUserIds } from '../../common/blocks.util.js';
+import { visibleProfilesWhere } from '../../common/profile-cards.js';
 import { getRelationshipStates, relationshipFields } from '../../common/relationship.js';
 import { calculateAge } from '../../common/age.js';
 import { PhotosService } from '../photos/photos.service.js';
@@ -24,13 +24,8 @@ export class MatchingService {
       throw new NotFoundException('Create your profile before viewing matches');
     }
 
-    const blockedUserIds = await getBlockedUserIds(this.prisma, callerUserId);
     const candidates = await this.prisma.profile.findMany({
-      where: {
-        visibility: { not: 'HIDDEN' },
-        userId: { notIn: [callerUserId, ...blockedUserIds] },
-        user: { status: 'ACTIVE' },
-      },
+      where: await visibleProfilesWhere(this.prisma, callerUserId),
       take: 200,
     });
 

@@ -21,6 +21,9 @@ function buildService(user: Record<string, unknown> | null = { id: USER_ID, stat
   const photosService = {
     getPhotosForProfile: vi.fn().mockResolvedValue([]),
     deletePhoto: vi.fn().mockResolvedValue({ id: 'photo-1', objectKey: 'profiles/p1/photo-1.jpg' }),
+    moderatePhoto: vi.fn().mockImplementation((_userId: string, photoId: string, decision: { approve: boolean }) =>
+      Promise.resolve({ id: photoId, status: decision.approve ? 'APPROVED' : 'REJECTED' }),
+    ),
   };
   const auditLog = { record: vi.fn().mockResolvedValue({ id: 'audit-1' }) };
   const service = new AdminService(prisma as never, photosService as never, auditLog as never, { notify: vi.fn() } as never);
@@ -71,7 +74,7 @@ describe('AdminService.listMembers filters', () => {
 });
 
 describe('AdminService.restoreMember', () => {
-  it('sets a PENDING_DELETION member inside the grace period back to ACTIVE, clears the removal, and audits it', async () => {
+  it('with no recorded previous status (older removals), sets the member back to ACTIVE, clears the removal, and audits it', async () => {
     const deletionRequestedAt = new Date(Date.now() - 3 * DAY_MS);
     const { service, prisma, auditLog } = buildService({
       id: USER_ID,
@@ -85,7 +88,7 @@ describe('AdminService.restoreMember', () => {
     expect(result).toEqual({ id: USER_ID, status: 'ACTIVE' });
     expect(prisma.user.updateMany).toHaveBeenCalledWith({
       where: { id: USER_ID, status: 'PENDING_DELETION', deletionRequestedAt },
-      data: { status: 'ACTIVE', deletionRequestedAt: null },
+      data: { status: 'ACTIVE', deletionRequestedAt: null, statusBeforeDeletion: null },
     });
     expect(auditLog.record).toHaveBeenCalledWith(
       ADMIN_ID,
@@ -94,6 +97,43 @@ describe('AdminService.restoreMember', () => {
       USER_ID,
       expect.objectContaining({ deletionRequestedAt: deletionRequestedAt.toISOString() }),
     );
+  });
+
+  it('restores the status the member had when removal was requested — a suspended member stays suspended', async () => {
+    const deletionRequestedAt = new Date(Date.now() - 2 * DAY_MS);
+    const { service, prisma, auditLog } = buildService({
+      id: USER_ID,
+      status: 'PENDING_DELETION',
+      statusBeforeDeletion: 'SUSPENDED',
+      deletionRequestedAt,
+      adminUser: null,
+    });
+
+    const result = await service.restoreMember(ADMIN_ID, USER_ID);
+
+    expect(result).toEqual({ id: USER_ID, status: 'SUSPENDED' });
+    expect(prisma.user.updateMany).toHaveBeenCalledWith({
+      where: { id: USER_ID, status: 'PENDING_DELETION', deletionRequestedAt },
+      data: { status: 'SUSPENDED', deletionRequestedAt: null, statusBeforeDeletion: null },
+    });
+    expect(auditLog.record).toHaveBeenCalledWith(
+      ADMIN_ID,
+      'member.restore',
+      'User',
+      USER_ID,
+      expect.objectContaining({ restoredStatus: 'SUSPENDED' }),
+    );
+  });
+
+  it('removing a member records the status they had, for Cancel removal to restore', async () => {
+    const { service, prisma } = buildService({ id: USER_ID, status: 'SUSPENDED', adminUser: null });
+
+    await service.removeMember(ADMIN_ID, USER_ID, 'requested by member');
+
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: USER_ID },
+      data: { status: 'PENDING_DELETION', deletionRequestedAt: expect.any(Date), statusBeforeDeletion: 'SUSPENDED' },
+    });
   });
 
   it('refuses once the grace period has elapsed, without writing anything', async () => {
@@ -203,6 +243,42 @@ describe('AdminService.removeMemberPhoto', () => {
     await expect(service.removeMemberPhoto(ADMIN_ID, USER_ID, 'other-photo', 'x')).rejects.toBeInstanceOf(
       NotFoundException,
     );
+    expect(auditLog.record).not.toHaveBeenCalled();
+  });
+});
+
+describe('AdminService.moderateMemberPhoto', () => {
+  it('approving a photo audits member.photo.approve', async () => {
+    const { service, photosService, auditLog } = buildService();
+
+    const result = await service.moderateMemberPhoto(ADMIN_ID, USER_ID, 'photo-1', { approve: true });
+
+    expect(result).toEqual({ id: 'photo-1', status: 'APPROVED' });
+    expect(photosService.moderatePhoto).toHaveBeenCalledWith(USER_ID, 'photo-1', { approve: true });
+    expect(auditLog.record).toHaveBeenCalledWith(ADMIN_ID, 'member.photo.approve', 'ProfilePhoto', 'photo-1', {
+      userId: USER_ID,
+    });
+  });
+
+  it('rejecting a photo audits member.photo.reject with the reason', async () => {
+    const { service, auditLog } = buildService();
+
+    const result = await service.moderateMemberPhoto(ADMIN_ID, USER_ID, 'photo-1', { approve: false, reason: 'Not a photo of the member' });
+
+    expect(result).toEqual({ id: 'photo-1', status: 'REJECTED' });
+    expect(auditLog.record).toHaveBeenCalledWith(ADMIN_ID, 'member.photo.reject', 'ProfilePhoto', 'photo-1', {
+      userId: USER_ID,
+      reason: 'Not a photo of the member',
+    });
+  });
+
+  it('refuses for an anonymized (DELETED) account, without deciding or auditing', async () => {
+    const { service, photosService, auditLog } = buildService({ id: USER_ID, status: 'DELETED', adminUser: null });
+
+    await expect(service.moderateMemberPhoto(ADMIN_ID, USER_ID, 'photo-1', { approve: true })).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(photosService.moderatePhoto).not.toHaveBeenCalled();
     expect(auditLog.record).not.toHaveBeenCalled();
   });
 });
