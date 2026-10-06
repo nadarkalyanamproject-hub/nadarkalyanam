@@ -453,6 +453,15 @@ export function AppHeader() {
                           Membership
                         </Link>
                         <Link
+                          href="/membership/contacts"
+                          role="menuitem"
+                          onClick={closeAvatarMenu}
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-[#2B211C] hover:bg-[#F9F3E7] hover:text-[#7A0710] focus:bg-[#F9F3E7]`}
+                        >
+                          <UserIcon className="h-4 w-4 text-[#776B62]" />
+                          My Unlocked Contacts
+                        </Link>
+                        <Link
                           href="/"
                           role="menuitem"
                           onClick={closeAvatarMenu}

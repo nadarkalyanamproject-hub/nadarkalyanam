@@ -397,29 +397,31 @@ enum SubscriptionStatus {
 // order can exist before a payment settles it, and only a verified-successful
 // payment event activates (or renews) the entitlement here — see FR-7.5.
 model Subscription {
-  id                 String             @id @default(uuid())
-  userId             String
-  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planId             String
-  plan               MembershipPlan     @relation(fields: [planId], references: [id])
-  status             SubscriptionStatus @default(ACTIVE)
+  id                   String             @id @default(uuid())
+  userId               String
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId               String
+  plan                 MembershipPlan     @relation(fields: [planId], references: [id])
+  status               SubscriptionStatus @default(ACTIVE)
   // One subscription per paid order.
-  orderId            String?            @unique
-  order              Order?             @relation(fields: [orderId], references: [id])
+  orderId              String?            @unique
+  order                Order?             @relation(fields: [orderId], references: [id])
   // A renewal bought while a plan is active starts when that one ends.
-  startedAt          DateTime           @default(now())
-  expiresAt          DateTime
+  startedAt            DateTime           @default(now())
+  expiresAt            DateTime
   // Set when an admin cancels it or its order is refunded.
-  cancelledAt        DateTime?
-  source             SubscriptionSource @default(PAYMENT)
+  cancelledAt          DateTime?
+  source               SubscriptionSource @default(PAYMENT)
   // Admin grants: who granted it and why; paymentReference is free text for
   // an offline payment (never summed into revenue).
-  grantedByAdminId   String?
-  grantReason        String?
-  paymentReference   String?
-  cancelledByAdminId String?
-  cancelReason       String?
-  createdAt          DateTime           @default(now())
+  grantedByAdminId     String?
+  grantReason          String?
+  paymentReference     String?
+  cancelledByAdminId   String?
+  cancelReason         String?
+  // When the "expires in 7 days" reminder went out (sent at most once).
+  expiryReminderSentAt DateTime?
+  createdAt            DateTime           @default(now())
 
   phoneUnlocks PhoneUnlock[]
 

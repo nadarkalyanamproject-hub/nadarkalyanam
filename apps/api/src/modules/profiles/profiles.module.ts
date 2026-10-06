@@ -5,11 +5,13 @@ import { PhotosModule } from '../photos/photos.module.js';
 import { ProfilesController } from './profiles.controller.js';
 import { PhoneUnlockService } from './phone-unlock.service.js';
 import { ProfilesService } from './profiles.service.js';
+import { UnlockedContactsController } from './unlocked-contacts.controller.js';
+import { UnlockedContactsService } from './unlocked-contacts.service.js';
 
 @Module({
   imports: [AuthModule, NotificationsModule, PhotosModule],
-  controllers: [ProfilesController],
-  providers: [ProfilesService, PhoneUnlockService],
+  controllers: [ProfilesController, UnlockedContactsController],
+  providers: [ProfilesService, PhoneUnlockService, UnlockedContactsService],
   exports: [ProfilesService],
 })
 export class ProfilesModule {}

@@ -13,6 +13,7 @@ import { TrustVerificationCard } from '../../components/profile/trust-verificati
 import { CompletionChecklistCard } from '../../components/profile/completion-checklist-card';
 import { PrivacySettingsCard } from '../../components/profile/privacy-settings-card';
 import { BlockedMembersCard } from '../../components/profile/blocked-members-card';
+import { MyPlanNote } from '../../components/profile/my-plan-note';
 import { ComingSoonNote, ComingSoonPill } from '../../components/ui/coming-soon-note';
 import { CulturalDivider, LotusOrnament } from '../../components/profile/cultural-divider';
 import { useProfile } from '../../lib/use-profile';
@@ -298,6 +299,10 @@ export default function ProfilePage() {
       <main className="w-full px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
         {/* Profile Header */}
         <ProfileHeader profile={profile} completionPercent={completionPercent} />
+
+        <div className="my-4">
+          <MyPlanNote />
+        </div>
 
         {loading && (
           <div className="rounded-2xl border border-[#E8DCC8] bg-[#FFFFFF] p-12 text-center shadow-sm">

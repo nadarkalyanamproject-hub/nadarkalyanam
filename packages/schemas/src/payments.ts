@@ -64,7 +64,22 @@ export const paymentHistoryItemSchema = z.object({
 });
 export type PaymentHistoryItem = z.infer<typeof paymentHistoryItemSchema>;
 
-// GET /me/membership. plan is null for a free member.
+// GET /me/membership — the member's own view only (never shown to others).
+// plan is null for a free member.
+const memberPlanStatusEnum = z.enum(['ACTIVE', 'QUEUED', 'EXPIRED', 'CANCELLED']);
+
+export const membershipHistoryItemSchema = z.object({
+  planCode: z.string(),
+  planName: z.string(),
+  startedAt: z.string(),
+  // When it ended or will end (cancelledAt for a cancelled plan).
+  endsAt: z.string(),
+  // How the member got it. Admin identity, reasons and notes are never sent.
+  source: z.enum(['PURCHASED', 'GRANTED']),
+  status: memberPlanStatusEnum,
+});
+export type MembershipHistoryItem = z.infer<typeof membershipHistoryItemSchema>;
+
 export const myMembershipResponseSchema = z.object({
   plan: z
     .object({
@@ -72,13 +87,26 @@ export const myMembershipResponseSchema = z.object({
       name: z.string(),
       isAssisted: z.boolean(),
       phoneUnlockLimit: z.number().nullable(),
+      // The plan's own feature list, with availability flags.
+      features: z.array(planFeatureSchema),
+      // Listing tier: 0 standard, 1 priority, 2 spotlight.
+      searchTier: z.number(),
     })
     .nullable(),
   status: z.enum(['ACTIVE', 'FREE']),
-  // End of the current subscription.
+  // Current plan period.
+  startedAt: z.string().nullable(),
   expiresAt: z.string().nullable(),
   // End of the last already-paid renewal (equals expiresAt when none).
   paidThroughAt: z.string().nullable(),
+  // Plans that start later (renewals), soonest first.
+  queued: z.array(membershipHistoryItemSchema),
+  // Every plan the member has had, newest first (up to 20).
+  history: z.array(membershipHistoryItemSchema),
+  // For a free member: the most recent plan that ended, and how.
+  lastEnded: z
+    .object({ planName: z.string(), endedAt: z.string(), kind: z.enum(['EXPIRED', 'CANCELLED']) })
+    .nullable(),
   // Paid plans: phone unlocks used in the current plan period, and what's
   // left (null = unlimited). null for free members.
   phoneUnlocksUsed: z.number().nullable(),

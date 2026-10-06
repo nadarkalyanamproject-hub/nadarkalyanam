@@ -32,6 +32,13 @@ export function notificationMessage(type: string, actorName: string, data: Recor
         ? `${plan} membership is active until ${until.toISOString().slice(0, 10)}`
         : `${plan} membership is active`;
     }
+    case 'PLAN_EXPIRING_SOON': {
+      const plan = typeof data.planName === 'string' ? `Your ${data.planName}` : 'Your';
+      const until = typeof data.expiresAt === 'string' ? new Date(data.expiresAt) : null;
+      return until && !Number.isNaN(until.getTime())
+        ? `${plan} membership ends on ${until.toISOString().slice(0, 10)}`
+        : `${plan} membership ends within 7 days`;
+    }
     case 'PLAN_CANCELLED':
       return typeof data.planName === 'string' ? `Your ${data.planName} membership was cancelled` : 'Your membership was cancelled';
     case 'PLAN_EXPIRED':

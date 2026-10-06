@@ -30,6 +30,8 @@ const MEMBER_RESPONSES: Record<string, z.ZodType> = {
   myMembership: schemas.myMembershipResponseSchema,
   membershipPlan: schemas.membershipPlanResponseSchema,
   phoneStatus: schemas.phoneStatusResponseSchema,
+  unlockedContacts: schemas.unlockedContactsResponseSchema,
+  vipEnquiryMine: schemas.myVipEnquiryResponseSchema,
 };
 
 // Every object key reachable in a schema (through arrays, optionals,
@@ -92,5 +94,21 @@ describe('no phone number in any member-facing response', () => {
     const serialized = JSON.stringify([toPublicProfileSummary(profile, null, undefined), toPublicProfileDetail(profile, [], undefined)]);
     expect(serialized).not.toMatch(/9812345678/);
     expect(serialized).not.toMatch(/"phone/i);
+  });
+
+  it("no member-facing profile shape reveals another member's plan or listing tier", () => {
+    const PLAN_FIELD = /^(plan|planCode|planName|searchBoost|searchTier|subscription|isPremium|premium|membership)$/i;
+    for (const schema of [
+      schemas.publicProfileSummarySchema,
+      schemas.publicProfileDetailSchema,
+      schemas.profileCardListResponseSchema,
+      schemas.searchProfilesResponseSchema,
+      schemas.listMatchesResponseSchema,
+      schemas.listInterestsResponseSchema,
+      schemas.conversationListResponseSchema,
+      schemas.unlockedContactsResponseSchema,
+    ]) {
+      expect(allKeys(schema).filter((key) => PLAN_FIELD.test(key))).toEqual([]);
+    }
   });
 });

@@ -31,13 +31,19 @@ services:
       timeout: 5s
       retries: 10
 
-  # S3-compatible object storage for profile photos. Docker Hub's `minio/minio`
-  # namespace was unreachable from this environment (pull access denied), so
-  # this uses MinIO's quay.io mirror instead — confirmed pullable.
+  # S3-compatible object storage for profile photos. MinIO no longer publishes
+  # pullable images (docker.io/minio/* -> pull access denied, quay.io/minio/*
+  # -> 401), so this uses Chainguard's maintained MinIO build. It is the same
+  # MinIO server and also bundles `mc` and `sh` (used by the healthcheck and
+  # minio-init below).
   minio:
-    image: quay.io/minio/minio:latest
+    image: cgr.dev/chainguard/minio:latest
     container_name: nadar-kalyanam-minio
     restart: unless-stopped
+    # The image defaults to a non-root user (65532), which cannot write to a
+    # data volume created by the old root-run image ("Unable to write to the
+    # backend"). Running as root keeps existing volumes working, as before.
+    user: "0:0"
     command: server /data --console-address ":9003"
     environment:
       MINIO_ROOT_USER: nadar_minio
@@ -70,8 +76,12 @@ services:
   # Runs once per `docker compose up` and exits; safe to re-run (`mb -p`
   # ignores an already-existing bucket, and re-applying the same config/
   # policy is a no-op).
+  #
+  # Uses the same image as the server: it includes `mc` and a shell, which
+  # the entrypoint below needs (Chainguard's separate minio-client image has
+  # no shell).
   minio-init:
-    image: quay.io/minio/mc:latest
+    image: cgr.dev/chainguard/minio:latest
     container_name: nadar-kalyanam-minio-init
     depends_on:
       minio:

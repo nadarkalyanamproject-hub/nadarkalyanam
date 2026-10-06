@@ -11,9 +11,41 @@ const PLUS = { id: 'plus', code: 'GOLD_PLUS', name: 'Gold Plus', isAssisted: fal
 const PREMIUM = { id: 'premium', code: 'GOLD_PREMIUM', name: 'Gold Premium', isAssisted: false, phoneUnlockLimit: null };
 const config = { get: (key: string) => ({ FREE_INTERESTS_PER_MONTH: 5 })[key] } as never;
 
+// Evaluates the where clauses the services build (equality, null, and
+// gt/gte/lt/lte/not ranges) against in-memory rows.
+function matches(row: any, where: any): boolean {
+  return Object.entries(where ?? {}).every(([key, cond]: [string, any]) => {
+    const value = row[key];
+    if (cond === null || typeof cond !== 'object' || cond instanceof Date) return value === cond || (cond instanceof Date && value?.getTime() === cond.getTime());
+    if ('not' in cond && value === cond.not) return false;
+    if ('gt' in cond && !(value > cond.gt)) return false;
+    if ('gte' in cond && !(value >= cond.gte)) return false;
+    if ('lt' in cond && !(value < cond.lt)) return false;
+    if ('lte' in cond && !(value <= cond.lte)) return false;
+    return true;
+  });
+}
+
 function store(rows: any[], extra: { interests?: number; unlocks?: number } = {}) {
-  const subscriptions = rows.map((r, i) => ({ id: `s${i + 1}`, userId: 'u1', cancelledAt: null, status: 'ACTIVE', ...r }));
+  const subscriptions = rows.map((r, i) => ({
+    id: `s${i + 1}`,
+    userId: 'u1',
+    cancelledAt: null,
+    status: 'ACTIVE',
+    source: 'PAYMENT',
+    expiryReminderSentAt: null,
+    createdAt: r.startedAt,
+    ...r,
+  }));
   const profile = { userId: 'u1', searchBoost: 0 };
+  const find = ({ where, orderBy }: any) => {
+    const key = Object.keys([orderBy].flat()[0] ?? { startedAt: 'asc' })[0]!;
+    const dir = Object.values([orderBy].flat()[0] ?? { startedAt: 'asc' })[0];
+    return subscriptions
+      .filter((s) => matches(s, where))
+      .sort((a, b) => (dir === 'desc' ? b[key] - a[key] : a[key] - b[key]))
+      .map((s) => ({ ...s, plan: { entitlements: {}, ...s.plan } }));
+  };
   const prisma = {
     interest: { count: vi.fn(async () => extra.interests ?? 0) },
     phoneUnlock: { count: vi.fn(async () => extra.unlocks ?? 0) },
@@ -25,16 +57,10 @@ function store(rows: any[], extra: { interests?: number; unlocks?: number } = {}
       }),
     },
     subscription: {
-      findMany: vi.fn(async ({ where }: any) => {
-        if (where.status === 'ACTIVE' && where.expiresAt?.lte) {
-          return subscriptions.filter((s) => s.status === 'ACTIVE' && s.expiresAt <= where.expiresAt.lte).map((s) => ({ ...s, plan: { name: s.plan.name } }));
-        }
-        return subscriptions
-          .filter((s) => s.userId === where.userId && s.cancelledAt === null && s.expiresAt > where.expiresAt.gt)
-          .sort((a, b) => a.startedAt - b.startedAt);
-      }),
+      findMany: vi.fn(async (args: any) => find(args)),
+      findFirst: vi.fn(async (args: any) => find(args)[0] ?? null),
       updateMany: vi.fn(async ({ where, data }: any) => {
-        const hits = subscriptions.filter((s) => s.id === where.id && s.status === where.status);
+        const hits = subscriptions.filter((s) => matches(s, where));
         hits.forEach((s) => Object.assign(s, data));
         return { count: hits.length };
       }),
@@ -51,8 +77,12 @@ describe('EntitlementsService.getActivePlan', () => {
     await expect(service.getMyMembership('u1')).resolves.toEqual({
       plan: null,
       status: 'FREE',
+      startedAt: null,
       expiresAt: null,
       paidThroughAt: null,
+      queued: [],
+      history: [],
+      lastEnded: null,
       phoneUnlocksUsed: null,
       phoneUnlocksRemaining: null,
       interestsUsedThisMonth: 0,
@@ -139,11 +169,11 @@ describe('SubscriptionExpiryService', () => {
     const notifications = { notify: vi.fn() };
     const service = new SubscriptionExpiryService(prisma as never, new EntitlementsService(prisma as never, config), notifications as never);
 
-    await expect(service.run(NOW)).resolves.toEqual({ expired: ['s1'] });
+    await expect(service.run(NOW)).resolves.toEqual({ expired: ['s1'], reminded: [] });
     expect(subscriptions[0].status).toBe('EXPIRED');
     expect(notifications.notify).toHaveBeenCalledWith(expect.objectContaining({ recipientUserId: 'u1', type: 'PLAN_EXPIRED' }));
 
-    await expect(service.run(NOW)).resolves.toEqual({ expired: [] });
+    await expect(service.run(NOW)).resolves.toMatchObject({ expired: [] });
     expect(notifications.notify).toHaveBeenCalledTimes(1);
   });
 
@@ -164,7 +194,89 @@ describe('SubscriptionExpiryService', () => {
   it('leaves subscriptions that have not expired alone', async () => {
     const { prisma, subscriptions } = store([{ plan: GOLD, startedAt: at(-1), expiresAt: at(89) }]);
     const service = new SubscriptionExpiryService(prisma as never, new EntitlementsService(prisma as never, config), { notify: vi.fn() } as never);
-    await expect(service.run(NOW)).resolves.toEqual({ expired: [] });
+    await expect(service.run(NOW)).resolves.toMatchObject({ expired: [] });
     expect(subscriptions[0].status).toBe('ACTIVE');
+  });
+});
+
+describe('GET /me/membership shape (member dashboard)', () => {
+  const PLUS_WITH_COPY = { ...PLUS, entitlements: { features: [{ key: 'searchPriority', label: 'Priority placement', available: true }] } };
+
+  it('paid member: plan with features and tier, dates, queued renewal, history — and no admin-only fields', async () => {
+    const { prisma } = store(
+      [
+        { plan: PLUS_WITH_COPY, startedAt: at(-10), expiresAt: at(80), source: 'ADMIN_GRANT', grantedByAdminId: 'admin-secret-id', grantReason: 'SECRET reason', paymentReference: 'SECRET ref' },
+        { plan: GOLD, startedAt: at(80), expiresAt: at(170) },
+        { plan: GOLD, startedAt: at(-200), expiresAt: at(-110), cancelledAt: at(-150), cancelReason: 'SECRET cancel' },
+      ],
+      { unlocks: 7 },
+    );
+    const me = await new EntitlementsService(prisma as never, config).getMyMembership('u1', NOW);
+
+    expect(me).toMatchObject({
+      status: 'ACTIVE',
+      plan: { code: 'GOLD_PLUS', name: 'Gold Plus', phoneUnlockLimit: null, searchTier: 1, features: [{ key: 'searchPriority', available: true }] },
+      startedAt: at(-10).toISOString(),
+      expiresAt: at(80).toISOString(),
+      paidThroughAt: at(170).toISOString(),
+      phoneUnlocksUsed: 7,
+      phoneUnlocksRemaining: null,
+      interestsLimit: null,
+      lastEnded: null,
+    });
+    expect(me.queued).toEqual([{ planCode: 'GOLD', planName: 'Gold', startedAt: at(80).toISOString(), endsAt: at(170).toISOString(), source: 'PURCHASED', status: 'QUEUED' }]);
+    expect(me.history.map((h) => [h.planCode, h.status, h.source])).toEqual([
+      ['GOLD', 'QUEUED', 'PURCHASED'],
+      ['GOLD_PLUS', 'ACTIVE', 'GRANTED'],
+      ['GOLD', 'CANCELLED', 'PURCHASED'],
+    ]);
+    expect(me.history[2]!.endsAt).toBe(at(-150).toISOString());
+    const json = JSON.stringify(me);
+    for (const secret of ['admin-secret-id', 'SECRET', 'grantReason', 'grantedBy', 'paymentReference', 'cancelReason']) expect(json).not.toContain(secret);
+  });
+
+  it('expired member: free, with lastEnded EXPIRED and the interest limit back', async () => {
+    const { prisma } = store([{ plan: GOLD, startedAt: at(-95), expiresAt: at(-5) }], { interests: 2 });
+    const me = await new EntitlementsService(prisma as never, config).getMyMembership('u1', NOW);
+    expect(me).toMatchObject({ status: 'FREE', plan: null, interestsUsedThisMonth: 2, interestsLimit: 5, lastEnded: { planName: 'Gold', endedAt: at(-5).toISOString(), kind: 'EXPIRED' } });
+  });
+
+  it('cancelled by admin: lastEnded CANCELLED at the cancellation time', async () => {
+    const { prisma } = store([{ plan: GOLD, startedAt: at(-20), expiresAt: at(70), cancelledAt: at(-1) }]);
+    const me = await new EntitlementsService(prisma as never, config).getMyMembership('u1', NOW);
+    expect(me.lastEnded).toEqual({ planName: 'Gold', endedAt: at(-1).toISOString(), kind: 'CANCELLED' });
+  });
+});
+
+describe('expiring-soon reminder', () => {
+  const service = (prisma: unknown, notifications = { notify: vi.fn() }) =>
+    ({ svc: new SubscriptionExpiryService(prisma as never, new EntitlementsService(prisma as never, config), notifications as never), notifications });
+
+  it('sends once per subscription within 7 days of expiry; re-runs send nothing more', async () => {
+    const { prisma, subscriptions } = store([{ plan: GOLD, startedAt: at(-85), expiresAt: at(5) }]);
+    const { svc, notifications } = service(prisma);
+
+    await expect(svc.run(NOW)).resolves.toEqual({ expired: [], reminded: ['s1'] });
+    await expect(svc.run(NOW)).resolves.toEqual({ expired: [], reminded: [] });
+    await expect(svc.run(new Date(NOW.getTime() + DAY))).resolves.toEqual({ expired: [], reminded: [] });
+
+    expect(notifications.notify).toHaveBeenCalledTimes(1);
+    expect(notifications.notify).toHaveBeenCalledWith(expect.objectContaining({ type: 'PLAN_EXPIRING_SOON', data: { planName: 'Gold', expiresAt: at(5).toISOString() } }));
+    expect(subscriptions[0]!.expiryReminderSentAt).toEqual(NOW);
+  });
+
+  it('not yet when more than 7 days remain', async () => {
+    const { prisma } = store([{ plan: GOLD, startedAt: at(-10), expiresAt: at(8) }]);
+    await expect(service(prisma).svc.run(NOW)).resolves.toEqual({ expired: [], reminded: [] });
+  });
+
+  it('no reminder when a renewal is already queued, or for a cancelled plan', async () => {
+    const queued = store([
+      { plan: GOLD, startedAt: at(-85), expiresAt: at(5) },
+      { plan: PLUS, startedAt: at(5), expiresAt: at(95) },
+    ]);
+    await expect(service(queued.prisma).svc.run(NOW)).resolves.toEqual({ expired: [], reminded: [] });
+    const cancelled = store([{ plan: GOLD, startedAt: at(-85), expiresAt: at(5), cancelledAt: at(-1) }]);
+    await expect(service(cancelled.prisma).svc.run(NOW)).resolves.toEqual({ expired: [], reminded: [] });
   });
 });

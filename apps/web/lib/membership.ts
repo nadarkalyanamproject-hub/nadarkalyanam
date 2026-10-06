@@ -29,3 +29,45 @@ export function whatsappHref(number: string | undefined, message: string): strin
   if (!/^\d{10,15}$/.test(digits)) return null;
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
 }
+
+const IST_OFFSET_MS = 330 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const istDayNumber = (d: Date) => Math.floor((d.getTime() + IST_OFFSET_MS) / DAY_MS);
+
+// Whole India-time calendar days from now until the plan's end date:
+// 0 = it ends today (IST), 1 = tomorrow, and so on. Never negative.
+export function daysLeft(expiresAtIso: string, now: Date = new Date()): number {
+  return Math.max(0, istDayNumber(new Date(expiresAtIso)) - istDayNumber(now));
+}
+
+export type MembershipBanner =
+  | { kind: 'EXPIRING'; expiresAt: string; daysLeft: number }
+  | { kind: 'EXPIRED'; planName: string; endedAt: string }
+  | { kind: 'CANCELLED'; planName: string; endedAt: string }
+  | null;
+
+// Which notice the Membership page shows, from GET /me/membership:
+//  - a running plan ending within 7 IST days with no renewal queued;
+//  - no plan now, and the last one expired / was ended by our team.
+export function membershipBanner(
+  me: {
+    status: 'ACTIVE' | 'FREE';
+    expiresAt: string | null;
+    paidThroughAt: string | null;
+    lastEnded: { planName: string; endedAt: string; kind: 'EXPIRED' | 'CANCELLED' } | null;
+  },
+  now: Date = new Date(),
+): MembershipBanner {
+  if (me.status === 'ACTIVE' && me.expiresAt) {
+    const renewalQueued = me.paidThroughAt !== null && me.paidThroughAt !== me.expiresAt;
+    const left = daysLeft(me.expiresAt, now);
+    return !renewalQueued && left <= 7 ? { kind: 'EXPIRING', expiresAt: me.expiresAt, daysLeft: left } : null;
+  }
+  if (me.lastEnded) return { kind: me.lastEnded.kind, planName: me.lastEnded.planName, endedAt: me.lastEnded.endedAt };
+  return null;
+}
+
+export function daysLeftLabel(days: number): string {
+  if (days === 0) return 'ends today';
+  return `${days} day${days === 1 ? '' : 's'} left`;
+}

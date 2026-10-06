@@ -36,6 +36,7 @@ export function notificationDestination(n: NotificationTarget): NotificationDest
     case 'PLAN_ACTIVATED':
     case 'PLAN_EXPIRED':
     case 'PLAN_CANCELLED':
+    case 'PLAN_EXPIRING_SOON':
       return { kind: 'navigate', href: '/membership' };
     default:
       return { kind: 'unavailable', message: 'There is nothing more to open for this notification.' };

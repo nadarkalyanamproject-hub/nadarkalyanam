@@ -21,6 +21,7 @@ import type {
   NotificationCategory,
   PhoneStatusResponse,
   PhoneUnlockResponse,
+  UnlockedContactsResponse,
   PhoneVisibility,
   OrderResponse,
   PhotoResponse,
@@ -183,6 +184,13 @@ export function updatePhoneVisibility(accessToken: string, phoneVisibility: Phon
 // What the caller can do about another member's phone number. Never the number.
 export function getPhoneStatus(accessToken: string, profileId: string): Promise<PhoneStatusResponse> {
   return request<PhoneStatusResponse>(`/profiles/${encodeURIComponent(profileId)}/phone-status`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// "My Unlocked Contacts" — never includes numbers (see unlockPhone).
+export function getMyUnlockedContacts(accessToken: string, offset = 0, limit = 20): Promise<UnlockedContactsResponse> {
+  return request<UnlockedContactsResponse>(`/me/phone-unlocks?offset=${offset}&limit=${limit}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 }

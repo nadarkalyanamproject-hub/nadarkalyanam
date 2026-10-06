@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { MyMembershipResponse } from '@nadar-kalyanam/schemas';
+import type { MembershipHistoryItem, MyMembershipResponse } from '@nadar-kalyanam/schemas';
 import { findActiveSubscription } from '../../common/active-subscription.js';
 import { istMonthWindow } from '../../common/ist-calendar.js';
+import { planFeatures } from '../../common/plan-features.js';
+import { searchBoostForPlanCode } from '../../common/search-boost.js';
 import type { Env } from '../config/env.schema.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -64,15 +66,53 @@ export class EntitlementsService {
     return { used, remaining: limit === null ? null : Math.max(0, limit - used) };
   }
 
-  async getMyMembership(userId: string): Promise<MyMembershipResponse> {
-    const active = await this.getActivePlan(userId);
+  // The member's own membership page: current plan (with its features and
+  // search tier), queued renewals, history and usage. Only ever returned to
+  // the member themselves. Admin identity, grant/cancel reasons and payment
+  // references are never included.
+  async getMyMembership(userId: string, now: Date = new Date()): Promise<MyMembershipResponse> {
+    const [active, rows] = await Promise.all([
+      findActiveSubscription(this.prisma, userId, now),
+      this.prisma.subscription.findMany({
+        where: { userId },
+        include: { plan: true },
+        orderBy: [{ startedAt: 'desc' }, { createdAt: 'desc' }],
+        take: 50,
+      }),
+    ]);
+    const statusOf = (s: (typeof rows)[number]) =>
+      s.cancelledAt ? 'CANCELLED' : s.expiresAt <= now ? 'EXPIRED' : s.startedAt > now ? 'QUEUED' : 'ACTIVE';
+    const toItem = (s: (typeof rows)[number]): MembershipHistoryItem => ({
+      planCode: s.plan.code,
+      planName: s.plan.name,
+      startedAt: s.startedAt.toISOString(),
+      endsAt: (s.cancelledAt ?? s.expiresAt).toISOString(),
+      source: s.source === 'ADMIN_GRANT' ? 'GRANTED' : 'PURCHASED',
+      status: statusOf(s),
+    });
+    const history = rows.slice(0, 20).map(toItem);
+    const queued = rows
+      .filter((s) => statusOf(s) === 'QUEUED')
+      .sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime())
+      .map(toItem);
+
     if (!active) {
-      const interests = await this.interestUsage(userId);
+      const interests = await this.interestUsage(userId, now);
+      const ended = rows
+        .filter((s) => statusOf(s) === 'EXPIRED' || statusOf(s) === 'CANCELLED')
+        .map((s) => ({ s, endedAt: s.cancelledAt ?? s.expiresAt }))
+        .sort((a, b) => b.endedAt.getTime() - a.endedAt.getTime())[0];
       return {
         plan: null,
         status: 'FREE',
+        startedAt: null,
         expiresAt: null,
         paidThroughAt: null,
+        queued,
+        history,
+        lastEnded: ended
+          ? { planName: ended.s.plan.name, endedAt: ended.endedAt.toISOString(), kind: ended.s.cancelledAt ? 'CANCELLED' : 'EXPIRED' }
+          : null,
         phoneUnlocksUsed: null,
         phoneUnlocksRemaining: null,
         interestsUsedThisMonth: interests.used,
@@ -80,12 +120,24 @@ export class EntitlementsService {
         resetsAt: interests.resetsAt.toISOString(),
       };
     }
-    const unlocks = await this.phoneUnlockUsage(active.subscriptionId, active.plan.phoneUnlockLimit);
+    const { current } = active;
+    const unlocks = await this.phoneUnlockUsage(current.id, current.plan.phoneUnlockLimit);
     return {
-      plan: active.plan,
+      plan: {
+        code: current.plan.code,
+        name: current.plan.name,
+        isAssisted: current.plan.isAssisted,
+        phoneUnlockLimit: current.plan.phoneUnlockLimit,
+        features: planFeatures(current.plan.entitlements),
+        searchTier: searchBoostForPlanCode(current.plan.code),
+      },
       status: 'ACTIVE',
-      expiresAt: active.expiresAt.toISOString(),
+      startedAt: current.startedAt.toISOString(),
+      expiresAt: current.expiresAt.toISOString(),
       paidThroughAt: active.paidThroughAt.toISOString(),
+      queued,
+      history,
+      lastEnded: null,
       phoneUnlocksUsed: unlocks.used,
       phoneUnlocksRemaining: unlocks.remaining,
       interestsUsedThisMonth: null,

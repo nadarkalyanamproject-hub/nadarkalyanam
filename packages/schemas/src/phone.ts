@@ -41,3 +41,24 @@ export const phoneUnlockResponseSchema = phoneStatusResponseSchema.extend({
   phoneNumber: z.string(),
 });
 export type PhoneUnlockResponse = z.infer<typeof phoneUnlockResponseSchema>;
+
+// GET /me/phone-unlocks — "My Unlocked Contacts". Only contacts that still
+// pass every unlock rule are listed. Never contains a phone number: the
+// number is shown through POST /profiles/:id/phone-unlock (free to re-show).
+export const unlockedContactSchema = z.object({
+  profileId: z.string(),
+  fullName: z.string(),
+  age: z.number(),
+  city: z.string().nullable(),
+  state: z.string().nullable(),
+  primaryPhotoUrl: z.string().nullable(),
+  unlockedAt: z.string(),
+});
+export type UnlockedContact = z.infer<typeof unlockedContactSchema>;
+
+export const unlockedContactsResponseSchema = z.object({
+  items: z.array(unlockedContactSchema),
+  total: z.number(),
+  nextOffset: z.number().nullable(),
+});
+export type UnlockedContactsResponse = z.infer<typeof unlockedContactsResponseSchema>;

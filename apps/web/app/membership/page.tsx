@@ -6,10 +6,11 @@ import type { MembershipPlanResponse, MyMembershipResponse, OrderResponse, PlanF
 import { Card } from '@/components/ui/card';
 import { ContactInfoCard } from '@/components/ui/contact-info-card';
 import { VipEnquiry } from '@/components/membership/vip-enquiry';
+import { MyMembershipPanel } from '@/components/membership/my-membership-panel';
 import { ComingSoonPill } from '@/components/ui/coming-soon-note';
 import { AppHeader } from '../../components/app-header';
 import { ApiError, createOrder, getMyMembership, listMembershipPlans } from '../../lib/api-client';
-import { durationLabel, formatPlanDate, formatPrice, whatsappHref } from '../../lib/membership';
+import { durationLabel, formatPrice, whatsappHref } from '../../lib/membership';
 import { useRegistration } from '../providers/registration-provider';
 import { Check, Crown, Lock, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react';
 
@@ -137,42 +138,7 @@ export default function MembershipPage() {
         </div>
 
         {/* The member's own plan, from GET /me/membership. */}
-        {accessToken && membership && (
-          <Card className="mx-auto max-w-2xl rounded-2xl border border-[#EADBBD] bg-[#FFFBF0] p-4 text-center text-sm" data-testid="my-membership">
-            {membership.plan && membership.expiresAt ? (
-              <>
-                <p className="font-bold text-[#680A0E]">
-                  Your plan: {membership.plan.name}
-                </p>
-                <p className="mt-0.5 text-xs text-[#73645C]">
-                  Active until {formatPlanDate(membership.expiresAt)}
-                  {membership.paidThroughAt && membership.paidThroughAt !== membership.expiresAt
-                    ? ` · renewal already paid through ${formatPlanDate(membership.paidThroughAt)}`
-                    : ''}
-                  . A plan bought now starts when this one ends.
-                </p>
-                <p className="mt-1 text-xs text-[#5A493E]" data-testid="my-unlocks">
-                  {membership.phoneUnlocksRemaining === null
-                    ? `Phone number unlocks: unlimited (${membership.phoneUnlocksUsed ?? 0} used this plan).`
-                    : `Phone number unlocks: ${membership.phoneUnlocksUsed} used, ${membership.phoneUnlocksRemaining} left this plan.`}{' '}
-                  Interests: unlimited.
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-[#73645C]">
-                  You&apos;re on the <span className="font-semibold text-[#2B1515]">free membership</span>.
-                </p>
-                {membership.interestsLimit !== null && membership.resetsAt && (
-                  <p className="mt-1 text-xs text-[#5A493E]" data-testid="my-interests">
-                    Interests this month: {membership.interestsUsedThisMonth} of {membership.interestsLimit} · more on{' '}
-                    {formatPlanDate(membership.resetsAt)}. Phone number unlocks need a paid plan.
-                  </p>
-                )}
-              </>
-            )}
-          </Card>
-        )}
+        {accessToken && membership && <MyMembershipPanel me={membership} />}
 
         {plansState.kind === 'loading' && <p className="text-center text-sm text-[#73645C]">Loading plans…</p>}
         {plansState.kind === 'error' && (

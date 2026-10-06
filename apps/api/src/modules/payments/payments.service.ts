@@ -1,7 +1,8 @@
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { MembershipPlanResponse, OrderResponse, OrderStatus, PlanFeature } from '@nadar-kalyanam/schemas';
+import type { MembershipPlanResponse, OrderResponse, OrderStatus } from '@nadar-kalyanam/schemas';
 import { assertProviderConfigured } from '../../common/not-yet-available.exception.js';
+import { planFeatures } from '../../common/plan-features.js';
 import type { Env } from '../config/env.schema.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { SubscriptionService, type Activation } from '../membership/subscription.service.js';
@@ -39,16 +40,8 @@ export interface PaymentWebhookEvent {
 
 export type WebhookOutcome = 'processed' | 'duplicate' | 'ignored';
 
-// Plan display copy, from the entitlements JSON ({ features: [...] }).
-// Anything malformed is dropped rather than shown.
-export function planFeatures(entitlements: unknown): PlanFeature[] {
-  const features = (entitlements as { features?: unknown } | null)?.features;
-  if (!Array.isArray(features)) return [];
-  return features.filter(
-    (f): f is PlanFeature =>
-      typeof f === 'object' && f !== null && typeof f.key === 'string' && typeof f.label === 'string' && typeof f.available === 'boolean',
-  );
-}
+// Re-exported: existing imports of planFeatures keep working.
+export { planFeatures } from '../../common/plan-features.js';
 
 @Injectable()
 export class PaymentsService {
