@@ -149,5 +149,9 @@ export const profileResponseSchema = z.object({
   isVerified: z.boolean(),
   details: profileDetailsSchema,
   photos: z.array(photoResponseSchema),
+  // Optional extras shown on the completion checklist. Not part of
+  // completionScore, so a member who skips them (or keeps their horoscope
+  // hidden) isn't marked down.
+  optionalCompletion: z.object({ partnerPreferences: z.boolean(), horoscope: z.boolean() }),
 });
 export type ProfileResponse = z.infer<typeof profileResponseSchema>;

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { MatchResult } from '@nadar-kalyanam/schemas';
 import { AppHeader } from '../../components/app-header';
 import { ApiError, listMatches, sendInterest } from '../../lib/api-client';
+import { mustHaveNotice } from '../../lib/partner-preferences';
 import { useRegistration } from '../providers/registration-provider';
 import { useRequireAuth } from '../../lib/use-require-auth';
 import { matchCategoryHref } from '../../lib/match-categories';
@@ -106,6 +107,7 @@ export default function MatchesPage() {
   // null while loading. Only real matches ever go in here.
   const [topMatches, setTopMatches] = useState<TopMatchItem[] | null>(null);
   const [topMatchesError, setTopMatchesError] = useState<string | null>(null);
+  const [mustHaveNote, setMustHaveNote] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -118,6 +120,7 @@ export default function MatchesPage() {
     listMatches(data.accessToken, 3)
       .then((result) => {
         if (cancelled) return;
+        setMustHaveNote(mustHaveNotice(result.preferences, result.items.length));
         setTopMatches(
           result.items.map((m: MatchResult) => ({
             profileId: m.profileId,
@@ -125,7 +128,8 @@ export default function MatchesPage() {
             age: m.age,
             city: m.city,
             profession: m.profession,
-            score: Math.round(m.score),
+            // Never more than 100% (preference fit and listing bonus can push the raw score past it).
+            score: Math.min(100, Math.round(m.score)),
             primaryPhotoUrl: m.primaryPhotoUrl,
             interestSent: m.relationshipStatus === 'INTEREST_SENT' || m.relationshipStatus === 'CONNECTED',
           })),
@@ -477,8 +481,16 @@ export default function MatchesPage() {
             {!topMatchesError && topMatches !== null && filteredTopMatches.length === 0 && (
               <p className="mt-5 py-6 text-center text-sm text-[#73645C]" data-testid="top-matches-empty">
                 {topMatches.length === 0
-                  ? 'No matches are available for your profile right now. Check back as new members join.'
+                  ? (mustHaveNote ?? 'No matches are available for your profile right now. Check back as new members join.')
                   : 'None of your top matches match that search.'}
+              </p>
+            )}
+            {!topMatchesError && mustHaveNote && (
+              <p className="mt-2 text-center text-xs text-[#73645C]" data-testid="must-have-note">
+                {topMatches && topMatches.length > 0 ? `${mustHaveNote} ` : ''}
+                <Link href="/profile#section-preferences" className="font-semibold text-[#7A1118] underline">
+                  Relax your must-have preferences
+                </Link>
               </p>
             )}
 

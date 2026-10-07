@@ -138,8 +138,10 @@ model Profile {
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
-  photos        ProfilePhoto[]
-  shortlistedBy Shortlist[]    @relation("ShortlistedProfile")
+  photos             ProfilePhoto[]
+  shortlistedBy      Shortlist[]        @relation("ShortlistedProfile")
+  partnerPreferences PartnerPreference?
+  horoscope          ProfileHoroscope?
 
   // Search (default sort: id) and Browse (createdAt) order by tier first.
   @@index([searchBoost(sort: Desc), id])
@@ -653,4 +655,74 @@ model VipEnquiryEvent {
 
   @@index([enquiryId, createdAt])
   @@map("vip_enquiry_events")
+}
+
+// What a member is looking for (one row per profile, owner-only). Every field
+// is optional; empty lists mean "any". Only age, marital status and location
+// can be must-haves (hard filters on Matches); the rest only rank.
+model PartnerPreference {
+  id                    String   @id @default(uuid())
+  profileId             String   @unique
+  profile               Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  ageMin                Int?
+  ageMax                Int?
+  heightMinCm           Int?
+  heightMaxCm           Int?
+  maritalStatuses       String[] @default([])
+  motherTongues         String[] @default([])
+  states                String[] @default([])
+  cities                String[] @default([])
+  incomeMinLakhs        Float?
+  incomeMaxLakhs        Float?
+  // DOESNT_MATTER | WITHOUT_DOSHAM | WITH_DOSHAM
+  doshamPreference      String   @default("DOESNT_MATTER")
+  mustHaveAge           Boolean  @default(false)
+  mustHaveMaritalStatus Boolean  @default(false)
+  mustHaveLocation      Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("partner_preferences")
+}
+
+enum HoroscopeVisibility {
+  EVERYONE
+  CONNECTED
+  HIDDEN
+}
+
+// Horoscope (jathagam) details, one row per profile. Hidden until the member
+// chooses otherwise; birth time/place additionally need shareBirthDetails.
+// Kept out of profiles.details so an ordinary profile edit (which rewrites
+// details) can't drop it, and so no list query ever carries it. Rasi,
+// nakshatra and lagnam hold the codes in packages/schemas horoscope.ts —
+// enough for porutham (star matching) to be added later.
+model ProfileHoroscope {
+  id                   String              @id @default(uuid())
+  profileId            String              @unique
+  profile              Profile             @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  birthTime            String?
+  birthCity            String?
+  birthState           String?
+  birthCountry         String?
+  rasi                 String?
+  nakshatra            String?
+  nakshatraPada        Int?
+  lagnam               String?
+  // YES | NO | DONT_KNOW, like the profile's general dosham answer.
+  sevvaiDosham         String?
+  raguKethuDosham      String?
+  visibility           HoroscopeVisibility @default(HIDDEN)
+  shareBirthDetails    Boolean             @default(false)
+  // Chart image: private object, same moderation hold as photos. Other
+  // members only ever see it once approved, and only under `visibility`.
+  chartObjectKey       String?
+  chartIsModerated     Boolean             @default(false)
+  chartIsApproved      Boolean             @default(false)
+  chartRejectionReason String?
+  chartUploadedAt      DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@map("profile_horoscopes")
 }

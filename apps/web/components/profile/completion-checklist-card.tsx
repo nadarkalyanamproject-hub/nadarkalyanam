@@ -4,6 +4,8 @@ interface SectionItem {
   id: string;
   label: string;
   completed: boolean;
+  // Extras that don't count toward the percentage.
+  optional?: boolean;
 }
 
 export function CompletionChecklistCard({
@@ -64,6 +66,7 @@ export function CompletionChecklistCard({
             )}
             <span className={item.completed ? 'text-[#2B211C]' : 'text-[#776B62]'}>
               {item.label}
+              {item.optional && <span className="ml-1 font-normal text-[#A39488]">(optional)</span>}
             </span>
           </li>
         ))}

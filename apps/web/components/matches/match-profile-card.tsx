@@ -71,7 +71,8 @@ export function MatchProfileCard({ profile }: { profile: MatchProfileCardData })
 
         {profile.score !== undefined && (
           <span className="bg-[#FDF2F2] border border-[#F8D7DA] text-[#C53030] text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
-            {Math.round(profile.score)}% match
+            {/* The score can exceed 100 (preference fit and listing bonus are added on top); never show more than 100%. */}
+            {Math.min(100, Math.round(profile.score))}% match
           </span>
         )}
       </div>

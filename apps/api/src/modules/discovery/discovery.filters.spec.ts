@@ -234,3 +234,33 @@ describe('text values parsed for range filters', () => {
     [undefined, null],
   ])('income %j -> %j', (raw, range) => expect(parseIncomeLakhs(raw)).toEqual(range));
 });
+
+describe('comma-list filters ("Use my preferences")', () => {
+  it('parses comma lists (trimmed, deduped) and keeps them optional', () => {
+    const parsed = searchProfilesQuerySchema.parse({ stateIn: ' Tamil Nadu ,Kerala,,Kerala', maritalStatusIn: 'NEVER_MARRIED' });
+    expect(parsed.stateIn).toEqual(['Tamil Nadu', 'Kerala']);
+    expect(parsed.maritalStatusIn).toEqual(['NEVER_MARRIED']);
+    expect(searchProfilesQuerySchema.parse({}).cityIn).toBeUndefined();
+  });
+
+  it('a profile matches when it has ANY of the listed values; other filters still AND', async () => {
+    const { discovery } = setup();
+    const all = ids((await run(discovery, {})).items);
+    const { items } = await run(discovery, { maritalStatusIn: 'DIVORCED,NEVER_MARRIED', cityIn: 'madurai,Kochi' });
+    // Both marital statuses pass; only the Salem and Bengaluru decoys fail the city list.
+    expect(ids(items)).toEqual(all.filter((id) => id !== pid('city') && id !== pid('nearby')));
+    expect(ids((await run(discovery, { maritalStatusIn: 'WIDOWED' })).items)).toEqual([]);
+  });
+
+  it('no list filter = exactly the old results', async () => {
+    const { discovery } = setup();
+    expect(ids((await run(discovery, { city: 'Madurai' })).items)).toEqual(ids((await run(discovery, { cityIn: 'Madurai' })).items));
+  });
+
+  it('stateIn matches the whole state name, ignoring case', async () => {
+    const { discovery } = setup();
+    const tn = ids((await run(discovery, { stateIn: 'tamil nadu' })).items);
+    expect(tn).toContain(pid('target'));
+    expect(ids((await run(discovery, { stateIn: 'Tamil' })).items)).toEqual([]);
+  });
+});

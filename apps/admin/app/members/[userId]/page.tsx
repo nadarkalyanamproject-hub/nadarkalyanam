@@ -23,6 +23,7 @@ import { useAdminAuth } from '../../providers/admin-auth-provider';
 import { useRequireAdminAuth } from '../../../lib/use-require-admin-auth';
 import { useCurrentAdmin } from '../../../lib/use-current-admin';
 import { MemberMembership } from '../../../components/member-membership';
+import { MemberPreferencesHoroscope } from '../../../components/member-preferences-horoscope';
 
 type FormState = {
   fullName: string;
@@ -412,6 +413,8 @@ export default function MemberDetailPage() {
                 disabled={isDeleted}
               />
             )}
+
+            {can('members.view') && member.profile && <MemberPreferencesHoroscope userId={member.id} disabled={isDeleted} />}
 
             {!member.profile && (
               <Card className="rounded-2xl p-6 text-sm text-muted-foreground">

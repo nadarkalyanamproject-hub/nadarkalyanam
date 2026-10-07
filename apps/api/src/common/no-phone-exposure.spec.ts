@@ -33,6 +33,11 @@ const MEMBER_RESPONSES: Record<string, z.ZodType> = {
   phoneStatus: schemas.phoneStatusResponseSchema,
   unlockedContacts: schemas.unlockedContactsResponseSchema,
   vipEnquiryMine: schemas.myVipEnquiryResponseSchema,
+  partnerPreferences: schemas.partnerPreferencesResponseSchema,
+  myHoroscope: schemas.myHoroscopeResponseSchema,
+  horoscopeView: schemas.horoscopeViewSchema,
+  preferenceFit: schemas.preferenceFitSchema,
+  supportContact: schemas.supportContactResponseSchema,
 };
 
 // Every object key reachable in a schema (through arrays, optionals,
@@ -59,6 +64,11 @@ describe('no phone number in any member-facing response', () => {
     const keys = allKeys(schema);
     expect(keys.length).toBeGreaterThan(0);
     expect(keys.filter((key) => PHONE_FIELD.test(key))).toEqual([]);
+  });
+
+  it('reaches into the horoscope view (a discriminated union), so its fields are really checked', () => {
+    expect(allKeys(schemas.horoscopeViewSchema)).toEqual(expect.arrayContaining(['rasi', 'birthTime', 'birthPlace', 'chartImageUrl']));
+    expect(allKeys(schemas.publicProfileDetailSchema)).toEqual(expect.arrayContaining(['horoscope', 'nakshatra', 'preferenceFit']));
   });
 
   it('the phone-unlock response is the one place a number appears', () => {

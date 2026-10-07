@@ -16,6 +16,7 @@ import {
   listShortlists,
 } from '../../../lib/api-client';
 import { findMatchCategory, type RealCategory, type RealCategorySource } from '../../../lib/match-categories';
+import { mustHaveNotice } from '../../../lib/partner-preferences';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { useRegistration } from '../../providers/registration-provider';
 
@@ -25,6 +26,8 @@ interface LoadedCategory {
   emptyNote?: string;
   // Extra context shown under the description (e.g. which location "nearby" used).
   basisNote?: string;
+  // Must-have partner preferences are holding members back: offer a way to relax them.
+  relaxLink?: boolean;
 }
 
 // One real endpoint per category — no category is a client-side filter over
@@ -32,8 +35,12 @@ interface LoadedCategory {
 async function loadCategory(accessToken: string, source: RealCategorySource): Promise<LoadedCategory> {
   switch (source) {
     case 'matches': {
-      const { items } = await listMatches(accessToken, 50);
+      const { items, preferences } = await listMatches(accessToken, 50);
+      const notice = mustHaveNotice(preferences, items.length);
       return {
+        emptyNote: items.length === 0 && notice ? notice : undefined,
+        basisNote: items.length > 0 && notice ? notice : undefined,
+        relaxLink: Boolean(notice),
         items: items.map((m) => ({
           profileId: m.profileId,
           fullName: m.fullName,
@@ -176,7 +183,12 @@ function RealCategoryResults({
 
   return (
     <div className="flex flex-col gap-4">
-      {loaded.basisNote && <p className="text-xs text-[#73645C]">{loaded.basisNote}</p>}
+      {loaded.basisNote && <p className="text-xs text-[#73645C]" data-testid="category-basis">{loaded.basisNote}</p>}
+      {loaded.relaxLink && (
+        <Link href="/profile#section-preferences" className="text-xs font-semibold text-[#7A1118] underline" data-testid="relax-must-haves">
+          Relax your must-have preferences
+        </Link>
+      )}
       {loaded.items.length === 0 ? (
         <p className="py-6 text-center text-sm text-[#73645C]" data-testid="category-empty">
           {loaded.emptyNote ?? category.emptyMessage}

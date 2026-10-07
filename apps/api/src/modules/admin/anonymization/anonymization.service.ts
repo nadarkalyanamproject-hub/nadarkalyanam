@@ -122,7 +122,13 @@ export class AnonymizationService {
     for (const photo of photos) {
       await this.storage.deleteObject(photo.objectKey);
     }
-    const deletedKeys = new Set(photos.map((p) => p.objectKey));
+    // The horoscope chart image, likewise before the DB is touched.
+    const chart = await this.prisma.profileHoroscope.findFirst({
+      where: { profile: { userId }, chartObjectKey: { not: null } },
+      select: { chartObjectKey: true },
+    });
+    if (chart?.chartObjectKey) await this.storage.deleteObject(chart.chartObjectKey);
+    const deletedKeys = new Set([...photos.map((p) => p.objectKey), ...(chart?.chartObjectKey ? [chart.chartObjectKey] : [])]);
 
     const cutoff = anonymizationCutoff(now);
     const outcome = await this.prisma.$transaction(async (tx) => {
@@ -144,6 +150,14 @@ export class AnonymizationService {
         select: { objectKey: true },
       });
       await tx.profilePhoto.deleteMany({ where: { profile: { userId } } });
+      // Horoscope (birth time/place, chart) and partner preferences are
+      // personal data too: removed outright.
+      const lateChart = await tx.profileHoroscope.findFirst({
+        where: { profile: { userId }, chartObjectKey: { not: null } },
+        select: { chartObjectKey: true },
+      });
+      await tx.profileHoroscope.deleteMany({ where: { profile: { userId } } });
+      await tx.partnerPreference.deleteMany({ where: { profile: { userId } } });
       await tx.profile.updateMany({
         where: { userId },
         data: {
@@ -181,7 +195,11 @@ export class AnonymizationService {
           },
         },
       });
-      return { lateKeys: remainingPhotos.map((p) => p.objectKey).filter((key) => !deletedKeys.has(key)) };
+      return {
+        lateKeys: [...remainingPhotos.map((p) => p.objectKey), ...(lateChart?.chartObjectKey ? [lateChart.chartObjectKey] : [])].filter(
+          (key) => !deletedKeys.has(key),
+        ),
+      };
     });
 
     if (!outcome) {

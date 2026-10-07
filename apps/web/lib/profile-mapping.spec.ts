@@ -18,6 +18,7 @@ const COMPLETE_PROFILE: ProfileResponse = {
   visibility: 'MEMBERS_ONLY',
   phoneVisibility: 'NEVER',
   isVerified: false,
+  optionalCompletion: { partnerPreferences: false, horoscope: false },
   details: {
     motherTongue: 'Tamil',
     email: 'meena@example.com',

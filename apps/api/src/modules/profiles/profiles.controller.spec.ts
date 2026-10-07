@@ -138,7 +138,14 @@ describe('ProfilesController — photo URLs are signed, not plain', () => {
       getOtherProfile: vi.fn().mockResolvedValue(rawProfile),
     };
     const photosService = { getPhotosForProfile: vi.fn().mockResolvedValue(photos) };
-    const controller = new ProfilesController(profilesService as never, photosService as never, { notify: vi.fn() } as never, {} as never);
+    const controller = new ProfilesController(
+      profilesService as never,
+      photosService as never,
+      { notify: vi.fn() } as never,
+      {} as never,
+      { findForUser: async () => null, fitForViewer: async () => null } as never,
+      { findByProfileId: async () => null, viewFor: async () => ({ shared: false }) } as never,
+    );
     return { controller, photosService };
   }
 

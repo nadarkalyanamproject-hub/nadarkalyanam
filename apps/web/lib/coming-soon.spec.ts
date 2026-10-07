@@ -10,8 +10,10 @@ describe('coming-soon wording', () => {
     expect(Object.keys(COMING_SOON_FILTERS)).toHaveLength(7);
   });
 
+  // Partner preferences is a real Profile section now (no longer "coming
+  // soon"); star stays for the Search filter.
   it('covers every Profile coming-soon section and row', () => {
-    for (const key of ['habits', 'hobbies', 'star', 'partnerPreferences', 'familyValue', 'citizenship'] as const) {
+    for (const key of ['habits', 'hobbies', 'star', 'familyValue', 'citizenship'] as const) {
       expect(COMING_SOON[key].label).toBeTruthy();
       expect(COMING_SOON[key].reason.length).toBeGreaterThan(20);
     }

@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { HoroscopeModule } from '../horoscope/horoscope.module.js';
+import { PartnerPreferencesModule } from '../partner-preferences/partner-preferences.module.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { MembershipModule } from '../membership/membership.module.js';
 import { ModerationModule } from '../moderation/moderation.module.js';
@@ -6,6 +8,7 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
 import { PhotosModule } from '../photos/photos.module.js';
 import { ProfilesModule } from '../profiles/profiles.module.js';
 import { VipModule } from '../vip/vip.module.js';
+import { AdminMemberExtrasController } from './admin-member-extras.controller.js';
 import { AdminBillingController } from './billing/admin-billing.controller.js';
 import { AdminBillingService } from './billing/admin-billing.service.js';
 import { AdminController } from './admin.controller.js';
@@ -18,8 +21,18 @@ import { AdminAuthGuard } from './guards/admin-auth.guard.js';
 import { PermissionsGuard } from './guards/permissions.guard.js';
 
 @Module({
-  imports: [AuthModule, ModerationModule, NotificationsModule, PhotosModule, ProfilesModule, MembershipModule, VipModule],
-  controllers: [AdminController, AdminBillingController],
+  imports: [
+    AuthModule,
+    ModerationModule,
+    NotificationsModule,
+    PhotosModule,
+    ProfilesModule,
+    MembershipModule,
+    VipModule,
+    PartnerPreferencesModule,
+    HoroscopeModule,
+  ],
+  controllers: [AdminController, AdminBillingController, AdminMemberExtrasController],
   providers: [
     AdminService,
     AdminBillingService,

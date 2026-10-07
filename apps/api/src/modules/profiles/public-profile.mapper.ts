@@ -1,4 +1,4 @@
-import type { PhotoResponse, ProfileResponse, PublicProfileDetail, PublicProfileSummary } from '@nadar-kalyanam/schemas';
+import type { HoroscopeView, PhotoResponse, PreferenceFit, ProfileResponse, PublicProfileDetail, PublicProfileSummary } from '@nadar-kalyanam/schemas';
 import { calculateAge } from '../../common/age.js';
 import { legacyHasSentInterest, relationshipFields, type RelationshipState } from '../../common/relationship.js';
 import type { Profile } from '../../generated/prisma/client.js';
@@ -30,10 +30,19 @@ export function toPublicProfileSummary(
   };
 }
 
+// The viewer-specific extras on the single profile view. The default shares
+// nothing, so a caller that doesn't compute them can never leak a horoscope.
+export interface ProfileViewExtras {
+  preferenceFit: PreferenceFit | null;
+  horoscope: HoroscopeView;
+}
+const NO_EXTRAS: ProfileViewExtras = { preferenceFit: null, horoscope: { shared: false } };
+
 export function toPublicProfileDetail(
   profile: Profile,
   photos: PhotoResponse[],
   relationship: RelationshipState | undefined,
+  extras: ProfileViewExtras = NO_EXTRAS,
 ): PublicProfileDetail {
   const details = profile.details as unknown as ProfileResponse['details'];
   const primaryPhotoUrl = photos.find((photo) => photo.isPrimary)?.url ?? photos[0]?.url ?? null;
@@ -47,5 +56,7 @@ export function toPublicProfileDetail(
     education: details.education,
     additional: details.additional,
     photos,
+    preferenceFit: extras.preferenceFit,
+    horoscope: extras.horoscope,
   };
 }

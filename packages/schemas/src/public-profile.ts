@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { additionalDetailsSchema, doshamEnum, genderEnum, maritalStatusEnum, physicalStatusEnum } from './profile.js';
+import { horoscopeViewSchema } from './horoscope.js';
+import { preferenceFitSchema } from './partner-preferences.js';
 import { photoResponseSchema } from './photo.js';
 import { relationshipFieldsSchema } from './relationship.js';
 
@@ -46,6 +48,12 @@ export const publicProfileDetailSchema = publicProfileSummarySchema.extend({
   }),
   additional: additionalDetailsSchema,
   photos: z.array(photoResponseSchema),
+  // Only on the single profile view, never in lists. Computed for the
+  // viewing member from their OWN preferences (null if they have none);
+  // the profile owner's preferences are never involved or exposed.
+  preferenceFit: preferenceFitSchema.nullable(),
+  // What the owner's horoscope setting lets this viewer see.
+  horoscope: horoscopeViewSchema,
 });
 export type PublicProfileDetail = z.infer<typeof publicProfileDetailSchema>;
 

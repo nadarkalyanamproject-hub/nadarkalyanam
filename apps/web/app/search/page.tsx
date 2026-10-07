@@ -9,6 +9,7 @@ import { ApiError, searchProfiles } from '../../lib/api-client';
 import { useRegistration } from '../providers/registration-provider';
 import { useRequireAuth } from '../../lib/use-require-auth';
 import { BotanicalSprig, PartnerSearchBar } from '../../components/search/partner-search-bar';
+import { UsePreferencesToggle } from '../../components/search/use-preferences-toggle';
 import {
   EMPTY_SEARCH_FILTERS,
   filtersFromUrl,
@@ -40,6 +41,7 @@ function SearchPageContent() {
   // in the loading state, so the effect below never sets state synchronously.
   const [loading, setLoading] = useState(hasUrlQuery);
   const [error, setError] = useState<string | null>(null);
+  const [clearCount, setClearCount] = useState(0);
   // Numbers each search; only the newest may update the page. Clear bumps it
   // too, so a response still in flight can't bring back old results.
   const requestSeq = useRef(0);
@@ -123,6 +125,8 @@ function SearchPageContent() {
 
   function handleClear() {
     requestSeq.current += 1;
+    // Also resets the "Use my preferences" toggle (remounts it, off).
+    setClearCount((c) => c + 1);
     setLoading(false);
     setLoadingMore(false);
     setFilters(EMPTY_SEARCH_FILTERS);
@@ -147,6 +151,8 @@ function SearchPageContent() {
         <BotanicalSprig className="pointer-events-none absolute -bottom-4 -left-4 w-44 h-44 sm:w-64 sm:h-64 text-[#C4A882] opacity-35 rotate-180 z-0" />
 
         <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col gap-8">
+          <UsePreferencesToggle key={clearCount} accessToken={data.accessToken!} filters={filters} onChange={setFilters} />
+
           {/* Main search card matching reference visual */}
           <PartnerSearchBar
             filters={filters}

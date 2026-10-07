@@ -1,12 +1,16 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
-import type { ProfileResponse } from '@nadar-kalyanam/schemas';
+import { useEffect, useState, type ReactNode } from 'react';
+import type { MyHoroscope, ProfileResponse, SavedPartnerPreferences } from '@nadar-kalyanam/schemas';
 import { AppHeader } from '../../components/app-header';
 import { AdditionalDetailsEditSection } from '../../components/profile-edit/additional-details-edit-section';
 import { BasicDetailsEditSection } from '../../components/profile-edit/basic-details-edit-section';
 import { LocationProfessionalEditSection } from '../../components/profile-edit/location-professional-edit-section';
 import { PersonalReligiousEditSection } from '../../components/profile-edit/personal-religious-edit-section';
+import { PartnerPreferencesEditor, PartnerPreferencesView } from '../../components/profile-edit/partner-preferences-section';
+import { HoroscopeEditor, HoroscopeOwnerView } from '../../components/profile-edit/horoscope-section';
+import { ApiError, getMyHoroscope, getPartnerPreferences } from '../../lib/api-client';
+import { useRegistration } from '../providers/registration-provider';
 import { ProfileHeader } from '../../components/profile/profile-header';
 import { PhotoGalleryCard } from '../../components/profile/photo-gallery-card';
 import { TrustVerificationCard } from '../../components/profile/trust-verification-card';
@@ -230,6 +234,31 @@ export default function ProfilePage() {
   const { ready } = useRequireAuth();
   const { profile, loading, error, setProfile, refetch } = useProfile();
   const [editingSection, setEditingSection] = useState<SectionKey | null>(null);
+  const { data } = useRegistration();
+  // Partner preferences and horoscope have their own endpoints (owner-only).
+  // undefined = still loading.
+  const [preferences, setPreferences] = useState<SavedPartnerPreferences | null | undefined>(undefined);
+  const [horoscope, setHoroscope] = useState<MyHoroscope | null | undefined>(undefined);
+  const [extrasError, setExtrasError] = useState<string | null>(null);
+  const [extrasMessage, setExtrasMessage] = useState<{ section: 'preferences' | 'horoscope'; text: string } | null>(null);
+  const profileId = profile?.id;
+
+  useEffect(() => {
+    if (!data.accessToken || !profileId) return;
+    let cancelled = false;
+    Promise.all([getPartnerPreferences(data.accessToken), getMyHoroscope(data.accessToken)])
+      .then(([p, h]) => {
+        if (cancelled) return;
+        setPreferences(p.preferences);
+        setHoroscope(h.horoscope);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setExtrasError(err instanceof ApiError ? err.message : 'Could not load your preferences and horoscope.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [data.accessToken, profileId]);
 
   // Accordion open/close state (all open by default for rich discoverability)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -279,7 +308,35 @@ export default function ProfilePage() {
     { id: 'personal', label: 'Personal & Religious', completed: hasPersonal },
     { id: 'education', label: 'Education & Career', completed: hasEducation },
     { id: 'family', label: 'Family Details', completed: hasFamily },
+    // Optional extras: not part of the percentage, so skipping them (or
+    // keeping a horoscope hidden) never lowers it.
+    { id: 'preferences', label: 'Partner Preferences', completed: Boolean(profile?.optionalCompletion.partnerPreferences), optional: true },
+    { id: 'horoscope', label: 'Horoscope Details', completed: Boolean(profile?.optionalCompletion.horoscope), optional: true },
   ];
+
+  function handleExtrasSaved(section: 'preferences' | 'horoscope', text: string) {
+    setEditingSection(null);
+    setExtrasMessage({ section, text });
+    // Refresh the optional completion items.
+    void refetch();
+  }
+  const sectionMessage = (section: 'preferences' | 'horoscope') =>
+    extrasMessage?.section === section ? (
+      <p className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800" role="status">
+        {extrasMessage.text}
+      </p>
+    ) : null;
+  const extrasBody = (section: 'preferences' | 'horoscope', body: ReactNode) =>
+    extrasError ? (
+      <p className="text-sm text-[#94151C]">{extrasError}</p>
+    ) : (section === 'preferences' ? preferences : horoscope) === undefined ? (
+      <p className="text-sm text-[#776B62]">Loading…</p>
+    ) : (
+      <>
+        {sectionMessage(section)}
+        {body}
+      </>
+    );
 
   // Real, computed by the API from the profile's filled fields and photos.
   const completionPercent = profile?.completionScore ?? 0;
@@ -554,7 +611,7 @@ export default function ProfilePage() {
                 </div>
               </AccordionSection>
 
-              {/* 7. Horoscope Details: nothing is collected yet, so nothing to show or edit. */}
+              {/* 7. Horoscope Details (owner-only endpoint; others see it only as the visibility setting allows). */}
               <AccordionSection
                 id="horoscope"
                 title="Horoscope Details"
@@ -565,17 +622,37 @@ export default function ProfilePage() {
                     <path d="M3 12h18" />
                   </svg>
                 }
-                comingSoon
+                statusBadge={
+                  profile.optionalCompletion.horoscope ? { label: 'Added', variant: 'complete' } : { label: 'Optional', variant: 'pending' }
+                }
                 isOpen={openSections.horoscope}
-                isEditing={false}
+                isEditing={editingSection === 'horoscope'}
                 onToggle={() => toggleSection('horoscope')}
+                onEdit={horoscope === undefined || extrasError ? undefined : () => handleStartEditing('horoscope')}
+                editView={
+                  <HoroscopeEditor
+                    saved={horoscope ?? null}
+                    onCancel={() => setEditingSection(null)}
+                    onSaved={(h, text) => {
+                      setHoroscope(h);
+                      handleExtrasSaved('horoscope', text);
+                    }}
+                  />
+                }
               >
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <ComingSoonNote feature="star" />
-                </div>
+                {extrasBody(
+                  'horoscope',
+                  <HoroscopeOwnerView
+                    saved={horoscope ?? null}
+                    onChanged={(h, text) => {
+                      setHoroscope(h);
+                      handleExtrasSaved('horoscope', text);
+                    }}
+                  />,
+                )}
               </AccordionSection>
 
-              {/* 8. Partner Preferences: nothing is collected yet, so nothing to show or edit. */}
+              {/* 8. Partner Preferences (owner-only; never shown to other members). */}
               <AccordionSection
                 id="preferences"
                 title="Partner Preferences"
@@ -584,14 +661,25 @@ export default function ProfilePage() {
                     <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
                   </svg>
                 }
-                comingSoon
+                statusBadge={
+                  profile.optionalCompletion.partnerPreferences ? { label: 'Set', variant: 'complete' } : { label: 'Optional', variant: 'pending' }
+                }
                 isOpen={openSections.preferences}
-                isEditing={false}
+                isEditing={editingSection === 'preferences'}
                 onToggle={() => toggleSection('preferences')}
+                onEdit={preferences === undefined || extrasError ? undefined : () => handleStartEditing('preferences')}
+                editView={
+                  <PartnerPreferencesEditor
+                    saved={preferences ?? null}
+                    onCancel={() => setEditingSection(null)}
+                    onSaved={(p, text) => {
+                      setPreferences(p);
+                      handleExtrasSaved('preferences', text);
+                    }}
+                  />
+                }
               >
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <ComingSoonNote feature="partnerPreferences" />
-                </div>
+                {extrasBody('preferences', <PartnerPreferencesView saved={preferences ?? null} />)}
               </AccordionSection>
 
               <CulturalDivider className="my-6" />

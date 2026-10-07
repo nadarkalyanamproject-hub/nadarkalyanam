@@ -22,13 +22,19 @@ import type { Profile } from '../../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PhoneUnlockService } from './phone-unlock.service.js';
+import { HoroscopeService, hasHoroscopeContent } from '../horoscope/horoscope.service.js';
+import { PartnerPreferencesService } from '../partner-preferences/partner-preferences.service.js';
 import { ProfilesService } from './profiles.service.js';
 import { toPublicProfileDetail, toPublicProfileSummary } from './public-profile.mapper.js';
 
 // Re-exported so existing imports of the public mappers keep working.
 export { toPublicProfileDetail, toPublicProfileSummary };
 
-function toProfileResponse(profile: Profile, photos: PhotoResponse[]): ProfileResponse {
+function toProfileResponse(
+  profile: Profile,
+  photos: PhotoResponse[],
+  optionalCompletion: ProfileResponse['optionalCompletion'],
+): ProfileResponse {
   return {
     id: profile.id,
     fullName: profile.fullName,
@@ -41,6 +47,7 @@ function toProfileResponse(profile: Profile, photos: PhotoResponse[]): ProfileRe
     isVerified: profile.isVerified,
     details: profile.details as unknown as ProfileResponse['details'],
     photos,
+    optionalCompletion,
   };
 }
 
@@ -51,7 +58,21 @@ export class ProfilesController {
     private readonly photosService: PhotosService,
     private readonly notifications: NotificationsService,
     private readonly phoneUnlocks: PhoneUnlockService,
+    private readonly partnerPreferences: PartnerPreferencesService,
+    private readonly horoscope: HoroscopeService,
   ) {}
+
+  // The owner's own profile, with the optional checklist items (partner
+  // preferences saved; any horoscope detail entered, whatever its
+  // visibility). The owner sees all their photos, pending/rejected included.
+  private async ownResponse(profile: Profile): Promise<ProfileResponse> {
+    const [photos, preferences, horoscope] = await Promise.all([
+      this.photosService.getPhotosForProfile(profile.id, { includeUnapproved: true }),
+      this.partnerPreferences.findForUser(profile.userId),
+      this.horoscope.findByProfileId(profile.id),
+    ]);
+    return toProfileResponse(profile, photos, { partnerPreferences: preferences !== null, horoscope: hasHoroscopeContent(horoscope) });
+  }
 
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -67,9 +88,7 @@ export class ProfilesController {
   @UseGuards(JwtAuthGuard)
   async getMe(@CurrentUser() user: AuthenticatedUser): Promise<ProfileResponse> {
     const profile = await this.profilesService.getMyProfile(user.userId);
-    // The owner sees all their photos, pending/rejected included.
-    const photos = await this.photosService.getPhotosForProfile(profile.id, { includeUnapproved: true });
-    return toProfileResponse(profile, photos);
+    return this.ownResponse(profile);
   }
 
   @Patch('me')
@@ -79,9 +98,7 @@ export class ProfilesController {
     @Body(new ZodValidationPipe(createProfileSchema)) body: CreateProfileRequest,
   ): Promise<ProfileResponse> {
     const profile = await this.profilesService.updateProfile(user.userId, body);
-    // The owner sees all their photos, pending/rejected included.
-    const photos = await this.photosService.getPhotosForProfile(profile.id, { includeUnapproved: true });
-    return toProfileResponse(profile, photos);
+    return this.ownResponse(profile);
   }
 
   // Privacy & Visibility: only the visibility field, so changing it never
@@ -93,9 +110,7 @@ export class ProfilesController {
     @Body(new ZodValidationPipe(updateProfileVisibilitySchema)) body: UpdateProfileVisibilityRequest,
   ): Promise<ProfileResponse> {
     const profile = await this.profilesService.updateVisibility(user.userId, body.visibility);
-    // The owner sees all their photos, pending/rejected included.
-    const photos = await this.photosService.getPhotosForProfile(profile.id, { includeUnapproved: true });
-    return toProfileResponse(profile, photos);
+    return this.ownResponse(profile);
   }
 
   // Phone privacy: CONNECTED lets connected members with a paid plan unlock
@@ -107,8 +122,7 @@ export class ProfilesController {
     @Body(new ZodValidationPipe(updatePhoneVisibilitySchema)) body: UpdatePhoneVisibilityRequest,
   ): Promise<ProfileResponse> {
     const profile = await this.profilesService.updatePhoneVisibility(user.userId, body.phoneVisibility);
-    const photos = await this.photosService.getPhotosForProfile(profile.id, { includeUnapproved: true });
-    return toProfileResponse(profile, photos);
+    return this.ownResponse(profile);
   }
 
   // "Browse Profiles". Simple offset pagination — ?offset=0&limit=20 by
@@ -163,7 +177,14 @@ export class ProfilesController {
     });
     const photos = await this.photosService.getPhotosForProfile(profile.id);
     const relationships = await this.profilesService.getRelationshipStates(user.userId, [profile.userId]);
-    return toPublicProfileDetail(profile, photos, relationships.get(profile.userId));
+    const relationship = relationships.get(profile.userId);
+    // Both computed for THIS viewer only: their own preferences against this
+    // profile, and what the owner's horoscope setting allows them to see.
+    const [preferenceFit, horoscope] = await Promise.all([
+      this.partnerPreferences.fitForViewer(user.userId, profile),
+      this.horoscope.viewFor(profile.id, relationship?.status),
+    ]);
+    return toPublicProfileDetail(profile, photos, relationship, { preferenceFit, horoscope });
   }
 
   // What the caller can do about this member's phone number. Never contains

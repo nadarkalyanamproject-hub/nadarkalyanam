@@ -1,27 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import type { BasicDetails } from '@nadar-kalyanam/schemas';
+import { MOTHER_TONGUES, type BasicDetails } from '@nadar-kalyanam/schemas';
 import { Field, Input, Select } from '@nadar-kalyanam/ui';
 import { isRequired } from '../../lib/required-fields';
 
 export type BasicDetailsFormState = Record<keyof BasicDetails, string>;
-
-const MOTHER_TONGUE_OPTIONS = [
-  'Tamil',
-  'Telugu',
-  'Kannada',
-  'Malayalam',
-  'Hindi',
-  'Marathi',
-  'Gujarati',
-  'Punjabi',
-  'Bengali',
-  'Odia',
-  'Urdu',
-  'English',
-  'Other',
-];
 
 const DOB_DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
 const DOB_MONTHS = [
@@ -193,7 +177,7 @@ export function BasicDetailsFields({
             onChange={(e) => onChange('motherTongue', e.target.value)}
           >
             <option value="">Select</option>
-            {MOTHER_TONGUE_OPTIONS.map((option) => (
+            {MOTHER_TONGUES.map((option) => (
               <option key={option} value={option}>
                 {option}
               </option>

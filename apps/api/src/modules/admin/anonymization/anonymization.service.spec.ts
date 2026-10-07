@@ -36,6 +36,9 @@ function buildFakeDb(users: FakeUser[]) {
       { userId: u.id, objectKey: `profiles/${u.id}/b.jpg` },
     ]),
     sessions: users.map((u) => ({ userId: u.id, revokedAt: null as Date | null })),
+    // Birth time/place and a chart image: personal data the job must remove.
+    horoscopes: users.map((u) => ({ userId: u.id, birthTime: '06:15', birthCity: 'Madurai', chartObjectKey: `horoscopes/${u.id}/c.jpg` as string | null })),
+    preferences: users.map((u) => ({ userId: u.id, ageMin: 25 })),
     devices: users.map((u) => ({ userId: u.id })),
     notifications: users.map((u) => ({ userId: u.id })),
     auditLogs: users.map((u) => ({
@@ -89,6 +92,22 @@ function buildFakeDb(users: FakeUser[]) {
       ),
       deleteMany: vi.fn(async ({ where }: { where: { profile: { userId: string } } }) => {
         db.photos = db.photos.filter((p) => p.userId !== where.profile.userId);
+        return {};
+      }),
+    },
+    profileHoroscope: {
+      findFirst: vi.fn(async ({ where }: { where: { profile: { userId: string } } }) => {
+        const row = db.horoscopes.find((h) => h.userId === where.profile.userId && h.chartObjectKey !== null);
+        return row ? { chartObjectKey: row.chartObjectKey } : null;
+      }),
+      deleteMany: vi.fn(async ({ where }: { where: { profile: { userId: string } } }) => {
+        db.horoscopes = db.horoscopes.filter((h) => h.userId !== where.profile.userId);
+        return {};
+      }),
+    },
+    partnerPreference: {
+      deleteMany: vi.fn(async ({ where }: { where: { profile: { userId: string } } }) => {
+        db.preferences = db.preferences.filter((p) => p.userId !== where.profile.userId);
         return {};
       }),
     },
@@ -183,6 +202,11 @@ describe('AnonymizationService', () => {
     expect(db.sessions[0].revokedAt).toEqual(NOW);
     expect(db.devices).toHaveLength(0);
     expect(db.notifications).toHaveLength(0);
+    // Horoscope (with birth details) and partner preferences are deleted,
+    // and the chart image object is removed from storage.
+    expect(db.horoscopes).toHaveLength(0);
+    expect(db.preferences).toHaveLength(0);
+    expect(storage.deleteObject).toHaveBeenCalledWith('horoscopes/eligible/c.jpg');
 
     const entry = db.auditLogs.find((a) => a.action === 'member.anonymize');
     expect(entry).toMatchObject({

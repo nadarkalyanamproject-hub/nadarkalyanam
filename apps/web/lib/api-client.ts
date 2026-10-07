@@ -12,6 +12,10 @@ import type {
   ListMatchesResponse,
   ListNotificationsResponse,
   MembershipPlansResponse,
+  MyHoroscopeResponse,
+  PartnerPreferencesRequest,
+  PartnerPreferencesResponse,
+  UpdateHoroscopeRequest,
   MessageListResponse,
   MessageResponse,
   MyMembershipResponse,
@@ -417,6 +421,11 @@ export interface SearchProfilesParams {
   withPhoto?: boolean;
   excludeShortlisted?: boolean;
   verified?: boolean;
+  // Comma-separated "any of" lists (the "Use my preferences" toggle).
+  maritalStatusIn?: string;
+  motherTongueIn?: string;
+  stateIn?: string;
+  cityIn?: string;
   sort?: 'id' | 'newest';
   cursor?: string;
   limit?: number;
@@ -431,6 +440,54 @@ export function searchProfiles(accessToken: string, params: SearchProfilesParams
   return request<SearchProfilesResponse>(`/search/profiles${qs ? `?${qs}` : ''}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
+}
+
+// --- Partner preferences (the caller's own; never anyone else's) ---------
+
+export function getPartnerPreferences(accessToken: string): Promise<PartnerPreferencesResponse> {
+  return request('/me/partner-preferences', { headers: { Authorization: `Bearer ${accessToken}` } });
+}
+
+export function savePartnerPreferences(accessToken: string, body: PartnerPreferencesRequest): Promise<PartnerPreferencesResponse> {
+  return request('/me/partner-preferences', {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(body),
+  });
+}
+
+export function resetPartnerPreferences(accessToken: string): Promise<PartnerPreferencesResponse> {
+  return request('/me/partner-preferences', { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } });
+}
+
+// --- Horoscope (the caller's own) ----------------------------------------
+
+export function getMyHoroscope(accessToken: string): Promise<MyHoroscopeResponse> {
+  return request('/me/horoscope', { headers: { Authorization: `Bearer ${accessToken}` } });
+}
+
+export function saveMyHoroscope(accessToken: string, body: UpdateHoroscopeRequest): Promise<MyHoroscopeResponse> {
+  return request('/me/horoscope', { method: 'PUT', headers: { Authorization: `Bearer ${accessToken}` }, body: JSON.stringify(body) });
+}
+
+export function requestHoroscopeChartUploadUrl(accessToken: string, contentType: string): Promise<RequestUploadUrlResponse> {
+  return request('/me/horoscope/chart/upload-url', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ contentType }),
+  });
+}
+
+export function confirmHoroscopeChart(accessToken: string, objectKey: string): Promise<MyHoroscopeResponse> {
+  return request('/me/horoscope/chart/confirm', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ objectKey }),
+  });
+}
+
+export function deleteHoroscopeChart(accessToken: string): Promise<MyHoroscopeResponse> {
+  return request('/me/horoscope/chart', { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } });
 }
 
 export function listMatches(accessToken: string, limit?: number): Promise<ListMatchesResponse> {

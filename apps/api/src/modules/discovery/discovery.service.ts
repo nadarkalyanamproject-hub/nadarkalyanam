@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { SearchProfileResult, SearchProfilesQuery, SearchProfilesResponse } from '@nadar-kalyanam/schemas';
-import { calculateAge } from '../../common/age.js';
+import { ageRangeToDobRange, calculateAge } from '../../common/age.js';
 import {
   WITH_PHOTO_WHERE,
   getCallerLocation,
@@ -16,21 +16,6 @@ import { getRelationshipStates, relationshipFields } from '../../common/relation
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-
-// ageMin/ageMax arrive as whole years; converted to a dateOfBirth range since
-// age itself isn't a stored column. ageMax=30 means "up to and including 30",
-// so the lower dateOfBirth bound is exclusive of turning (ageMax + 1).
-function ageRangeToDobRange(ageMin?: number, ageMax?: number): { gte?: Date; lte?: Date } {
-  const now = new Date();
-  const range: { gte?: Date; lte?: Date } = {};
-  if (ageMax !== undefined) {
-    range.gte = new Date(Date.UTC(now.getUTCFullYear() - ageMax - 1, now.getUTCMonth(), now.getUTCDate() + 1));
-  }
-  if (ageMin !== undefined) {
-    range.lte = new Date(Date.UTC(now.getUTCFullYear() - ageMin, now.getUTCMonth(), now.getUTCDate()));
-  }
-  return range;
-}
 
 // City, education, profession, mother tongue, religion, caste, employment
 // type and country are free text at onboarding, so they're matched against
@@ -58,6 +43,18 @@ function detailFilters(query: SearchProfilesQuery): Prisma.ProfileWhereInput[] {
   text(['education', 'employedIn'], query.employedIn);
   exact(['additional', 'familyType'], query.familyType);
   text(['location', 'country'], query.country);
+  // Comma-list filters ("Use my preferences"): any one of the values, each
+  // matched by the same rule as its single-value twin.
+  const anyOf = (path: string[], values: string[] | undefined, insensitive: boolean) => {
+    if (!values?.length) return;
+    filters.push({
+      OR: values.map((value) => ({ details: { path, equals: value, ...(insensitive ? { mode: 'insensitive' as const } : {}) } })),
+    });
+  };
+  anyOf(['maritalStatus'], query.maritalStatusIn, false);
+  anyOf(['motherTongue'], query.motherTongueIn, true);
+  anyOf(['location', 'state'], query.stateIn, true);
+  anyOf(['location', 'city'], query.cityIn, true);
   return filters;
 }
 

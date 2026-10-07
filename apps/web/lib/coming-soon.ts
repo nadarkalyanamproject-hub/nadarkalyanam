@@ -8,7 +8,7 @@ export const COMING_SOON = {
   },
   star: {
     label: 'Star / Horoscope',
-    reason: 'Profiles don’t record a birth star or horoscope yet, so there’s nothing to match on.',
+    reason: 'Members can now add horoscope details, but they’re private unless each member chooses to share them, so searching by star isn’t offered yet.',
   },
   institution: {
     label: 'Institution',
@@ -29,10 +29,6 @@ export const COMING_SOON = {
   familyValue: {
     label: 'Family value',
     reason: 'Profiles record family status, not family values (traditional, moderate, liberal).',
-  },
-  partnerPreferences: {
-    label: 'Partner preferences',
-    reason: 'Partner preferences aren’t collected yet, so there’s no preferred age, height, education or location to show.',
   },
 } as const;
 

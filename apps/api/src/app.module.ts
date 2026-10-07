@@ -13,6 +13,8 @@ import { MatchingModule } from './modules/matching/matching.module.js';
 import { MembershipModule } from './modules/membership/membership.module.js';
 import { VipModule } from './modules/vip/vip.module.js';
 import { SupportModule } from './modules/support/support.module.js';
+import { HoroscopeModule } from './modules/horoscope/horoscope.module.js';
+import { PartnerPreferencesModule } from './modules/partner-preferences/partner-preferences.module.js';
 import { MessagesModule } from './modules/messages/messages.module.js';
 import { ModerationModule } from './modules/moderation/moderation.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
@@ -63,6 +65,8 @@ import { VerificationModule } from './modules/verification/verification.module.j
     MembershipModule,
     VipModule,
     SupportModule,
+    PartnerPreferencesModule,
+    HoroscopeModule,
     VerificationModule,
     CallsModule,
     AdminModule,

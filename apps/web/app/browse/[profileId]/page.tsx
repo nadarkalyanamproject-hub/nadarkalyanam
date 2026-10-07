@@ -37,6 +37,7 @@ import { ShortlistButton } from '../../../components/shortlist/shortlist-button'
 import { BlockMemberButton } from '../../../components/block/block-member-button';
 import { PhoneUnlockCard } from '../../../components/phone/phone-unlock-card';
 import { useBackNavigation } from '../../../lib/navigation-history';
+import { HoroscopeCard, PreferenceFitNote } from '../../../components/profile-view/horoscope-card';
 
 const MARITAL_STATUS_LABELS: Record<string, string> = {
   NEVER_MARRIED: 'Never Married',
@@ -367,6 +368,8 @@ export default function ViewProfilePage() {
                 )}
               </div>
 
+              <PreferenceFitNote fit={profile.preferenceFit} />
+
               {/* MAIN CONTENT 2-COLUMN GRID */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
                 {/* LEFT SIDEBAR: Photos & Trust */}
@@ -564,6 +567,9 @@ export default function ViewProfilePage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Horoscope: only what this member chose to share with this viewer */}
+                  <HoroscopeCard view={profile.horoscope} />
 
                   {/* Education & Career Details */}
                   <div className="rounded-3xl border border-[#EFEAE2] bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">

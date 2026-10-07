@@ -1,5 +1,7 @@
 import { calculateAge } from '../../common/age.js';
+import { preferenceFit, preferenceScore } from '../../common/preference-fit.js';
 import { MATCH_SCORE_BOOST } from '../../common/search-boost.js';
+import type { SavedPartnerPreferences } from '@nadar-kalyanam/schemas';
 import type { Profile } from '../../generated/prisma/client.js';
 
 type ProfileDetails = {
@@ -13,7 +15,10 @@ type ProfileDetails = {
 // decision — the matching score weights are equally unapproved). This is a
 // placeholder rule-based scorer so FR-3.3/3.5/3.6 have a working, swappable
 // implementation; Product must sign off on final weights before launch.
-export const SCORING_CONFIG_VERSION = 'v0-placeholder';
+// v0.1 adds the partner-preference fit term (0..20).
+export const SCORING_CONFIG_VERSION = 'v0.1-placeholder';
+
+type PartnerPrefs = Omit<SavedPartnerPreferences, 'updatedAt'>;
 
 // Stateless domain service (Fig 3 class diagram): pure functions over
 // Profile data, never persisted itself.
@@ -53,16 +58,34 @@ export class MatchingEngine {
     return score;
   }
 
-  // Compatibility plus a small listing bonus for priority / spotlight plans
-  // (MATCH_SCORE_BOOST). Candidate preselection is unchanged.
-  static computeScore(viewer: Profile, candidate: Profile): number {
-    return this.applySoftPreferences(viewer, candidate) + (MATCH_SCORE_BOOST[candidate.searchBoost] ?? 0);
+  // "Fits what you're looking for": 0..PREFERENCE_FIT_MAX (20) points from
+  // the viewer's own SOFT partner preferences — round(20 * matched / set).
+  // 0 when the viewer has no preferences. Must-have preferences are applied
+  // as filters before ranking (MatchingService), not here.
+  static applyPartnerPreferences(preferences: PartnerPrefs | null, candidate: Profile): number {
+    return preferences ? preferenceScore(preferenceFit(preferences, candidate)) : 0;
   }
 
-  static rankCandidates(viewer: Profile, candidates: Profile[]): Array<{ profile: Profile; score: number }> {
+  // Score = compatibility (applySoftPreferences, up to 100)
+  //       + partner-preference fit (0..20)
+  //       + listing bonus for priority / spotlight plans (MATCH_SCORE_BOOST:
+  //         0 / 3 / 6), unchanged by preferences.
+  static computeScore(viewer: Profile, candidate: Profile, preferences: PartnerPrefs | null = null): number {
+    return (
+      this.applySoftPreferences(viewer, candidate) +
+      this.applyPartnerPreferences(preferences, candidate) +
+      (MATCH_SCORE_BOOST[candidate.searchBoost] ?? 0)
+    );
+  }
+
+  static rankCandidates(
+    viewer: Profile,
+    candidates: Profile[],
+    preferences: PartnerPrefs | null = null,
+  ): Array<{ profile: Profile; score: number }> {
     return candidates
       .filter((candidate) => this.applyHardConstraints(viewer, candidate))
-      .map((candidate) => ({ profile: candidate, score: this.computeScore(viewer, candidate) }))
+      .map((candidate) => ({ profile: candidate, score: this.computeScore(viewer, candidate, preferences) }))
       .sort((a, b) => b.score - a.score);
   }
 }

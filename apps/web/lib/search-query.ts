@@ -29,6 +29,11 @@ export interface SearchFilters {
   withPhoto: string;
   excludeShortlisted: string;
   verified: string;
+  // "Any of" lists filled by "Use my preferences" (comma-separated).
+  maritalStatusIn: string;
+  motherTongueIn: string;
+  stateIn: string;
+  cityIn: string;
 }
 
 export const EMPTY_SEARCH_FILTERS: SearchFilters = {
@@ -57,6 +62,10 @@ export const EMPTY_SEARCH_FILTERS: SearchFilters = {
   withPhoto: '',
   excludeShortlisted: '',
   verified: '',
+  maritalStatusIn: '',
+  motherTongueIn: '',
+  stateIn: '',
+  cityIn: '',
 };
 
 const FILTER_KEYS = Object.keys(EMPTY_SEARCH_FILTERS) as (keyof SearchFilters)[];
@@ -120,5 +129,9 @@ export function toSearchQuery(filters: SearchFilters): SearchProfilesParams {
     withPhoto: flag(filters.withPhoto),
     excludeShortlisted: flag(filters.excludeShortlisted),
     verified: flag(filters.verified),
+    maritalStatusIn: text(filters.maritalStatusIn),
+    motherTongueIn: text(filters.motherTongueIn),
+    stateIn: text(filters.stateIn),
+    cityIn: text(filters.cityIn),
   };
 }

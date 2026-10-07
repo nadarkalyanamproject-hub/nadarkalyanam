@@ -9,6 +9,13 @@ const queryFlag = z
   .transform((value) => value === 'true')
   .optional();
 
+// "a,b,c" -> ['a','b','c'] (trimmed, blanks dropped, at most 40 values).
+const commaList = z
+  .string()
+  .transform((value) => [...new Set(value.split(',').map((v) => v.trim()).filter(Boolean))])
+  .pipe(z.array(z.string().max(80)).max(40))
+  .optional();
+
 export const JOINED_WITHIN_DAYS = [1, 3, 7, 30] as const;
 
 // APPROVAL REQUIRED (SRS §4.3): the final v1 filter list, sort options and
@@ -40,6 +47,14 @@ export const searchProfilesQuerySchema = z.object({
   heightMaxCm: z.coerce.number().int().min(100).max(250).optional(),
   incomeMinLakhs: z.coerce.number().min(0).max(10000).optional(),
   incomeMaxLakhs: z.coerce.number().min(0).max(10000).optional(),
+  // Several values at once, comma-separated (e.g. the "Use my preferences"
+  // toggle): a profile matches if it has any one of them. Same matching
+  // rules as the single-value filters above; state is whole-value,
+  // case-insensitive like city.
+  maritalStatusIn: commaList,
+  motherTongueIn: commaList,
+  stateIn: commaList,
+  cityIn: commaList,
   // Onboarding only offers India, so this is the only country to search.
   country: z.literal('India').optional(),
   // Same rules as the Matches categories: Nearby (caller's city/state),

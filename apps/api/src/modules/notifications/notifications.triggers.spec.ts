@@ -125,6 +125,8 @@ describe('profile view trigger', () => {
       { getPhotosForProfile: vi.fn().mockResolvedValue([]) } as never,
       notifications as never,
       {} as never,
+      { findForUser: async () => null, fitForViewer: async () => null } as never,
+      { findByProfileId: async () => null, viewFor: async () => ({ shared: false }) } as never,
     );
     return { ctl, notifications };
   }
