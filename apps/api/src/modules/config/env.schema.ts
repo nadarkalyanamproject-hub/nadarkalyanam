@@ -74,6 +74,20 @@ export const envSchema = z.object({
   // Abuse guard: new phone unlocks one member may make per day (India time),
   // on top of their plan's quota.
   UNLOCK_DAILY_CAP: z.coerce.number().int().min(1).default(100),
+  // Public contact details shown on the website's Contact page (GET
+  // /support/contact). Both optional: when neither is set the page says
+  // contact details will be added soon. Read at runtime (no rebuild).
+  // Blank values count as unset.
+  SUPPORT_EMAIL: z.preprocess((v) => (v === '' ? undefined : v), z.string().email('SUPPORT_EMAIL must be an email address').optional()),
+  // Digits with country code, e.g. 919812345678 (spaces, + and - allowed).
+  SUPPORT_WHATSAPP_NUMBER: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z
+      .string()
+      .transform((v) => v.replace(/[\s+-]/g, ''))
+      .pipe(z.string().regex(/^\d{10,15}$/, 'SUPPORT_WHATSAPP_NUMBER must be 10-15 digits with country code'))
+      .optional(),
+  ),
   // FR-1.5's anonymization step for members whose 14-day removal grace
   // period has elapsed (see modules/admin/anonymization). Destructive and
   // irreversible, so OFF by default: when false no queue, scheduler or

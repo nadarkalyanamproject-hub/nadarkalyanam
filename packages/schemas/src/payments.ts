@@ -18,6 +18,7 @@ export const membershipPlanResponseSchema = z.object({
   // added outside the four seeded ones.
   code: z.string(),
   name: z.string(),
+  description: z.string().nullable(),
   priceInPaise: z.number(),
   durationDays: z.number(),
   sortOrder: z.number(),
@@ -118,3 +119,11 @@ export const myMembershipResponseSchema = z.object({
   resetsAt: z.string().nullable(),
 });
 export type MyMembershipResponse = z.infer<typeof myMembershipResponseSchema>;
+
+// GET /membership-plans. freeInterestsPerMonth is the free tier's monthly
+// interest limit (FREE_INTERESTS_PER_MONTH), so copy never hardcodes it.
+export const membershipPlansResponseSchema = z.object({
+  items: z.array(membershipPlanResponseSchema),
+  freeInterestsPerMonth: z.number(),
+});
+export type MembershipPlansResponse = z.infer<typeof membershipPlansResponseSchema>;

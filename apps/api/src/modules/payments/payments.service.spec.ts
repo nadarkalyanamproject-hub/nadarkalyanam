@@ -6,7 +6,7 @@ import { StubPaymentGatewayAdapter } from './adapters/stub-payment-gateway.adapt
 import { SubscriptionService } from '../membership/subscription.service.js';
 import { PaymentsService, type PaymentWebhookEvent } from './payments.service.js';
 
-function buildService(overrides?: { nodeEnv?: string; gatewayIsStub?: boolean }) {
+function buildService(overrides?: { nodeEnv?: string; gatewayIsStub?: boolean; freeInterests?: number }) {
   const prisma = {
     membershipPlan: {
       findUnique: vi.fn().mockResolvedValue({
@@ -33,7 +33,9 @@ function buildService(overrides?: { nodeEnv?: string; gatewayIsStub?: boolean })
     verifyWebhookSignature: vi.fn(),
   };
   const configService = {
-    get: vi.fn((key: string) => (key === 'NODE_ENV' ? (overrides?.nodeEnv ?? 'test') : undefined)),
+    get: vi.fn((key: string) =>
+      key === 'NODE_ENV' ? (overrides?.nodeEnv ?? 'test') : key === 'FREE_INTERESTS_PER_MONTH' ? (overrides?.freeInterests ?? 5) : undefined,
+    ),
   };
 
   const service = new PaymentsService(prisma as never, gateway as never, configService as never, { notify: vi.fn() } as never);
@@ -96,6 +98,7 @@ describe('PaymentsService', () => {
         id: 'plan-gold-3m',
         code: 'GOLD',
         name: 'Gold',
+        description: 'For families ready to talk',
         priceInPaise: 149900,
         durationDays: 90,
         sortOrder: 1,
@@ -105,7 +108,7 @@ describe('PaymentsService', () => {
       },
     ]);
 
-    const { items } = await service.listPlans();
+    const { items, freeInterestsPerMonth } = await service.listPlans();
 
     expect(prisma.membershipPlan.findMany).toHaveBeenCalledWith({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } });
     expect(items).toEqual([
@@ -113,6 +116,7 @@ describe('PaymentsService', () => {
         id: 'plan-gold-3m',
         code: 'GOLD',
         name: 'Gold',
+        description: 'For families ready to talk',
         priceInPaise: 149900,
         durationDays: 90,
         sortOrder: 1,
@@ -121,6 +125,13 @@ describe('PaymentsService', () => {
         features: [{ key: 'unlimitedMessages', label: 'Messages', available: true }],
       },
     ]);
+    expect(freeInterestsPerMonth).toBe(5);
+  });
+
+  it('listPlans reports the free monthly interest limit from the setting, so member copy follows it', async () => {
+    const { service, prisma } = buildService({ freeInterests: 12 });
+    prisma.membershipPlan.findMany.mockResolvedValue([]);
+    expect((await service.listPlans()).freeInterestsPerMonth).toBe(12);
   });
 });
 

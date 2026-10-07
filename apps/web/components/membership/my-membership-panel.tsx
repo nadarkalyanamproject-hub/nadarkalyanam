@@ -33,7 +33,11 @@ export function MyMembershipPanel({ me }: { me: MyMembershipResponse }) {
           <p className="font-semibold text-[#2B1515]">Your {banner.planName} plan ended on {formatPlanDate(banner.endedAt)}.</p>
           <p className="mt-1 text-xs text-[#5A493E]">
             You&apos;re back on the free membership, so the monthly interest limit applies again and you can&apos;t unlock new
-            phone numbers. Numbers you already unlocked stay visible, unless their owner turns sharing off.
+            phone numbers. Numbers you already unlocked stay visible, unless their owner turns sharing off. Questions?{' '}
+            <Link href="/contact" className="font-semibold text-[#680A0E] underline" data-testid="banner-contact-link">
+              Contact us
+            </Link>
+            .
           </p>
         </Card>
       )}
@@ -42,7 +46,11 @@ export function MyMembershipPanel({ me }: { me: MyMembershipResponse }) {
           <p className="font-semibold text-[#2B1515]">Your {banner.planName} plan was ended on {formatPlanDate(banner.endedAt)}.</p>
           <p className="mt-1 text-xs text-[#5A493E]">
             You&apos;re on the free membership now. Numbers you already unlocked stay visible, unless their owner turns sharing
-            off. If you have questions about this, please contact the Nadar Kalyanam team.
+            off. If you have questions about this, please{' '}
+            <Link href="/contact" className="font-semibold text-[#680A0E] underline" data-testid="banner-contact-link">
+              contact the Nadar Kalyanam team
+            </Link>
+            .
           </p>
         </Card>
       )}

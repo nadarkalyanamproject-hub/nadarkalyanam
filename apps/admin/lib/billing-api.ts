@@ -22,6 +22,7 @@ export interface AdminPlan {
   isAssisted: boolean;
   isActive: boolean;
   sortOrder: number;
+  description: string | null;
   features: PlanFeature[];
   activeSubscriptions: number;
 }
@@ -104,7 +105,23 @@ export interface AdminVipEnquiry {
   phone: string;
   assignedAdminId: string | null;
   assignedAdminEmail: string | null;
-  adminNotes: string | null;
+  noteCount: number;
+}
+
+// Detail view: internal notes and status/assignment history. Admin-only;
+// never part of what the member sees.
+export interface AdminVipEnquiryDetail extends AdminVipEnquiry {
+  notes: { id: string; body: string; authorEmail: string; createdAt: string }[];
+  history: { kind: 'STATUS' | 'ASSIGNMENT'; fromValue: string | null; toValue: string | null; byEmail: string; createdAt: string }[];
+}
+
+// What a member did with phone unlocks. Names and dates only — no numbers.
+export interface MemberPhoneUnlocks {
+  made: { targetUserId: string; targetName: string | null; unlockedAt: string; planName: string }[];
+  madeTotal: number;
+  nextOffset: number | null;
+  receivedCount: number;
+  currentPlan: { planName: string; used: number; limit: number | null } | null;
 }
 
 export interface MemberMembership {
@@ -138,6 +155,8 @@ export const cancelSubscription = (t: string, id: string, reason: string) =>
   adminRequest<AdminSubscription>(t, `/admin/subscriptions/${id}/cancel`, { method: 'POST', body: JSON.stringify({ reason }) });
 export const getMemberMembership = (t: string, userId: string) =>
   adminRequest<MemberMembership>(t, `/admin/members/${userId}/membership`);
+export const getMemberPhoneUnlocks = (t: string, userId: string, params: { offset?: number; limit?: number }) =>
+  adminRequest<MemberPhoneUnlocks>(t, `/admin/members/${userId}/phone-unlocks${qs(params)}`);
 
 export const listOrders = (t: string, params: { status?: OrderStatus; from?: string; to?: string; search?: string; offset?: number; limit?: number }) =>
   adminRequest<{ items: AdminOrder[]; total: number }>(t, `/admin/orders${qs(params)}`);
@@ -151,11 +170,14 @@ export const refundOrder = (t: string, id: string, reason: string) =>
 
 export const getFinanceDashboard = (t: string, days: 7 | 30 | 90) => adminRequest<FinanceDashboard>(t, `/admin/finance/dashboard?days=${days}`);
 
-export const listVipEnquiries = (t: string, params: { status?: VipEnquiryStatus; offset?: number; limit?: number }) =>
+export const listVipEnquiries = (t: string, params: { status?: VipEnquiryStatus; assignee?: string; offset?: number; limit?: number }) =>
   adminRequest<{ items: AdminVipEnquiry[]; total: number }>(t, `/admin/vip-enquiries${qs(params)}`);
 export const vipAssignees = (t: string) => adminRequest<{ items: { id: string; email: string }[] }>(t, '/admin/vip-enquiries/assignees');
+export const getVipEnquiry = (t: string, id: string) => adminRequest<AdminVipEnquiryDetail>(t, `/admin/vip-enquiries/${id}`);
 export const updateVipEnquiry = (t: string, id: string, body: UpdateVipEnquiryRequest) =>
-  adminRequest<AdminVipEnquiry>(t, `/admin/vip-enquiries/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+  adminRequest<AdminVipEnquiryDetail>(t, `/admin/vip-enquiries/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+export const addVipNote = (t: string, id: string, body: string) =>
+  adminRequest<AdminVipEnquiryDetail>(t, `/admin/vip-enquiries/${id}/notes`, { method: 'POST', body: JSON.stringify({ body }) });
 
 // Paise -> "₹1,499" (or "₹1,499.50").
 export function rupees(paise: number): string {

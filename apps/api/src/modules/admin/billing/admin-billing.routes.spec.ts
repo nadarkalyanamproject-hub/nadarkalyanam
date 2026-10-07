@@ -29,6 +29,9 @@ const ROUTES: { handler: Handler; method: RequestMethod; path: string; permissio
   { handler: 'getFinanceDashboard', method: RequestMethod.GET, path: 'finance/dashboard', permission: PERMISSIONS.FINANCE_DASHBOARD_VIEW },
   { handler: 'listVipEnquiries', method: RequestMethod.GET, path: 'vip-enquiries', permission: PERMISSIONS.VIP_MANAGE },
   { handler: 'vipAssignees', method: RequestMethod.GET, path: 'vip-enquiries/assignees', permission: PERMISSIONS.VIP_MANAGE },
+  { handler: 'getVipEnquiry', method: RequestMethod.GET, path: 'vip-enquiries/:id', permission: PERMISSIONS.VIP_MANAGE },
+  { handler: 'addVipNote', method: RequestMethod.POST, path: 'vip-enquiries/:id/notes', permission: PERMISSIONS.VIP_MANAGE },
+  { handler: 'memberPhoneUnlocks', method: RequestMethod.GET, path: 'members/:userId/phone-unlocks', permission: PERMISSIONS.MEMBERS_VIEW },
   { handler: 'updateVipEnquiry', method: RequestMethod.PATCH, path: 'vip-enquiries/:id', permission: PERMISSIONS.VIP_MANAGE },
 ];
 

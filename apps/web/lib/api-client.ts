@@ -11,11 +11,12 @@ import type {
   ListInterestsResponse,
   ListMatchesResponse,
   ListNotificationsResponse,
-  MembershipPlanResponse,
+  MembershipPlansResponse,
   MessageListResponse,
   MessageResponse,
   MyMembershipResponse,
   MyVipEnquiryResponse,
+  SupportContactResponse,
   VipEnquiryResponse,
   NearbyMatchesResponse,
   NotificationCategory,
@@ -478,8 +479,16 @@ export function markAllNotificationsRead(accessToken: string): Promise<{ updated
   });
 }
 
-export function listMembershipPlans(): Promise<{ items: MembershipPlanResponse[] }> {
+// Active plans, plus the free monthly interest limit (so copy follows the
+// FREE_INTERESTS_PER_MONTH setting).
+export function listMembershipPlans(): Promise<MembershipPlansResponse> {
   return request('/membership-plans');
+}
+
+// Public: the support contact details configured on the server (null when
+// not set).
+export function getSupportContact(): Promise<SupportContactResponse> {
+  return request('/support/contact');
 }
 
 // The member's current plan (plan: null for a free member) and its expiry.

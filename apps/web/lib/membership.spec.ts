@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { daysLeft, daysLeftLabel, durationLabel, formatPrice, membershipBanner, whatsappHref } from './membership';
+import { daysLeft, daysLeftLabel, durationLabel, formatPrice, freeInterestsCopy, membershipBanner, supportContactLinks, whatsappHref } from './membership';
 
 describe('membership display helpers', () => {
   it('formats paise as rupees', () => {
@@ -54,5 +54,30 @@ describe('daysLeft and membershipBanner (India time)', () => {
     });
     expect(membershipBanner({ ...free, lastEnded: { planName: 'Gold', endedAt: '2026-10-02T00:00:00Z', kind: 'CANCELLED' } }, NOW)?.kind).toBe('CANCELLED');
     expect(membershipBanner({ ...free, lastEnded: null }, NOW)).toBeNull();
+  });
+});
+
+describe('free-limit copy', () => {
+  it('follows the configured limit and never hardcodes one', () => {
+    expect(freeInterestsCopy(5)).toMatch(/^Send up to 5 interests a month\./);
+    expect(freeInterestsCopy(12)).toMatch(/^Send up to 12 interests a month\./);
+    expect(freeInterestsCopy(1)).toMatch(/^Send up to 1 interest a month\./);
+    expect(freeInterestsCopy(null)).toMatch(/^Send a limited number of interests each month\./);
+    expect(freeInterestsCopy(undefined)).not.toMatch(/\d/);
+  });
+});
+
+describe('support contact links', () => {
+  it('shows only configured details', () => {
+    expect(supportContactLinks({ email: 'help@example.org', whatsappNumber: '919812345678' })).toEqual([
+      { kind: 'email', label: 'help@example.org', href: 'mailto:help@example.org' },
+      { kind: 'whatsapp', label: '+919812345678', href: expect.stringMatching(/^https:\/\/wa\.me\/919812345678\?text=/) },
+    ]);
+    expect(supportContactLinks({ email: null, whatsappNumber: '919812345678' }).map((l) => l.kind)).toEqual(['whatsapp']);
+  });
+
+  it('returns nothing when nothing is configured', () => {
+    expect(supportContactLinks({ email: null, whatsappNumber: null })).toEqual([]);
+    expect(supportContactLinks(null)).toEqual([]);
   });
 });

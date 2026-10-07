@@ -462,6 +462,15 @@ export function AppHeader() {
                           My Unlocked Contacts
                         </Link>
                         <Link
+                          href="/contact"
+                          role="menuitem"
+                          onClick={closeAvatarMenu}
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-[#2B211C] hover:bg-[#F9F3E7] hover:text-[#7A0710] focus:bg-[#F9F3E7]`}
+                        >
+                          <ChatIcon className="h-4 w-4 text-[#776B62]" />
+                          Contact Us
+                        </Link>
+                        <Link
                           href="/"
                           role="menuitem"
                           onClick={closeAvatarMenu}
@@ -497,9 +506,11 @@ export function AppHeader() {
 
         {!isAuthenticated && (
           <div className="flex items-center gap-3 sm:gap-5">
+            {/* The logo already links home; this text link would push the
+                header past a phone's width. */}
             <Link
               href="/"
-              className="text-xs sm:text-sm font-semibold text-[#2B211C] hover:text-[#7A0710] transition-colors"
+              className="hidden sm:inline text-xs sm:text-sm font-semibold text-[#2B211C] hover:text-[#7A0710] transition-colors"
             >
               Home
             </Link>

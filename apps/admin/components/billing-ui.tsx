@@ -117,8 +117,13 @@ export function GrantDialog({
   useEffect(() => {
     listPlans(token)
       .then((r) => {
-        setPlans(r.items);
-        const initial = r.items.find((p) => p.code === planCode) ?? r.items.find((p) => p.isActive);
+        // Inactive plans can't be granted (the API refuses them too).
+        const active = r.items.filter((p) => p.isActive);
+        setPlans(active);
+        const wanted = planCode ? r.items.find((p) => p.code === planCode) : undefined;
+        if (wanted && !wanted.isActive) setError(`${wanted.name} is inactive. Activate it on the Plans page before granting it.`);
+        else if (active.length === 0) setError('No active plans to grant.');
+        const initial = (wanted?.isActive ? wanted : undefined) ?? active[0];
         if (initial) {
           setPlanId(initial.id);
           setDays(String(initial.durationDays));
@@ -215,7 +220,7 @@ export function GrantDialog({
         >
           {plans.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name} ({rupees(p.priceInPaise)}, {p.durationDays} days){p.isActive ? '' : ' — inactive'}
+              {p.name} ({rupees(p.priceInPaise)}, {p.durationDays} days)
             </option>
           ))}
         </Select>

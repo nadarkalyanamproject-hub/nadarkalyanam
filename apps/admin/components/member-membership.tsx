@@ -7,6 +7,7 @@ import { ApiError } from '../lib/api-client';
 import { formatDate, getMemberMembership, rupees, type MemberMembership as Data } from '../lib/billing-api';
 import { useCurrentAdmin } from '../lib/use-current-admin';
 import { GrantDialog, StateBadge } from './billing-ui';
+import { MemberPhoneUnlocks } from './member-phone-unlocks';
 
 // Member detail: their plans, phone-unlock and interest usage, recent
 // orders, and a Grant plan button.
@@ -85,6 +86,7 @@ export function MemberMembership({ userId, memberLabel, disabled }: { userId: st
               ))}
             </ul>
           )}
+          <MemberPhoneUnlocks key={info.currentSubscriptionId ?? 'none'} userId={userId} />
         </>
       )}
       {granting && (

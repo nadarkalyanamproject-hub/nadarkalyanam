@@ -54,13 +54,14 @@ export class PaymentsService {
     private readonly subscriptions: SubscriptionService,
   ) {}
 
-  async listPlans(): Promise<{ items: MembershipPlanResponse[] }> {
+  async listPlans(): Promise<{ items: MembershipPlanResponse[]; freeInterestsPerMonth: number }> {
     const plans = await this.prisma.membershipPlan.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } });
     return {
       items: plans.map((plan) => ({
         id: plan.id,
         code: plan.code,
         name: plan.name,
+        description: plan.description,
         priceInPaise: plan.priceInPaise,
         durationDays: plan.durationDays,
         sortOrder: plan.sortOrder,
@@ -68,6 +69,8 @@ export class PaymentsService {
         isAssisted: plan.isAssisted,
         features: planFeatures(plan.entitlements),
       })),
+      // So member-facing copy follows the setting instead of hardcoding it.
+      freeInterestsPerMonth: this.configService.get('FREE_INTERESTS_PER_MONTH', { infer: true }),
     };
   }
 

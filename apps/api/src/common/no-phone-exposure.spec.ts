@@ -29,6 +29,7 @@ const MEMBER_RESPONSES: Record<string, z.ZodType> = {
   blockedMembers: schemas.blockedMembersResponseSchema,
   myMembership: schemas.myMembershipResponseSchema,
   membershipPlan: schemas.membershipPlanResponseSchema,
+  membershipPlans: schemas.membershipPlansResponseSchema,
   phoneStatus: schemas.phoneStatusResponseSchema,
   unlockedContacts: schemas.unlockedContactsResponseSchema,
   vipEnquiryMine: schemas.myVipEnquiryResponseSchema,

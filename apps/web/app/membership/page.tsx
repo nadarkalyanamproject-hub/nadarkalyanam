@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { MembershipPlanResponse, MyMembershipResponse, OrderResponse, PlanFeature } from '@nadar-kalyanam/schemas';
 import { Card } from '@/components/ui/card';
@@ -10,7 +11,7 @@ import { MyMembershipPanel } from '@/components/membership/my-membership-panel';
 import { ComingSoonPill } from '@/components/ui/coming-soon-note';
 import { AppHeader } from '../../components/app-header';
 import { ApiError, createOrder, getMyMembership, listMembershipPlans } from '../../lib/api-client';
-import { durationLabel, formatPrice, whatsappHref } from '../../lib/membership';
+import { durationLabel, formatPrice, freeInterestsCopy, whatsappHref } from '../../lib/membership';
 import { useRegistration } from '../providers/registration-provider';
 import { Check, Crown, Lock, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react';
 
@@ -19,7 +20,10 @@ const VIP_WHATSAPP = whatsappHref(
   'Hi, I am interested in the Nadar Kalyanam VIP Assisted service',
 );
 
-type PlansState = { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'loaded'; plans: MembershipPlanResponse[] };
+type PlansState =
+  | { kind: 'loading' }
+  | { kind: 'error'; message: string }
+  | { kind: 'loaded'; plans: MembershipPlanResponse[]; freeInterestsPerMonth: number };
 type OrderState =
   | { kind: 'idle' }
   | { kind: 'creating'; planId: string }
@@ -60,7 +64,13 @@ export default function MembershipPage() {
   // already "loading"; Try again sets it itself).
   const fetchPlans = useCallback(() => {
     listMembershipPlans()
-      .then((result) => setPlansState({ kind: 'loaded', plans: [...result.items].sort((a, b) => a.sortOrder - b.sortOrder) }))
+      .then((result) =>
+        setPlansState({
+          kind: 'loaded',
+          plans: [...result.items].sort((a, b) => a.sortOrder - b.sortOrder),
+          freeInterestsPerMonth: result.freeInterestsPerMonth,
+        }),
+      )
       .catch((err: unknown) =>
         setPlansState({ kind: 'error', message: err instanceof ApiError ? err.message : 'Could not load membership plans.' }),
       );
@@ -188,6 +198,11 @@ export default function MembershipPage() {
                     <div className="border-b border-[#F4ECE3] pb-3 text-center">
                       <h2 className="text-lg sm:text-xl font-bold uppercase tracking-wide text-[#2B1515]">{plan.name}</h2>
                       <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wider text-[#8C7B73]">{durationLabel(plan.durationDays)}</p>
+                      {plan.description && (
+                        <p className="mt-1.5 text-xs text-[#73645C]" data-testid="plan-description">
+                          {plan.description}
+                        </p>
+                      )}
                     </div>
                     <div className="py-4 text-center">
                       <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#2B1515]" data-testid="plan-price">
@@ -231,6 +246,11 @@ export default function MembershipPage() {
                   <span>Assisted service</span>
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-[family-name:var(--font-heading,serif)]">{plan.name}</h2>
+                {plan.description && (
+                  <p className="text-sm font-semibold text-[#FDE59C]" data-testid="plan-description">
+                    {plan.description}
+                  </p>
+                )}
                 <p className="text-xs sm:text-sm leading-relaxed text-[#E2D2C8]">
                   A staff-assisted plan. The assisted services below aren&apos;t running yet, so they&apos;re marked Coming Soon.
                 </p>
@@ -259,6 +279,9 @@ export default function MembershipPage() {
                     {chooseLabel(plan, `Choose ${plan.name}`)}
                   </button>
                   <VipEnquiry />
+                  <Link href="/contact" className="block text-[11px] font-semibold text-white/80 underline-offset-2 hover:text-white hover:underline" data-testid="vip-contact-link">
+                    Questions? Contact us
+                  </Link>
                   {VIP_WHATSAPP && (
                     <a
                       href={VIP_WHATSAPP}
@@ -286,7 +309,7 @@ export default function MembershipPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {[
               { icon: ShieldCheck, title: 'OTP-confirmed mobile numbers', text: 'Every account signs in with a one-time code sent to its mobile number.' },
-              { icon: MessageCircle, title: 'Interests & messaging', text: 'Send up to 5 interests a month. Once one is accepted you can message each other, with no limit.' },
+              { icon: MessageCircle, title: 'Interests & messaging', text: freeInterestsCopy(plansState.kind === 'loaded' ? plansState.freeInterestsPerMonth : null) },
               { icon: Sparkles, title: 'Privacy & blocking', text: 'Hide your profile from lists and block anyone. Your phone number stays hidden unless you allow connected members with a paid plan to unlock it.' },
             ].map(({ icon: Icon, title, text }) => (
               <div key={title} className="flex items-start gap-3 rounded-xl border border-[#E8DCCF] bg-white p-4 shadow-xs">

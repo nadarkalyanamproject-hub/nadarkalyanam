@@ -12,6 +12,7 @@ import { MatchCategoriesModule } from './modules/match-categories/match-categori
 import { MatchingModule } from './modules/matching/matching.module.js';
 import { MembershipModule } from './modules/membership/membership.module.js';
 import { VipModule } from './modules/vip/vip.module.js';
+import { SupportModule } from './modules/support/support.module.js';
 import { MessagesModule } from './modules/messages/messages.module.js';
 import { ModerationModule } from './modules/moderation/moderation.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
@@ -61,6 +62,7 @@ import { VerificationModule } from './modules/verification/verification.module.j
     PaymentsModule,
     MembershipModule,
     VipModule,
+    SupportModule,
     VerificationModule,
     CallsModule,
     AdminModule,

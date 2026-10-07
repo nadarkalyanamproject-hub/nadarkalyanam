@@ -3,15 +3,28 @@ import { orderStatusEnum } from './payments.js';
 
 // --- Admin: plans ---------------------------------------------------------
 
-// PATCH /admin/plans/:id. Only display/pricing fields; code, duration and
-// limits are fixed (changing entitlements means a new plan). Changes apply
-// to new orders only — existing orders keep their recorded amount.
+// One line of a plan's feature copy as the admin edits it. A new line has no
+// key yet; the API derives one.
+export const planFeatureInputSchema = z.object({
+  key: z.string().trim().min(1).max(60).optional(),
+  label: z.string().trim().min(1, 'Feature text is required').max(120),
+  available: z.boolean(),
+});
+
+// PATCH /admin/plans/:id. Display copy, price, order and active flag only.
+// Code, duration, phone-unlock limit, listing tier and "assisted" are fixed:
+// active subscriptions read the limit and tier from the plan live, and an
+// order paid after a change would take the new duration — so changing them
+// would silently change what members already hold. (strict: sending any of
+// them is rejected.) Price is safe: every order stores its own amount.
 export const updatePlanRequestSchema = z
   .object({
     name: z.string().trim().min(1, 'Name is required').max(60).optional(),
+    description: z.string().trim().max(160).nullable().optional(),
+    features: z.array(planFeatureInputSchema).min(1, 'Keep at least one feature line').max(15).optional(),
     priceInPaise: z.number().int('Price must be whole paise').positive('Price must be more than 0').optional(),
     isActive: z.boolean().optional(),
-    sortOrder: z.number().int().min(0).optional(),
+    sortOrder: z.number().int().min(0).max(1000).optional(),
   })
   .strict()
   .refine((body) => Object.keys(body).length > 0, { message: 'Nothing to change' });
@@ -95,6 +108,8 @@ export type MyVipEnquiryResponse = z.infer<typeof myVipEnquiryResponseSchema>;
 
 export const adminVipEnquiriesQuerySchema = z.object({
   status: vipEnquiryStatusEnum.optional(),
+  // 'me', 'unassigned', or an admin id.
+  assignee: z.string().min(1).optional(),
   offset: z.coerce.number().int().min(0).default(0),
   limit: z.coerce.number().int().min(1).max(100).default(25),
 });
@@ -104,8 +119,21 @@ export const updateVipEnquiryRequestSchema = z
   .object({
     status: vipEnquiryStatusEnum.optional(),
     assignedAdminId: z.string().min(1).nullable().optional(),
-    adminNotes: z.string().trim().max(2000).optional(),
   })
   .strict()
   .refine((body) => Object.keys(body).length > 0, { message: 'Nothing to change' });
 export type UpdateVipEnquiryRequest = z.infer<typeof updateVipEnquiryRequestSchema>;
+
+// POST /admin/vip-enquiries/:id/notes — internal, append-only, never shown
+// to the member.
+export const addVipNoteRequestSchema = z.object({
+  body: z.string().trim().min(1, 'Write a note').max(2000),
+});
+export type AddVipNoteRequest = z.infer<typeof addVipNoteRequestSchema>;
+
+// GET /support/contact — only details actually configured on the server.
+export const supportContactResponseSchema = z.object({
+  email: z.string().nullable(),
+  whatsappNumber: z.string().nullable(),
+});
+export type SupportContactResponse = z.infer<typeof supportContactResponseSchema>;

@@ -4,6 +4,8 @@ import {
   adminOrdersQuerySchema,
   type AdminSubscriptionsQuery,
   adminSubscriptionsQuerySchema,
+  type AddVipNoteRequest,
+  addVipNoteRequestSchema,
   type AdminVipEnquiriesQuery,
   adminVipEnquiriesQuerySchema,
   type FinanceDashboardQuery,
@@ -17,6 +19,7 @@ import {
   type UpdateVipEnquiryRequest,
   updateVipEnquiryRequestSchema,
 } from '@nadar-kalyanam/schemas';
+import { parseOffsetLimit } from '../../../common/pagination.js';
 import { PERMISSIONS } from '../../../common/permissions.js';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -100,6 +103,14 @@ export class AdminBillingController {
     return this.billing.memberMembership(userId);
   }
 
+  // Read-only phone-unlock usage; names and dates only, never numbers.
+  @Get('members/:userId/phone-unlocks')
+  @RequirePermission(PERMISSIONS.MEMBERS_VIEW)
+  memberPhoneUnlocks(@Param('userId') userId: string, @Query('offset') offset?: string, @Query('limit') limit?: string) {
+    const page = parseOffsetLimit(offset, limit, 50);
+    return this.billing.memberPhoneUnlocks(userId, page.offset, page.limit);
+  }
+
   // --- Orders -------------------------------------------------------------------
 
   @Get('orders')
@@ -151,14 +162,36 @@ export class AdminBillingController {
 
   @Get('vip-enquiries')
   @RequirePermission(PERMISSIONS.VIP_MANAGE)
-  listVipEnquiries(@Query(new ZodValidationPipe(adminVipEnquiriesQuerySchema)) query: AdminVipEnquiriesQuery) {
-    return this.vip.list(query.status, query.offset, query.limit);
+  listVipEnquiries(
+    @CurrentAdmin() admin: AuthenticatedAdmin,
+    @Query(new ZodValidationPipe(adminVipEnquiriesQuerySchema)) query: AdminVipEnquiriesQuery,
+  ) {
+    return this.vip.list({ status: query.status, assignee: query.assignee, callerAdminId: admin.adminId }, query.offset, query.limit);
   }
 
   @Get('vip-enquiries/assignees')
   @RequirePermission(PERMISSIONS.VIP_MANAGE)
   vipAssignees() {
     return this.vip.assignees();
+  }
+
+  // Detail: notes and status/assignment history (admin-only).
+  @Get('vip-enquiries/:id')
+  @RequirePermission(PERMISSIONS.VIP_MANAGE)
+  getVipEnquiry(@Param('id') id: string) {
+    return this.vip.getForAdmin(id);
+  }
+
+  @Post('vip-enquiries/:id/notes')
+  @RequirePermission(PERMISSIONS.VIP_MANAGE)
+  async addVipNote(
+    @CurrentAdmin() admin: AuthenticatedAdmin,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(addVipNoteRequestSchema)) body: AddVipNoteRequest,
+  ) {
+    const { enquiry, note } = await this.vip.addNote(admin.adminId, id, body.body);
+    await this.auditLog.record(admin.adminId, 'vip.note', 'VipEnquiry', id, { userId: enquiry.userId, noteId: note.id });
+    return this.vip.getForAdmin(id);
   }
 
   @Patch('vip-enquiries/:id')
@@ -168,9 +201,13 @@ export class AdminBillingController {
     @Param('id') id: string,
     @Body(new ZodValidationPipe(updateVipEnquiryRequestSchema)) body: UpdateVipEnquiryRequest,
   ) {
-    const { enquiry, before, after } = await this.vip.update(id, body);
-    if (Object.keys(after).length > 0) {
-      await this.auditLog.record(admin.adminId, 'vip.update', 'VipEnquiry', id, { userId: enquiry.userId, before, after });
+    const { enquiry, events } = await this.vip.update(admin.adminId, id, body);
+    for (const event of events) {
+      await this.auditLog.record(admin.adminId, event.kind === 'STATUS' ? 'vip.status' : 'vip.assign', 'VipEnquiry', id, {
+        userId: enquiry.userId,
+        before: event.fromValue,
+        after: event.toValue,
+      });
     }
     return this.vip.getForAdmin(id);
   }

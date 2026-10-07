@@ -20,7 +20,10 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'subscription.cancel': 'Cancelled plan',
   'order.activate': 'Activated plan for paid order',
   'order.refund': 'Recorded order refund',
-  'vip.update': 'Updated VIP enquiry',
+  'vip.update': 'Updated VIP enquiry (earlier format)',
+  'vip.status': 'Changed VIP enquiry status',
+  'vip.assign': 'Assigned VIP enquiry',
+  'vip.note': 'Added VIP enquiry note',
 };
 
 export function auditActionLabel(action: string): string {

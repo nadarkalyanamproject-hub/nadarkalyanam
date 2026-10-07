@@ -33,7 +33,8 @@ export async function seedEssential(prisma: PrismaClient, log: (message: string)
   const feature = (key: string, label: string, available = false) => ({ key, label, available });
   const MESSAGES = feature('unlimitedMessages', 'Unlimited messages with your connections', true);
   const VERIFIED_PROFILES = feature('verifiedProfiles', 'View verified profiles with photos', true);
-  const UNLIMITED_INTERESTS = feature('unlimitedInterests', 'Unlimited interests (free members: 5 a month)', true);
+  // No number here: the free limit is FREE_INTERESTS_PER_MONTH and can change.
+  const UNLIMITED_INTERESTS = feature('unlimitedInterests', 'Unlimited interests (no monthly limit)', true);
   const HOROSCOPE = feature('horoscopeViews', 'Unlimited horoscope views');
   const phones = (allowance: string) =>
     feature('phoneNumbers', `Unlock ${allowance} OTP-verified phone numbers of connected members who allow it`, true);
@@ -112,11 +113,14 @@ export async function seedEssential(prisma: PrismaClient, log: (message: string)
     },
   ];
 
+  // Create-only: once a plan exists, its name, description, price, order,
+  // active flag and feature copy are managed in the admin app (Plans), so a
+  // seed re-run must never overwrite those edits.
   for (const { features, ...plan } of MEMBERSHIP_PLANS) {
     const data = { ...plan, entitlements: { features }, isActive: true };
     await prisma.membershipPlan.upsert({
       where: { id: plan.id },
-      update: data,
+      update: {},
       create: data,
     });
   }

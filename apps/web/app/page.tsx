@@ -924,6 +924,10 @@ function HomeContent() {
             <a href="#privacy" className="legal-link">
               Privacy Policy
             </a>
+            <span className="pipe">|</span>
+            <Link href="/contact" className="legal-link">
+              Contact Us
+            </Link>
           </div>
         </div>
       </footer>

@@ -90,8 +90,17 @@ export class VipEnquiriesService {
 
   // --- Admin --------------------------------------------------------------
 
-  async list(status: VipEnquiryStatus | undefined, offset: number, limit: number) {
-    const where: Prisma.VipEnquiryWhereInput = status ? { status } : {};
+  // assignee: 'me' (the calling admin), 'unassigned', or an admin id.
+  async list(
+    filters: { status?: VipEnquiryStatus; assignee?: string; callerAdminId?: string },
+    offset: number,
+    limit: number,
+  ) {
+    const where: Prisma.VipEnquiryWhereInput = {};
+    if (filters.status) where.status = filters.status;
+    if (filters.assignee === 'unassigned') where.assignedAdminId = null;
+    else if (filters.assignee === 'me') where.assignedAdminId = filters.callerAdminId ?? '__none__';
+    else if (filters.assignee) where.assignedAdminId = filters.assignee;
     const [rows, total] = await Promise.all([
       this.prisma.vipEnquiry.findMany({ where, orderBy: { createdAt: 'desc' }, skip: offset, take: limit }),
       this.prisma.vipEnquiry.count({ where }),
@@ -99,20 +108,53 @@ export class VipEnquiriesService {
     return { items: await this.toAdminViews(rows), total };
   }
 
+  // One enquiry with its internal notes and status/assignment history
+  // (oldest first). Admin-only.
   async getForAdmin(id: string) {
-    const row = await this.prisma.vipEnquiry.findUnique({ where: { id } });
+    const row = await this.prisma.vipEnquiry.findUnique({
+      where: { id },
+      include: { notes: { orderBy: { createdAt: 'asc' } }, events: { orderBy: { createdAt: 'asc' } } },
+    });
     if (!row) throw new NotFoundException('Enquiry not found');
-    return (await this.toAdminViews([row]))[0]!;
+    const [view] = await this.toAdminViews([row]);
+    const emails = await this.adminEmails([
+      ...row.notes.map((n) => n.authorAdminId),
+      ...row.events.flatMap((e) => [e.adminId, e.kind === 'ASSIGNMENT' ? e.fromValue : null, e.kind === 'ASSIGNMENT' ? e.toValue : null]),
+    ]);
+    const who = (id: string | null) => (id ? (emails.get(id) ?? 'Former admin') : null);
+    return {
+      ...view!,
+      notes: row.notes.map((n) => ({
+        id: n.id,
+        body: n.body,
+        authorEmail: n.authorAdminId ? who(n.authorAdminId)! : 'Earlier note (author not recorded)',
+        createdAt: n.createdAt.toISOString(),
+      })),
+      history: row.events.map((e) => ({
+        kind: e.kind as 'STATUS' | 'ASSIGNMENT',
+        fromValue: e.kind === 'ASSIGNMENT' ? who(e.fromValue) : e.fromValue,
+        toValue: e.kind === 'ASSIGNMENT' ? who(e.toValue) : e.toValue,
+        byEmail: who(e.adminId)!,
+        createdAt: e.createdAt.toISOString(),
+      })),
+    };
   }
 
-  // The admin's view: the member's name and registered phone (an admin
-  // needs it to call them back), with the assignee's email.
+  private async adminEmails(ids: (string | null)[]): Promise<Map<string, string>> {
+    const unique = [...new Set(ids.filter((id): id is string => Boolean(id)))];
+    if (unique.length === 0) return new Map();
+    const admins = await this.prisma.adminUser.findMany({ where: { id: { in: unique } }, select: { id: true, email: true } });
+    return new Map(admins.map((a) => [a.id, a.email]));
+  }
+
+  // The admin list view: the member's name and registered phone (an admin
+  // needs it to call them back), with the assignee's email and note count.
   private async toAdminViews(rows: VipEnquiry[]) {
-    const adminIds = [...new Set(rows.map((r) => r.assignedAdminId).filter((id): id is string => Boolean(id)))];
-    const admins = adminIds.length
-      ? await this.prisma.adminUser.findMany({ where: { id: { in: adminIds } }, select: { id: true, email: true } })
+    const emails = await this.adminEmails(rows.map((r) => r.assignedAdminId));
+    const counts = rows.length
+      ? await this.prisma.vipEnquiryNote.groupBy({ by: ['enquiryId'], where: { enquiryId: { in: rows.map((r) => r.id) } }, _count: { _all: true } })
       : [];
-    const emails = new Map(admins.map((a) => [a.id, a.email]));
+    const noteCount = new Map(counts.map((c) => [c.enquiryId, c._count._all]));
     return rows.map((r) => ({
       ...toResponse(r),
       userId: r.userId,
@@ -120,11 +162,11 @@ export class VipEnquiriesService {
       phone: r.phone,
       assignedAdminId: r.assignedAdminId,
       assignedAdminEmail: r.assignedAdminId ? (emails.get(r.assignedAdminId) ?? null) : null,
-      adminNotes: r.adminNotes,
+      noteCount: noteCount.get(r.id) ?? 0,
     }));
   }
 
-  // Active admins whose role can work VIP enquiries — who an enquiry may be
+  // Active admins whose role can work VIP enquiries: who an enquiry may be
   // assigned to.
   async assignees() {
     const admins = await this.prisma.adminUser.findMany({
@@ -135,16 +177,19 @@ export class VipEnquiriesService {
     return { items: admins };
   }
 
-  // Returns the before/after of what changed, for the audit entry.
-  async update(id: string, change: UpdateVipEnquiryRequest) {
+  // Status and/or assignment change, each recorded in the enquiry's history
+  // with who did it. Returns what changed, for the audit entries.
+  async update(adminId: string, id: string, change: UpdateVipEnquiryRequest) {
     const enquiry = await this.prisma.vipEnquiry.findUnique({ where: { id } });
     if (!enquiry) throw new NotFoundException('Enquiry not found');
     const data: Prisma.VipEnquiryUpdateInput = {};
+    const events: { kind: 'STATUS' | 'ASSIGNMENT'; fromValue: string | null; toValue: string | null }[] = [];
     if (change.status !== undefined && change.status !== enquiry.status) {
       if (!VIP_STATUS_FLOW[enquiry.status].includes(change.status)) {
-        throw new ConflictException(`An enquiry can't move from ${enquiry.status} to ${change.status}`);
+        throw new ConflictException(`An enquiry cannot move from ${enquiry.status} to ${change.status}`);
       }
       data.status = change.status;
+      events.push({ kind: 'STATUS', fromValue: enquiry.status, toValue: change.status });
     }
     if (change.assignedAdminId !== undefined && change.assignedAdminId !== enquiry.assignedAdminId) {
       if (change.assignedAdminId !== null) {
@@ -152,13 +197,22 @@ export class VipEnquiriesService {
         if (!ok) throw new BadRequestException('That admin cannot be assigned VIP enquiries');
       }
       data.assignedAdminId = change.assignedAdminId;
+      events.push({ kind: 'ASSIGNMENT', fromValue: enquiry.assignedAdminId, toValue: change.assignedAdminId });
     }
-    if (change.adminNotes !== undefined && change.adminNotes !== (enquiry.adminNotes ?? '')) data.adminNotes = change.adminNotes;
-    if (Object.keys(data).length === 0) return { enquiry, before: {}, after: {} };
+    if (events.length === 0) return { enquiry, events };
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.vipEnquiry.update({ where: { id }, data });
+      await tx.vipEnquiryEvent.createMany({ data: events.map((e) => ({ ...e, enquiryId: id, adminId })) });
+      return row;
+    });
+    return { enquiry: updated, events };
+  }
 
-    const keys = Object.keys(data) as (keyof VipEnquiry)[];
-    const before = Object.fromEntries(keys.map((k) => [k, enquiry[k]]));
-    const updated = await this.prisma.vipEnquiry.update({ where: { id }, data });
-    return { enquiry: updated, before, after: Object.fromEntries(keys.map((k) => [k, updated[k]])) };
+  // Internal note, append-only (no edit or delete).
+  async addNote(adminId: string, id: string, body: string) {
+    const enquiry = await this.prisma.vipEnquiry.findUnique({ where: { id }, select: { id: true, userId: true } });
+    if (!enquiry) throw new NotFoundException('Enquiry not found');
+    const note = await this.prisma.vipEnquiryNote.create({ data: { enquiryId: id, authorAdminId: adminId, body: body.trim() } });
+    return { enquiry, note };
   }
 }

@@ -6,15 +6,40 @@ import type {
   SubscriptionState,
   UpdatePlanRequest,
 } from '@nadar-kalyanam/schemas';
+import { findActiveSubscription } from '../../../common/active-subscription.js';
 import { istMonthWindow } from '../../../common/ist-calendar.js';
+import { planFeatures } from '../../../common/plan-features.js';
 import type { Prisma, Subscription } from '../../../generated/prisma/client.js';
 import { SubscriptionService } from '../../membership/subscription.service.js';
-import { planFeatures } from '../../payments/payments.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditLogService } from '../audit-log.service.js';
 
 const IST_OFFSET_MS = 330 * 60 * 1000;
 const STALE_CREATED_ORDER_MS = 30 * 60 * 1000;
+
+// Feature lines as edited by an admin: existing keys kept (the web uses some,
+// e.g. phoneNumbers, for extra explanation), new lines get a key derived
+// from their text, unique within the plan.
+export function normalizeFeatures(lines: { key?: string; label: string; available: boolean }[]) {
+  const used = new Set<string>();
+  return lines.map((line) => {
+    const base =
+      line.key?.trim() ||
+      line.label
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim()
+        .split(' ')
+        .slice(0, 5)
+        .map((w, i) => (i === 0 ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+        .join('') ||
+      'feature';
+    let key = base;
+    for (let n = 2; used.has(key); n += 1) key = `${base}${n}`;
+    used.add(key);
+    return { key, label: line.label.trim(), available: line.available };
+  });
+}
 
 export function subscriptionState(s: Pick<Subscription, 'cancelledAt' | 'startedAt' | 'expiresAt'>, now: Date): SubscriptionState {
   if (s.cancelledAt) return 'CANCELLED';
@@ -83,6 +108,7 @@ export class AdminBillingService {
         id: p.id,
         code: p.code,
         name: p.name,
+        description: p.description,
         priceInPaise: p.priceInPaise,
         durationDays: p.durationDays,
         phoneUnlockLimit: p.phoneUnlockLimit,
@@ -97,15 +123,38 @@ export class AdminBillingService {
 
   // Name, price, active and order only. Existing orders keep the amount they
   // were created with; only new orders use the new price.
+  // Display copy, price, order and active flag. Duration, phone-unlock limit,
+  // listing tier and "assisted" are not accepted (see updatePlanRequestSchema):
+  // members' running plans read those live. The audit entry records the
+  // before/after of only what actually changed.
   async updatePlan(adminId: string, planId: string, change: UpdatePlanRequest) {
     const plan = await this.prisma.membershipPlan.findUnique({ where: { id: planId } });
     if (!plan) throw new NotFoundException('Plan not found');
-    const keys = (Object.keys(change) as (keyof UpdatePlanRequest)[]).filter((k) => change[k] !== plan[k]);
-    if (keys.length === 0) return (await this.listPlans()).items.find((p) => p.id === planId)!;
-    const data = Object.fromEntries(keys.map((k) => [k, change[k]]));
-    const before = Object.fromEntries(keys.map((k) => [k, plan[k]]));
-    await this.prisma.membershipPlan.update({ where: { id: planId }, data });
-    await this.auditLog.record(adminId, 'plan.update', 'MembershipPlan', planId, { code: plan.code, before, after: data });
+    const before: Record<string, unknown> = {};
+    const after: Record<string, unknown> = {};
+    const data: Prisma.MembershipPlanUpdateInput = {};
+    // An empty description clears it.
+    const description = change.description === undefined ? undefined : change.description?.trim() || null;
+    for (const key of ['name', 'description', 'priceInPaise', 'isActive', 'sortOrder'] as const) {
+      const next = key === 'description' ? description : change[key];
+      if (next === undefined || next === plan[key]) continue;
+      before[key] = plan[key];
+      after[key] = next;
+      (data as Record<string, unknown>)[key] = next;
+    }
+    if (change.features) {
+      const current = planFeatures(plan.entitlements);
+      const features = normalizeFeatures(change.features);
+      if (JSON.stringify(features) !== JSON.stringify(current)) {
+        before.features = current;
+        after.features = features;
+        data.entitlements = { ...((plan.entitlements as Record<string, unknown> | null) ?? {}), features };
+      }
+    }
+    if (Object.keys(after).length > 0) {
+      await this.prisma.membershipPlan.update({ where: { id: planId }, data });
+      await this.auditLog.record(adminId, 'plan.update', 'MembershipPlan', planId, { code: plan.code, before, after });
+    }
     return (await this.listPlans()).items.find((p) => p.id === planId)!;
   }
 
@@ -184,6 +233,9 @@ export class AdminBillingService {
     const member = await this.prisma.user.findUnique({ where: { id: body.memberId }, select: { status: true } });
     if (!member) throw new NotFoundException('Member not found');
     if (member.status === 'DELETED') throw new ConflictException('This account has been anonymized');
+    const target = await this.prisma.membershipPlan.findUnique({ where: { id: body.planId }, select: { isActive: true } });
+    if (!target) throw new NotFoundException('Membership plan not found');
+    if (!target.isActive) throw new ConflictException('This plan is inactive and cannot be granted. Activate it first.');
     const { subscription, plan } = await this.subscriptions.activate({
       userId: body.memberId,
       planId: body.planId,
@@ -349,6 +401,44 @@ export class AdminBillingService {
   }
 
   // --- Member detail ----------------------------------------------------------
+
+  // Phone-unlock usage for one member (read-only): who they unlocked and when,
+  // how often their own number was unlocked, and the current plan's counter.
+  // Never includes a phone number.
+  async memberPhoneUnlocks(userId: string, offset: number, limit: number, now: Date = new Date()) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!user) throw new NotFoundException('Member not found');
+    const [rows, madeTotal, receivedCount, active] = await Promise.all([
+      this.prisma.phoneUnlock.findMany({
+        where: { viewerId: userId },
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        skip: offset,
+        take: limit,
+        select: {
+          createdAt: true,
+          targetUserId: true,
+          target: { select: { profile: { select: { id: true, fullName: true } } } },
+          subscription: { select: { plan: { select: { name: true } } } },
+        },
+      }),
+      this.prisma.phoneUnlock.count({ where: { viewerId: userId } }),
+      this.prisma.phoneUnlock.count({ where: { targetUserId: userId } }),
+      findActiveSubscription(this.prisma, userId, now),
+    ]);
+    const used = active ? await this.prisma.phoneUnlock.count({ where: { subscriptionId: active.current.id } }) : null;
+    return {
+      made: rows.map((r) => ({
+        targetUserId: r.targetUserId,
+        targetName: r.target.profile?.fullName ?? null,
+        unlockedAt: r.createdAt.toISOString(),
+        planName: r.subscription.plan.name,
+      })),
+      madeTotal,
+      nextOffset: offset + rows.length < madeTotal ? offset + rows.length : null,
+      receivedCount,
+      currentPlan: active ? { planName: active.current.plan.name, used: used!, limit: active.current.plan.phoneUnlockLimit } : null,
+    };
+  }
 
   async memberMembership(userId: string, now: Date = new Date()) {
     const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });

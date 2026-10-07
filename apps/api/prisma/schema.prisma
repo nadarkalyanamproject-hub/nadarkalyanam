@@ -361,6 +361,8 @@ model MembershipPlan {
   // and code key on this or the id, never on the display name.
   code             String   @unique
   name             String
+  // One short line under the plan name (admin-edited, optional).
+  description      String?
   priceInPaise     Int
   durationDays     Int
   sortOrder        Int      @default(0)
@@ -608,11 +610,47 @@ model VipEnquiry {
   message         String?
   status          VipEnquiryStatus @default(NEW)
   assignedAdminId String?
+  // Deprecated: the old single free-text note. Copied into vip_enquiry_notes
+  // by the 20261009 migration and no longer written; notes are append-only
+  // rows now.
   adminNotes      String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
+  notes  VipEnquiryNote[]
+  events VipEnquiryEvent[]
+
   @@index([status, createdAt])
   @@index([userId])
   @@map("vip_enquiries")
+}
+
+// Internal, append-only notes on a VIP enquiry. Never shown to the member.
+// authorAdminId is null only for notes copied from the old adminNotes field.
+model VipEnquiryNote {
+  id            String     @id @default(uuid())
+  enquiryId     String
+  enquiry       VipEnquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  authorAdminId String?
+  body          String
+  createdAt     DateTime   @default(now())
+
+  @@index([enquiryId, createdAt])
+  @@map("vip_enquiry_notes")
+}
+
+// Status and assignment history of a VIP enquiry: who changed what, when.
+model VipEnquiryEvent {
+  id        String     @id @default(uuid())
+  enquiryId String
+  enquiry   VipEnquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  adminId   String
+  // STATUS or ASSIGNMENT
+  kind      String
+  fromValue String?
+  toValue   String?
+  createdAt DateTime   @default(now())
+
+  @@index([enquiryId, createdAt])
+  @@map("vip_enquiry_events")
 }
