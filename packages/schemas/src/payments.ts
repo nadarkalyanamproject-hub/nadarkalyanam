@@ -95,6 +95,9 @@ export const myMembershipResponseSchema = z.object({
     })
     .nullable(),
   status: z.enum(['ACTIVE', 'FREE']),
+  // True when the server requires a plan (REQUIRE_PAID_PLAN) and the member
+  // has none: browsing members, search, interests and chat are refused.
+  accessLocked: z.boolean(),
   // Current plan period.
   startedAt: z.string().nullable(),
   expiresAt: z.string().nullable(),

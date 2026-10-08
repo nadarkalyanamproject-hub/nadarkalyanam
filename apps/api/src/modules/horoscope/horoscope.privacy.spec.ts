@@ -165,12 +165,38 @@ describe('profile view: horoscope and preference fit are computed for the viewer
       education: { profession: 'Engineer' },
     },
   };
-  function controller(relationship: string | null, row: Record<string, unknown>, viewerPrefs: unknown) {
+  // The owner wants someone aged 99+: a preference the viewer (born 1997)
+  // can never meet, so the owner-side fit is recognisable.
+  const ownerPrefs = {
+    ageMin: 99,
+    ageMax: null,
+    heightMinCm: null,
+    heightMaxCm: null,
+    maritalStatuses: [],
+    motherTongues: [],
+    states: [],
+    cities: [],
+    incomeMinLakhs: null,
+    incomeMaxLakhs: null,
+    doshamPreference: 'DOESNT_MATTER',
+    mustHaveAge: true,
+    mustHaveMaritalStatus: false,
+    mustHaveLocation: false,
+    updatedAt: 'owner-updated',
+  };
+  const viewerProfile = { dateOfBirth: new Date('1997-06-01'), details: {} };
+  function controller(relationship: string | null, row: Record<string, unknown>, viewerPrefs: unknown, ownerHasPrefs = true) {
     const { service } = horoscopeService(row);
     const preferences = {
-      findForUser: vi.fn(async (userId: string) => (userId === 'viewer' ? viewerPrefs : { ageMin: 99, secret: 'OWNER-PREF' })),
+      findForUser: vi.fn(async (userId: string) => (userId === 'viewer' ? viewerPrefs : ownerHasPrefs ? ownerPrefs : null)),
       fitForViewer: (userId: string, profile: any) =>
         new PartnerPreferencesService({} as never).fitForViewer.call({ findForUser: preferences.findForUser }, userId, profile),
+      theirPreferencesFor: (ownerUserId: string, viewerUserId: string) =>
+        new PartnerPreferencesService({} as never).theirPreferencesFor.call(
+          { findForUser: preferences.findForUser, prisma: { profile: { findUnique: async () => viewerProfile } } } as never,
+          ownerUserId,
+          viewerUserId,
+        ),
     };
     const ctl = new ProfilesController(
       {
@@ -211,7 +237,7 @@ describe('profile view: horoscope and preference fit are computed for the viewer
     expect((await controller('INTEREST_SENT', row, null).ctl.getOne(viewer, 'profile-owner')).horoscope).toEqual({ shared: false });
   });
 
-  it('"N of M" uses only the VIEWER\'s preferences and never carries the owner\'s', async () => {
+  it('"N of M" uses only the VIEWER\'s preferences; the owner\'s appear only in theirPreferences', async () => {
     const { ctl, preferences } = controller(null, ROW, viewerPrefs);
     const detail = await ctl.getOne(viewer, 'profile-owner');
     expect(detail.preferenceFit).toEqual({
@@ -224,8 +250,15 @@ describe('profile view: horoscope and preference fit are computed for the viewer
       ],
     });
     expect(preferences.findForUser).toHaveBeenCalledWith('viewer');
-    expect(preferences.findForUser).not.toHaveBeenCalledWith('owner');
-    expect(JSON.stringify(detail)).not.toContain('OWNER-PREF');
+    // The owner's preferences, checked against the VIEWER's profile...
+    expect(detail.theirPreferences).toEqual({
+      preferences: ownerPrefs,
+      fit: { matched: 0, total: 1, unknown: 0, fields: [{ key: 'age', matched: false }] },
+    });
+    // ...and nowhere else in the response.
+    expect(JSON.stringify({ ...detail, theirPreferences: null })).not.toContain('owner-updated');
+    // An owner without preferences shows no section.
+    expect((await controller(null, ROW, viewerPrefs, false).ctl.getOne(viewer, 'profile-owner')).theirPreferences).toBeNull();
     // A viewer without preferences gets no fit line.
     expect((await controller(null, ROW, null).ctl.getOne(viewer, 'profile-owner')).preferenceFit).toBeNull();
   });
@@ -264,13 +297,16 @@ describe('list responses never carry horoscope or partner-preference fields', ()
     expect(keys.filter((k) => PREFERENCE_KEYS.test(k))).toEqual([]);
   });
 
-  it("the profile view never carries birth time/place outside the shared horoscope block, nor anyone's preferences", () => {
+  it('the profile view carries birth time/place only in the horoscope block, and preferences only in theirPreferences', () => {
     const detail = schemas.publicProfileDetailSchema.shape;
     const outside = Object.entries(detail)
       .filter(([k]) => k !== 'horoscope')
       .flatMap(([k, v]) => [k, ...allKeys(v as z.ZodType)]);
     expect(outside.filter((k) => /^birth/.test(k))).toEqual([]);
-    expect(allKeys(schemas.publicProfileDetailSchema).filter((k) => PREFERENCE_KEYS.test(k))).toEqual([]);
+    const outsideTheirs = Object.entries(detail)
+      .filter(([k]) => k !== 'theirPreferences')
+      .flatMap(([k, v]) => [k, ...allKeys(v as z.ZodType)]);
+    expect(outsideTheirs.filter((k) => PREFERENCE_KEYS.test(k))).toEqual([]);
   });
 });
 

@@ -68,6 +68,14 @@ export const envSchema = z.object({
     .enum(['true', 'false'])
     .default('true')
     .transform((value) => value === 'true'),
+  // There is no free membership: when on, viewing other members, search,
+  // matches, interests, chat, shortlists and phone unlocks need an active
+  // plan (PlanRequiredGuard). Off by default until online payment is live,
+  // since until then the only way to get a plan is an admin grant.
+  REQUIRE_PAID_PLAN: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   // Free members may send this many interests per calendar month (India
   // time). Paid plans have no limit.
   FREE_INTERESTS_PER_MONTH: z.coerce.number().int().min(0).default(5),

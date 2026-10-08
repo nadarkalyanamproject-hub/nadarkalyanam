@@ -13,6 +13,7 @@ import { getRelationshipStates } from '../../common/relationship.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { EntitlementsService } from '../membership/entitlements.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { canSeeGender } from '../../common/profile-cards.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProfilesService } from '../profiles/profiles.service.js';
@@ -43,7 +44,8 @@ export class InterestsService {
     const callerProfile = await this.profilesService.getOwnProfileOrThrow(callerUserId);
 
     const targetProfile = await this.prisma.profile.findUnique({ where: { id: targetProfileId } });
-    if (!targetProfile || targetProfile.visibility === 'HIDDEN') {
+    // Same-gender profiles are never shown, so they look like a missing one.
+    if (!targetProfile || targetProfile.visibility === 'HIDDEN' || !canSeeGender(callerProfile.gender, targetProfile.gender)) {
       throw new NotFoundException('Profile not found');
     }
 

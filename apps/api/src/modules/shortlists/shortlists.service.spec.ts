@@ -17,14 +17,20 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { ShortlistsController } from './shortlists.controller.js';
 import { ShortlistsService } from './shortlists.service.js';
+import { PlanRequiredGuard } from '../../common/plan-required.guard.js';
 
-// me = the caller; a/b/c are ordinary members; blocker blocked me, blocked
+// me = the caller (male; everyone else is female, since members only see
+// the opposite gender); a/b/c are ordinary members; blocker blocked me, blocked
 // was blocked by me, suspended is inactive, hidden hid their profile.
 function setup() {
   const ids = ['me', 'a', 'b', 'c', 'blocker', 'blocked', 'suspended', 'hidden'];
   const state: FakeState = {
     profiles: ids.map((userId) =>
-      makeProfile({ userId, visibility: userId === 'hidden' ? 'HIDDEN' : 'PUBLIC' }),
+      makeProfile({
+        userId,
+        gender: userId === 'me' ? 'MALE' : 'FEMALE',
+        visibility: userId === 'hidden' ? 'HIDDEN' : 'PUBLIC',
+      }),
     ),
     userStatus: Object.fromEntries(ids.map((id) => [id, id === 'suspended' ? 'SUSPENDED' : 'ACTIVE'])),
     photos: [],
@@ -69,6 +75,13 @@ describe('ShortlistsService', () => {
       await expect(service.add('me', pid(userId))).rejects.toBeInstanceOf(NotFoundException);
     }
     await expect(service.add('me', 'no-such-profile')).rejects.toBeInstanceOf(NotFoundException);
+    expect(state.shortlists).toHaveLength(0);
+  });
+
+  it('refuses to shortlist a same-gender profile, as if it were missing', async () => {
+    const { state, service } = setup();
+    state.profiles.find((p) => p.userId === 'a')!.gender = 'MALE';
+    await expect(service.add('me', pid('a'))).rejects.toBeInstanceOf(NotFoundException);
     expect(state.shortlists).toHaveLength(0);
   });
 
@@ -141,7 +154,7 @@ describe('ShortlistsController', () => {
 
   it('is mounted at /shortlists behind the member JwtAuthGuard', () => {
     expect(Reflect.getMetadata('path', ShortlistsController)).toBe('shortlists');
-    expect(Reflect.getMetadata('__guards__', ShortlistsController)).toEqual([JwtAuthGuard]);
+    expect(Reflect.getMetadata('__guards__', ShortlistsController)).toEqual([JwtAuthGuard, PlanRequiredGuard]);
     for (const { handler, method, path } of routes) {
       const fn = ShortlistsController.prototype[handler];
       expect(Reflect.getMetadata('method', fn)).toBe(method);

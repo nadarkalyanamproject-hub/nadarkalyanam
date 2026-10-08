@@ -23,7 +23,7 @@ function setup(initial: string | null = 'MEMBERS_ONLY') {
     { getPhotosForProfile: async () => [] } as never,
     {} as never,
     {} as never,
-    { findForUser: async () => null, fitForViewer: async () => null } as never,
+    { findForUser: async () => null, fitForViewer: async () => null, theirPreferencesFor: async () => null } as never,
     { findByProfileId: async () => null, viewFor: async () => ({ shared: false }) } as never,
   );
   return { prisma, controller, row };

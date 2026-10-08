@@ -15,22 +15,39 @@ export const MEMBER_VISIBLE_SETTINGS: ProfileVisibility[] = ['PUBLIC', 'MEMBERS_
 // Matches nothing — for a viewer who isn't allowed to see anyone.
 export const NO_PROFILES: Prisma.ProfileWhereInput = { id: { in: [] } };
 
+// Members only ever see the opposite gender: a man sees women, a woman sees
+// men. A viewer whose gender is OTHER (or unknown) is not narrowed.
+export function oppositeGender(viewerGender: string | null | undefined): 'MALE' | 'FEMALE' | null {
+  if (viewerGender === 'MALE') return 'FEMALE';
+  if (viewerGender === 'FEMALE') return 'MALE';
+  return null;
+}
+
+// The same rule for a single profile (interest send, shortlist add).
+export function canSeeGender(viewerGender: string | null | undefined, targetGender: string): boolean {
+  const wanted = oppositeGender(viewerGender);
+  return wanted === null || wanted === targetGender;
+}
+
 // The single visibility rule for every member-facing profile list (Search,
 // Matches and its categories, Browse, Shortlist) and the profile page:
 //  - the viewer must be a member in good standing: ACTIVE account with a
 //    profile of their own (a suspended, removed or half-registered account
 //    sees no one);
 //  - never the viewer themselves, never anyone blocked in either direction;
-//  - never a HIDDEN profile, never an account that isn't ACTIVE.
+//  - never a HIDDEN profile, never an account that isn't ACTIVE;
+//  - only the opposite gender (oppositeGender).
 export function profileVisibilityWhere(
-  viewer: { userId: string; isActiveMember: boolean },
+  viewer: { userId: string; isActiveMember: boolean; gender?: string | null },
   blockedUserIds: Iterable<string>,
 ): Prisma.ProfileWhereInput {
   if (!viewer.isActiveMember) return NO_PROFILES;
+  const gender = oppositeGender(viewer.gender);
   return {
     visibility: { in: MEMBER_VISIBLE_SETTINGS },
     userId: { notIn: [viewer.userId, ...blockedUserIds] },
     user: { status: 'ACTIVE' },
+    ...(gender ? { gender } : {}),
   };
 }
 
@@ -41,12 +58,12 @@ export async function visibleProfilesWhere(
   const [viewer, blockedUserIds] = await Promise.all([
     prisma.user.findUnique({
       where: { id: callerUserId },
-      select: { status: true, profile: { select: { id: true } } },
+      select: { status: true, profile: { select: { id: true, gender: true } } },
     }),
     getBlockedUserIds(prisma, callerUserId),
   ]);
   const isActiveMember = viewer?.status === 'ACTIVE' && Boolean(viewer.profile);
-  return profileVisibilityWhere({ userId: callerUserId, isActiveMember }, blockedUserIds);
+  return profileVisibilityWhere({ userId: callerUserId, isActiveMember, gender: viewer?.profile?.gender }, blockedUserIds);
 }
 
 // Builds category-page cards from real rows only; unfilled fields stay null.
