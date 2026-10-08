@@ -21,7 +21,7 @@ export function MyMembershipPanel({ me }: { me: MyMembershipResponse }) {
             Your plan ends on {formatPlanDate(banner.expiresAt)} ({daysLeftLabel(banner.daysLeft)}).
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#73645C]">
-            <button type="button" disabled className="cursor-not-allowed rounded-full border border-[#DFC392] bg-white px-4 py-1.5 font-semibold text-[#8C7B73]">
+            <button type="button" disabled className="cursor-not-allowed rounded-md border border-[#DFC392] bg-white px-4 py-1.5 font-semibold text-[#8C7B73]">
               Renew online soon
             </button>
             <span>Online payment is opening soon.</span>
@@ -62,7 +62,7 @@ export function MyMembershipPanel({ me }: { me: MyMembershipResponse }) {
               <p className="text-base font-bold text-[#680A0E]" data-testid="my-plan-name">
                 Your plan: {me.plan.name}
               </p>
-              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">Active</span>
+              <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">Active</span>
             </div>
             <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-4" data-testid="my-plan-dates">
               <div>

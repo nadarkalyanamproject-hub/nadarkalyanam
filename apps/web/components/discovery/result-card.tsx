@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { RelationshipStatus } from '@nadar-kalyanam/schemas';
 import { UserIcon } from '../app-header';
 import { ConnectedBadge, RelationshipAction } from '../relationship/relationship-action';
+import { VerifiedBadge } from '../ui/verified-badge';
 
 // Theme-token badges only (bg-primary / bg-accent), never a raw hex or
 // Tailwind palette color — keeps every result card on the same two-color
@@ -21,6 +22,7 @@ export function ResultCard({
   primaryPhotoUrl,
   badgeLabel,
   badgeVariant = 'primary',
+  verified = false,
   relationshipStatus,
   conversationId,
 }: {
@@ -31,6 +33,7 @@ export function ResultCard({
   primaryPhotoUrl: string | null;
   badgeLabel?: string;
   badgeVariant?: keyof typeof BADGE_STYLES;
+  verified?: boolean;
   relationshipStatus: RelationshipStatus;
   conversationId: string | null;
 }) {
@@ -59,8 +62,12 @@ export function ResultCard({
       </div>
 
       <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <h3 className="font-[family-name:var(--font-body)] text-base font-bold text-[#2B211C]">
-          {fullName}, {age}
+        <h3 className="flex items-center gap-1.5 font-[family-name:var(--font-body)] text-base font-bold text-[#2B211C]">
+          <span className="flex min-w-0">
+            <span className="truncate">{fullName}</span>
+            <span className="shrink-0">, {age}</span>
+          </span>
+          {verified && <VerifiedBadge className="h-4 w-4 shrink-0" />}
         </h3>
         {city && <p className="mt-1 text-xs font-medium text-[#776B62]">{city}</p>}
         {relationshipStatus === 'CONNECTED' && <ConnectedBadge className="mt-1.5 self-start" />}

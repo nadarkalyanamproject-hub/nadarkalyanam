@@ -17,6 +17,7 @@ import {
   toSearchQuery,
   type SearchFilters,
 } from '../../lib/search-query';
+import { PlanGate } from '../../components/plan/plan-gate';
 
 type SearchOutcome =
   | { items: SearchProfileResult[]; total: number; nextCursor: string | null; filters: SearchFilters }
@@ -232,8 +233,7 @@ function SearchPageContent() {
                     primaryPhotoUrl={profile.primaryPhotoUrl}
                     relationshipStatus={profile.relationshipStatus}
                     conversationId={profile.conversationId}
-                    badgeLabel={profile.isVerified ? 'Verified' : undefined}
-                    badgeVariant="accent"
+                    verified={profile.isVerified}
                   />
                 ))}
               </div>
@@ -256,7 +256,7 @@ function SearchPageContent() {
   );
 }
 
-export default function SearchPage() {
+function SearchPageWithSuspense() {
   return (
     <Suspense
       fallback={
@@ -267,5 +267,14 @@ export default function SearchPage() {
     >
       <SearchPageContent />
     </Suspense>
+  );
+}
+
+// Needs a membership plan when the server requires one (see PlanGate).
+export default function SearchPage() {
+  return (
+    <PlanGate>
+      <SearchPageWithSuspense />
+    </PlanGate>
   );
 }

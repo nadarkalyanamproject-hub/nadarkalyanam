@@ -9,6 +9,7 @@ import { ApiError, getMyUnlockedContacts, unlockPhone } from '../../../lib/api-c
 import { formatPlanDate } from '../../../lib/membership';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { useRegistration } from '../../providers/registration-provider';
+import { PlanGate } from '../../../components/plan/plan-gate';
 
 const PAGE = 20;
 
@@ -57,7 +58,7 @@ function ContactRow({ contact, accessToken }: { contact: UnlockedContact; access
           type="button"
           onClick={() => void show()}
           disabled={busy}
-          className="rounded-full border border-[#E8DCC8] bg-[#FFFDF9] px-4 py-1.5 text-xs font-semibold text-[#7A0710] hover:bg-[#FFF9ED] disabled:opacity-60"
+          className="rounded-md border border-[#E8DCC8] bg-[#FFFDF9] px-4 py-1.5 text-xs font-semibold text-[#7A0710] hover:bg-[#FFF9ED] disabled:opacity-60"
         >
           {busy ? 'Loading…' : 'Show number'}
         </button>
@@ -66,7 +67,7 @@ function ContactRow({ contact, accessToken }: { contact: UnlockedContact; access
   );
 }
 
-export default function UnlockedContactsPage() {
+function UnlockedContactsPageContent() {
   const { ready } = useRequireAuth();
   const { data } = useRegistration();
   const [items, setItems] = useState<UnlockedContact[] | null>(null);
@@ -122,12 +123,21 @@ export default function UnlockedContactsPage() {
             </Card>
           )}
           {nextOffset !== null && (
-            <button type="button" onClick={() => load(nextOffset)} className="self-center rounded-full border border-[#E8DCC8] px-4 py-1.5 text-xs font-semibold text-[#7A0710]">
+            <button type="button" onClick={() => load(nextOffset)} className="self-center rounded-md border border-[#E8DCC8] px-4 py-1.5 text-xs font-semibold text-[#7A0710]">
               Load more
             </button>
           )}
         </div>
       </main>
     </>
+  );
+}
+
+// Needs a membership plan when the server requires one (see PlanGate).
+export default function UnlockedContactsPage() {
+  return (
+    <PlanGate>
+      <UnlockedContactsPageContent />
+    </PlanGate>
   );
 }

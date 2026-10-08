@@ -70,7 +70,7 @@ export function MatchProfileCard({ profile }: { profile: MatchProfileCardData })
         </div>
 
         {profile.score !== undefined && (
-          <span className="bg-[#FDF2F2] border border-[#F8D7DA] text-[#C53030] text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
+          <span className="bg-[#FDF2F2] border border-[#F8D7DA] text-[#C53030] text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap shrink-0">
             {/* The score can exceed 100 (preference fit and listing bonus are added on top); never show more than 100%. */}
             {Math.min(100, Math.round(profile.score))}% match
           </span>
@@ -80,7 +80,7 @@ export function MatchProfileCard({ profile }: { profile: MatchProfileCardData })
       <div className="flex items-start gap-2 pt-1">
         <Link
           href={`/browse/${profile.profileId}`}
-          className="border border-[#C49746] text-[#C49746] hover:bg-[#C49746]/10 active:scale-[0.98] text-xs font-semibold py-1.5 px-3 rounded-full flex-1 text-center transition-colors whitespace-nowrap"
+          className="border border-[#C49746] text-[#C49746] hover:bg-[#C49746]/10 active:scale-[0.98] text-xs font-semibold py-1.5 px-3 rounded-md flex-1 text-center transition-colors whitespace-nowrap"
         >
           View Profile
         </Link>

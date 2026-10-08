@@ -13,6 +13,7 @@ import {
   NOTIFICATIONS_CHANGED_EVENT,
 } from '../lib/notifications';
 import { useProfile } from '../lib/use-profile';
+import { Heart, Crown } from 'lucide-react';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -26,11 +27,7 @@ function HomeIcon(props: IconProps) {
 }
 
 function HeartIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-    </svg>
-  );
+  return <Heart strokeWidth={1.8} fill="none" {...props} />;
 }
 
 function StarIcon(props: IconProps) {
@@ -107,14 +104,7 @@ function MandalaEmblem() {
 }
 
 function CrownIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M3 18h18M4 14l3-8 5 4 5-4 3 8H4Z" />
-      <circle cx="4" cy="6" r="1" fill="currentColor" />
-      <circle cx="12" cy="4" r="1" fill="currentColor" />
-      <circle cx="20" cy="6" r="1" fill="currentColor" />
-    </svg>
-  );
+  return <Crown strokeWidth={1.8} fill="none" {...props} />;
 }
 
 interface NavItem {
@@ -285,23 +275,7 @@ export function AppHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#E8DCC8] bg-[#FFFDF9]/95 backdrop-blur-md transition-shadow">
-      {/* Radiant Festive Yellow Top Announcement Bar */}
-      <div className="border-b border-[#F59E0B]/30 bg-[#FFD54F] px-4 py-1 text-[11px] font-semibold tracking-wider text-[#680A0E]">
-        <div className="mx-auto flex w-full items-center justify-between px-2 sm:px-4 lg:px-8 xl:px-12 2xl:px-16">
-          <div className="flex items-center gap-2">
-            <span>Tradition</span>
-            <span className="opacity-40">|</span>
-            <span>Trust</span>
-            <span className="opacity-40">|</span>
-            <span>Together in Values</span>
-          </div>
-          <div className="hidden sm:flex items-center gap-2 text-[10px] text-[#7A0710]/90 font-medium">
-            <span>⭐ Trusted Nadar Matrimonial Platform</span>
-          </div>
-        </div>
-      </div>
-
+    <header className="sticky top-0 z-40 border-b border-[#EBC75A]/60 bg-[#FFE38A] transition-shadow">
       <div className="mx-auto flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
         {/* Brand Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2.5 transition-transform hover:scale-[1.01]">
@@ -310,7 +284,7 @@ export function AppHeader() {
             <span className="font-[family-name:var(--font-body)] text-xl font-bold tracking-tight text-[#7A0710] sm:text-2xl">
               Nadar Kalyanam
             </span>
-            <span className="hidden text-[10px] font-medium tracking-wider text-[#776B62] uppercase sm:inline-block">
+            <span className="hidden text-[10px] font-medium tracking-wider text-[#6B4E1E] uppercase sm:inline-block">
               Matrimonial Portal
             </span>
           </div>
@@ -332,12 +306,12 @@ export function AppHeader() {
                       className={`group relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                         isActive
                           ? 'text-[#7A0710] font-semibold'
-                          : 'text-[#2B211C] hover:bg-[#F9F3E7] hover:text-[#7A0710]'
+                          : 'text-[#2B211C] hover:bg-white/40 hover:text-[#7A0710]'
                       }`}
                     >
                       <Icon
                         className={`h-[18px] w-[18px] shrink-0 transition-colors ${
-                          isActive ? 'text-[#7A0710]' : 'text-[#776B62] group-hover:text-[#7A0710]'
+                          isActive ? 'text-[#7A0710]' : 'text-[#5A4636] group-hover:text-[#7A0710]'
                         }`}
                       />
                       <span>{item.label}</span>
@@ -360,7 +334,7 @@ export function AppHeader() {
                         ))}
                       {/* Active gold/maroon indicator */}
                       {isActive && (
-                        <span className="absolute bottom-0 left-2.5 right-2.5 h-[2.5px] rounded-full bg-[#D6A33A]" />
+                        <span className="absolute bottom-0 left-2.5 right-2.5 h-[2.5px] rounded-full bg-[#7A0710]" />
                       )}
                     </Link>
                   );
@@ -371,11 +345,11 @@ export function AppHeader() {
                   <div
                     key={item.key}
                     title={`${item.label} — Coming soon`}
-                    className="group relative flex cursor-default items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-[#776B62]/75 transition-colors hover:text-[#2B211C]"
+                    className="group relative flex cursor-default items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-[#5A4636]/70 transition-colors hover:text-[#2B211C]"
                   >
-                    <Icon className="h-[18px] w-[18px] shrink-0 text-[#968A82]" />
+                    <Icon className="h-[18px] w-[18px] shrink-0 text-[#8A7350]" />
                     <span>{item.label}</span>
-                    <span className="hidden text-[9px] text-[#A69990] italic lg:inline">soon</span>
+                    <span className="hidden text-[9px] text-[#8A7350] italic lg:inline">soon</span>
                   </div>
                 );
               })}
@@ -392,7 +366,7 @@ export function AppHeader() {
                 }}
                 aria-label={menuOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={menuOpen}
-                className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[#2B211C] transition-colors hover:bg-[#F9F3E7] md:hidden"
+                className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[#2B211C] transition-colors hover:bg-white/40 md:hidden"
               >
                 {menuOpen ? <CloseIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
                 {!menuOpen && anyBadge && (
@@ -449,7 +423,7 @@ export function AppHeader() {
                           onClick={closeAvatarMenu}
                           className={`${ACCOUNT_MENU_ITEM_CLASS} text-[#2B211C] hover:bg-[#F9F3E7] hover:text-[#7A0710] focus:bg-[#F9F3E7]`}
                         >
-                          <CrownIcon className="h-4 w-4 text-[#7A0710]" />
+                          <CrownIcon className="h-4 w-4 text-[#C89B3C]" />
                           Membership
                         </Link>
                         <Link

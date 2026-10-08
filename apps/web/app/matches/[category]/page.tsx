@@ -19,6 +19,7 @@ import { findMatchCategory, type RealCategory, type RealCategorySource } from '.
 import { mustHaveNotice } from '../../../lib/partner-preferences';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { useRegistration } from '../../providers/registration-provider';
+import { PlanGate } from '../../../components/plan/plan-gate';
 
 interface LoadedCategory {
   items: MatchProfileCardData[];
@@ -76,7 +77,7 @@ async function loadCategory(accessToken: string, source: RealCategorySource): Pr
   }
 }
 
-export default function MatchCategoryPage() {
+function MatchCategoryPageContent() {
   const { ready } = useRequireAuth();
   const { data } = useRegistration();
   const params = useParams<{ category: string }>();
@@ -114,7 +115,7 @@ export default function MatchCategoryPage() {
           <Link
             href="/matches"
             data-testid="back-to-matches"
-            className="self-start inline-flex items-center gap-1.5 rounded-full border border-[#EADBBD] bg-white/95 px-3.5 py-1.5 text-xs font-semibold text-[#7A1118] hover:border-[#7A1118] hover:bg-[#7A1118]/5 transition-colors shadow-2xs"
+            className="self-start inline-flex items-center gap-1.5 rounded-md border border-[#EADBBD] bg-white/95 px-3.5 py-1.5 text-xs font-semibold text-[#7A1118] hover:border-[#7A1118] hover:bg-[#7A1118]/5 transition-colors shadow-2xs"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to Matches
@@ -147,7 +148,7 @@ export default function MatchCategoryPage() {
                 {category.alternative && (
                   <Link
                     href={category.alternative.href}
-                    className="mt-4 inline-flex rounded-full border border-[#7A1118]/30 px-4 py-2 text-xs font-semibold text-[#7A1118] hover:border-[#7A1118] hover:bg-[#7A1118]/5 transition-colors"
+                    className="mt-4 inline-flex rounded-md border border-[#7A1118]/30 px-4 py-2 text-xs font-semibold text-[#7A1118] hover:border-[#7A1118] hover:bg-[#7A1118]/5 transition-colors"
                   >
                     {category.alternative.label}
                   </Link>
@@ -211,5 +212,14 @@ function RealCategoryResults({
         </>
       )}
     </div>
+  );
+}
+
+// Needs a membership plan when the server requires one (see PlanGate).
+export default function MatchCategoryPage() {
+  return (
+    <PlanGate>
+      <MatchCategoryPageContent />
+    </PlanGate>
   );
 }

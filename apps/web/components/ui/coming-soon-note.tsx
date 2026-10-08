@@ -26,7 +26,7 @@ export function ComingSoonNote({ feature, testId = 'coming-soon' }: { feature: C
 
 export function ComingSoonPill() {
   return (
-    <span className="shrink-0 rounded-full border border-[#E6D3B0] bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#9C7328]">
+    <span className="shrink-0 rounded-md border border-[#E6D3B0] bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#9C7328]">
       Coming soon
     </span>
   );

@@ -169,18 +169,14 @@ function AccordionSection({
                 <ComingSoonPill />
               </p>
             )}
-            {statusBadge && (
+            {/* Only what still needs doing; a finished section shows no label. */}
+            {statusBadge && statusBadge.variant !== 'complete' && (
               <p
-                className={`mt-0.5 flex items-center gap-1 text-xs font-medium ${
-                  statusBadge.variant === 'complete'
-                    ? 'text-emerald-700 font-semibold'
-                    : statusBadge.variant === 'progress'
-                    ? 'text-[#8C6110] font-semibold'
-                    : 'text-[#776B62]'
+                className={`mt-0.5 text-xs ${
+                  statusBadge.variant === 'progress' ? 'font-semibold text-[#8C6110]' : 'font-medium text-[#776B62]'
                 }`}
               >
-                {statusBadge.variant === 'complete' && <span>✓</span>}
-                <span>{statusBadge.label}</span>
+                {statusBadge.label}
               </p>
             )}
           </div>

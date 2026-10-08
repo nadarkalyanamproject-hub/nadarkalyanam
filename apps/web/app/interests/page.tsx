@@ -32,6 +32,7 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
+import { PlanGate } from '../../components/plan/plan-gate';
 
 export interface DisplayInterest {
   id: string;
@@ -77,7 +78,7 @@ export function mapApiInterestToDisplay(interest: InterestResponse, isReceived: 
   };
 }
 
-export default function InterestsPage() {
+function InterestsPageContent() {
   const { ready } = useRequireAuth();
   const { data } = useRegistration();
 
@@ -287,7 +288,7 @@ export default function InterestsPage() {
 
               {/* Right Filter Pills & Chevron */}
               <div className="flex items-center gap-3 self-end sm:self-auto flex-wrap">
-                <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-[#FAF7F2] rounded-full border border-[#EADBBD]/70">
+                <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-[#FAF7F2] rounded-lg border border-[#EADBBD]/70">
                   {(
                     [
                       { key: 'ALL', label: 'All' },
@@ -302,7 +303,7 @@ export default function InterestsPage() {
                         key={key}
                         type="button"
                         onClick={() => setFilterReceived(key)}
-                        className={`px-3 sm:px-4 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                        className={`px-3 sm:px-4 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
                           isActive
                             ? 'bg-[#7A1118] text-white shadow-2xs'
                             : 'bg-transparent text-[#73645C] hover:text-[#241C1A]'
@@ -380,25 +381,25 @@ export default function InterestsPage() {
                         {/* Status Badge */}
                         <div className="flex items-center gap-2 sm:gap-3">
                           {item.status === 'PENDING' && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#FDF2F2] border border-[#F8D7DA] text-[#C53030]">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-[#FDF2F2] border border-[#F8D7DA] text-[#C53030]">
                               <Clock className="h-3.5 w-3.5" />
                               <span>Pending</span>
                             </span>
                           )}
                           {item.status === 'ACCEPTED' && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#F0FDF4] border border-[#DCFCE7] text-[#16A34A]">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-[#F0FDF4] border border-[#DCFCE7] text-[#16A34A]">
                               <CheckCircle2 className="h-3.5 w-3.5" />
                               <span>Accepted</span>
                             </span>
                           )}
                           {item.status === 'DECLINED' && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#FEF2F2] border border-[#FEE2E2] text-[#DC2626]">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-[#FEF2F2] border border-[#FEE2E2] text-[#DC2626]">
                               <XCircle className="h-3.5 w-3.5" />
                               <span>Declined</span>
                             </span>
                           )}
                           {item.status === 'WITHDRAWN' && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-50 border border-gray-200 text-gray-600">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-gray-50 border border-gray-200 text-gray-600">
                               <span>Withdrawn</span>
                             </span>
                           )}
@@ -413,7 +414,7 @@ export default function InterestsPage() {
                         <div className="flex items-center gap-2 relative">
                           <Link
                             href={`/browse/${item.profileId}`}
-                            className="px-4 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs font-semibold tracking-wide border border-[#C49746] text-[#C49746] hover:bg-[#C49746]/10 active:scale-[0.98] transition-colors whitespace-nowrap"
+                            className="px-4 sm:px-5 py-1.5 sm:py-2 rounded-md text-xs font-semibold tracking-wide border border-[#C49746] text-[#C49746] hover:bg-[#C49746]/10 active:scale-[0.98] transition-colors whitespace-nowrap"
                           >
                             View Profile
                           </Link>
@@ -504,7 +505,7 @@ export default function InterestsPage() {
 
               {/* Right Filter Pills & Chevron */}
               <div className="flex items-center gap-3 self-end sm:self-auto flex-wrap">
-                <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-[#FAF7F2] rounded-full border border-[#EADBBD]/70">
+                <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-[#FAF7F2] rounded-lg border border-[#EADBBD]/70">
                   {(
                     [
                       { key: 'ALL', label: 'All' },
@@ -519,7 +520,7 @@ export default function InterestsPage() {
                         key={key}
                         type="button"
                         onClick={() => setFilterSent(key)}
-                        className={`px-3 sm:px-4 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                        className={`px-3 sm:px-4 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
                           isActive
                             ? 'bg-[#7A1118] text-white shadow-2xs'
                             : 'bg-transparent text-[#73645C] hover:text-[#241C1A]'
@@ -597,25 +598,25 @@ export default function InterestsPage() {
                         {/* Status Badge */}
                         <div className="flex items-center gap-2 sm:gap-3">
                           {item.status === 'PENDING' && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#FDF2F2] border border-[#F8D7DA] text-[#C53030]">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-[#FDF2F2] border border-[#F8D7DA] text-[#C53030]">
                               <Clock className="h-3.5 w-3.5" />
                               <span>Pending</span>
                             </span>
                           )}
                           {item.status === 'ACCEPTED' && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#F0FDF4] border border-[#DCFCE7] text-[#16A34A]">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-[#F0FDF4] border border-[#DCFCE7] text-[#16A34A]">
                               <CheckCircle2 className="h-3.5 w-3.5" />
                               <span>Accepted</span>
                             </span>
                           )}
                           {item.status === 'DECLINED' && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#FEF2F2] border border-[#FEE2E2] text-[#DC2626]">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-[#FEF2F2] border border-[#FEE2E2] text-[#DC2626]">
                               <XCircle className="h-3.5 w-3.5" />
                               <span>Declined</span>
                             </span>
                           )}
                           {item.status === 'WITHDRAWN' && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-50 border border-gray-200 text-gray-600">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-gray-50 border border-gray-200 text-gray-600">
                               <span>Withdrawn</span>
                             </span>
                           )}
@@ -630,7 +631,7 @@ export default function InterestsPage() {
                         <div className="flex items-center gap-2 relative">
                           <Link
                             href={`/browse/${item.profileId}`}
-                            className="px-4 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs font-semibold tracking-wide border border-[#C49746] text-[#C49746] hover:bg-[#C49746]/10 active:scale-[0.98] transition-colors whitespace-nowrap"
+                            className="px-4 sm:px-5 py-1.5 sm:py-2 rounded-md text-xs font-semibold tracking-wide border border-[#C49746] text-[#C49746] hover:bg-[#C49746]/10 active:scale-[0.98] transition-colors whitespace-nowrap"
                           >
                             View Profile
                           </Link>
@@ -679,5 +680,14 @@ export default function InterestsPage() {
         </div>
       </main>
     </>
+  );
+}
+
+// Needs a membership plan when the server requires one (see PlanGate).
+export default function InterestsPage() {
+  return (
+    <PlanGate>
+      <InterestsPageContent />
+    </PlanGate>
   );
 }

@@ -159,7 +159,7 @@ export function SponsoredBanner({ ads = DEFAULT_ADS }: { ads?: SponsoredAd[] }) 
             {/* Right section: Tags & CTA Button */}
             <div className="flex flex-col sm:flex-row items-center gap-3.5 shrink-0">
               {/* Feature Tags */}
-              <div className="hidden xl:flex items-center gap-2 text-[11px] text-[#E8D4B8] font-medium bg-black/20 px-3 py-1.5 rounded-full border border-white/5">
+              <div className="hidden xl:flex items-center gap-2 text-[11px] text-[#E8D4B8] font-medium bg-black/20 px-3 py-1.5 rounded-md border border-white/5">
                 <Gem className="h-3 w-3 text-[#DFC380]" />
                 {current.tags.map((tag, i) => (
                   <span key={tag} className="flex items-center gap-2">

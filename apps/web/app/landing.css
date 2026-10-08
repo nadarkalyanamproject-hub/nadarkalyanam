@@ -207,9 +207,9 @@ html {
   width: 100%;
   margin: 0 auto;
   padding: 12px 32px;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
 }
 
 /* Logo */
@@ -218,6 +218,7 @@ html {
   align-items: center;
   gap: 14px;
   text-decoration: none;
+  justify-self: start;
 }
 
 .logo-symbol {
@@ -272,6 +273,7 @@ html {
   display: flex;
   align-items: center;
   gap: 28px;
+  justify-self: center;
 }
 
 .nav-link {
@@ -307,6 +309,7 @@ html {
   display: flex;
   align-items: center;
   gap: 12px;
+  justify-self: end;
 }
 
 .nav-login-group {
@@ -426,9 +429,9 @@ html {
 .hero-container {
   width: 100%;
   margin: 0 auto;
-  padding: 32px 48px;
+  padding: 32px 32px;
   display: grid;
-  grid-template-columns: 1.15fr 1.05fr 0.8fr;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 32px;
   position: relative;
@@ -436,7 +439,9 @@ html {
 }
 
 .hero-left-content {
-  padding-right: 10px;
+  justify-self: end;
+  max-width: 480px;
+  padding-right: 16px;
   animation: fadeInDown 0.8s ease-out;
 }
 
@@ -471,11 +476,13 @@ html {
 }
 
 .hero-form-wrapper {
+  justify-self: center;
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 15;
   width: 100%;
+  max-width: 440px;
 }
 
 .reg-card {
@@ -1242,7 +1249,7 @@ html {
    ========================================================================== */
 @media (max-width: 1200px) {
   .hero-heading { font-size: 2.8rem; }
-  .hero-container { gap: 28px; grid-template-columns: 1.1fr 1fr; padding: 24px 32px; }
+  .hero-container { gap: 24px; padding: 24px 24px; }
   .trust-container { flex-wrap: wrap; justify-content: center; gap: 20px; }
   .trust-vertical-divider { display: none; }
   .trust-community-badge { width: 100%; margin-top: 10px; }
@@ -1251,6 +1258,7 @@ html {
 @media (max-width: 992px) {
   .top-bar-left { display: none; }
   .top-bar-container { justify-content: flex-end; }
+  .nav-container { display: flex; justify-content: space-between; }
 
   .nav-menu {
     position: fixed;
@@ -1337,7 +1345,7 @@ html {
   font-weight: 700;
   letter-spacing: 0.18em;
   padding: 4px 12px;
-  border-radius: 999px;
+  border-radius: 6px;
   text-transform: uppercase;
   margin-bottom: 10px;
 }
@@ -1399,7 +1407,7 @@ html {
   font-weight: 800;
   letter-spacing: 0.12em;
   padding: 3px 12px;
-  border-radius: 999px;
+  border-radius: 6px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   white-space: nowrap;
 }

@@ -108,14 +108,14 @@ export function VipEnquiry() {
               </p>
             )}
             <div className="mt-4 flex justify-end gap-2">
-              <button type="button" onClick={() => setOpen(false)} disabled={sending} className="rounded-full border border-[#E2E8F0] px-4 py-2 text-xs font-semibold text-[#64748B]">
+              <button type="button" onClick={() => setOpen(false)} disabled={sending} className="rounded-md border border-[#E2E8F0] px-4 py-2 text-xs font-semibold text-[#64748B]">
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => void submit()}
                 disabled={sending}
-                className="rounded-full bg-[#680A0E] px-5 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                className="rounded-md bg-[#680A0E] px-5 py-2 text-xs font-semibold text-white disabled:opacity-50"
               >
                 {sending ? 'Sending…' : 'Send enquiry'}
               </button>

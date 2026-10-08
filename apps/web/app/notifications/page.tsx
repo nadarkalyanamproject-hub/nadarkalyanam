@@ -229,7 +229,7 @@ export default function NotificationsPage() {
                 type="button"
                 disabled={busy !== null || unread === 0}
                 onClick={() => void handleMarkAll()}
-                className="px-4 py-2 rounded-full bg-white hover:bg-[#FAF7F2] active:scale-[0.99] border border-[#DECDBB] text-[#4A3D36] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-md bg-white hover:bg-[#FAF7F2] active:scale-[0.99] border border-[#DECDBB] text-[#4A3D36] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Check className="h-3.5 w-3.5 text-[#4A3D36]" />
                 <span>{busy === 'mark' ? 'Marking…' : 'Mark all as read'}</span>
@@ -239,7 +239,7 @@ export default function NotificationsPage() {
                 type="button"
                 disabled={busy !== null || (list !== null && list.total === 0 && tab === 'all')}
                 onClick={() => void handleClearAll()}
-                className="px-4 py-2 rounded-full bg-[#7A1118] hover:bg-[#620D13] active:scale-[0.99] text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-md bg-[#7A1118] hover:bg-[#620D13] active:scale-[0.99] text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Trash2 className="h-3.5 w-3.5 text-white" />
                 <span>{busy === 'clear' ? 'Clearing…' : 'Clear all'}</span>
@@ -256,7 +256,7 @@ export default function NotificationsPage() {
                   key={key}
                   type="button"
                   onClick={() => selectTab(key)}
-                  className={`px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer shadow-2xs ${
+                  className={`px-4 py-2 rounded-md text-xs font-medium flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer shadow-2xs ${
                     isActive
                       ? 'bg-[#7A1118] text-white border border-[#7A1118] shadow-xs'
                       : 'bg-white text-[#4A3D36] border border-[#EADBBD] hover:border-[#C4B2A0] hover:bg-[#FAF7F2]'
@@ -406,7 +406,7 @@ export default function NotificationsPage() {
                   type="button"
                   disabled={loadingMore}
                   onClick={() => void handleLoadMore()}
-                  className="self-center px-5 py-2 mt-2 rounded-full border border-[#DECDBB] bg-white text-xs font-semibold text-[#4A3D36] hover:bg-[#FAF7F2] transition-colors cursor-pointer"
+                  className="self-center px-5 py-2 mt-2 rounded-md border border-[#DECDBB] bg-white text-xs font-semibold text-[#4A3D36] hover:bg-[#FAF7F2] transition-colors cursor-pointer"
                 >
                   {loadingMore ? 'Loading…' : 'Load more'}
                 </button>

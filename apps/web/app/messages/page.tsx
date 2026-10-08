@@ -8,13 +8,14 @@ import { AppHeader, UserIcon } from '../../components/app-header';
 import { ApiError, listConversations } from '../../lib/api-client';
 import { useRegistration } from '../providers/registration-provider';
 import { useRequireAuth } from '../../lib/use-require-auth';
+import { PlanGate } from '../../components/plan/plan-gate';
 
 function formatTimestamp(iso: string): string {
   const date = new Date(iso);
   return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-export default function MessagesPage() {
+function MessagesPageContent() {
   const { ready } = useRequireAuth();
   const { data } = useRegistration();
   const [conversations, setConversations] = useState<ConversationSummary[] | null>(null);
@@ -145,5 +146,14 @@ export default function MessagesPage() {
         </div>
       </main>
     </>
+  );
+}
+
+// Needs a membership plan when the server requires one (see PlanGate).
+export default function MessagesPage() {
+  return (
+    <PlanGate>
+      <MessagesPageContent />
+    </PlanGate>
   );
 }

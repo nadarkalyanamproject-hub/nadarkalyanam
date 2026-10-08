@@ -563,7 +563,7 @@ export function PartnerSearchBar({
           </div>
           <Link
             href="/membership"
-            className="self-start sm:self-auto shrink-0 px-4 py-2 rounded-full border border-[#C49746] text-[#9C7328] hover:bg-[#C49746]/10 text-xs font-semibold transition-colors whitespace-nowrap"
+            className="self-start sm:self-auto shrink-0 px-4 py-2 rounded-md border border-[#C49746] text-[#9C7328] hover:bg-[#C49746]/10 text-xs font-semibold transition-colors whitespace-nowrap"
           >
             View Membership
           </Link>
@@ -643,7 +643,7 @@ export function PartnerSearchBar({
                 return (
                   <label
                     key={option.value || 'all'}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium border cursor-pointer transition-colors ${
+                    className={`px-3.5 py-1.5 rounded-md text-xs font-medium border cursor-pointer transition-colors ${
                       active
                         ? 'bg-[#7A1118] border-[#7A1118] text-white'
                         : 'bg-white border-[#DECDBB] text-[#4A3D36] hover:border-[#BFA892]'

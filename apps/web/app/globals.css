@@ -4,6 +4,14 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* "Interest Sent": a short settle-in when a send flips the card to Sent. */
+  --animate-nk-pop: nk-pop 240ms ease-out;
+
+  @keyframes nk-pop {
+    0% { transform: scale(0.97); opacity: 0.4; }
+    100% { transform: scale(1); opacity: 1; }
+  }
 }
 
 body {

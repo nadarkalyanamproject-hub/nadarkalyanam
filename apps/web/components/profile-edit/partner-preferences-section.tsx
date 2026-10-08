@@ -47,7 +47,7 @@ export function PartnerPreferencesView({ saved }: { saved: SavedPartnerPreferenc
             <dt className="text-xs font-semibold uppercase tracking-wide text-[#776B62]">
               {line.label}
               {line.mustHave && (
-                <span className="ml-2 rounded-full bg-[#7A0710]/10 px-2 py-0.5 text-[10px] font-bold normal-case text-[#7A0710]">Must have</span>
+                <span className="ml-2 rounded-md bg-[#7A0710]/10 px-2 py-0.5 text-[10px] font-bold normal-case text-[#7A0710]">Must have</span>
               )}
             </dt>
             <dd className="mt-0.5 text-sm font-medium text-[#2B211C]">{line.value}</dd>

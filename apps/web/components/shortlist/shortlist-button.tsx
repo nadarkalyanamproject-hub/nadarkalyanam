@@ -64,7 +64,7 @@ export function ShortlistButton({
           onClick={() => void toggle()}
           aria-pressed={shortlisted ?? false}
           data-testid="shortlist-toggle"
-          className={`inline-flex items-center justify-center gap-2 rounded-full border px-5 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] ${
+          className={`inline-flex items-center justify-center gap-2 rounded-md border px-5 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] ${
             shortlisted
               ? 'border-[#7A1C32] bg-[#FAF5F6] text-[#7A1C32]'
               : 'border-[#E2E8F0] bg-white text-[#334155] hover:bg-[#FAF8F5] hover:border-[#CBD5E1]'

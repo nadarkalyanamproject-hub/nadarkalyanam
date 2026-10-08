@@ -38,6 +38,8 @@ import { BlockMemberButton } from '../../../components/block/block-member-button
 import { PhoneUnlockCard } from '../../../components/phone/phone-unlock-card';
 import { useBackNavigation } from '../../../lib/navigation-history';
 import { HoroscopeCard, PreferenceFitNote } from '../../../components/profile-view/horoscope-card';
+import { TheirPreferencesCard } from '../../../components/profile-view/their-preferences-card';
+import { PlanGate } from '../../../components/plan/plan-gate';
 
 const MARITAL_STATUS_LABELS: Record<string, string> = {
   NEVER_MARRIED: 'Never Married',
@@ -95,7 +97,7 @@ function DataTile({
   );
 }
 
-export default function ViewProfilePage() {
+function ViewProfilePageContent() {
   const { ready } = useRequireAuth();
   const params = useParams<{ profileId: string }>();
   const { data } = useRegistration();
@@ -264,14 +266,14 @@ export default function ViewProfilePage() {
                     <button
                       type="button"
                       onClick={() => setShowReportForm((open) => !open)}
-                      className="inline-flex items-center justify-center gap-2 rounded-full border border-[#E2E8F0] bg-white px-5 py-2.5 text-sm font-semibold text-[#64748B] hover:bg-[#FAF8F5] hover:border-[#CBD5E1] hover:text-[#475569] transition-all active:scale-[0.98]"
+                      className="inline-flex items-center justify-center gap-2 rounded-md border border-[#E2E8F0] bg-white px-5 py-2.5 text-sm font-semibold text-[#64748B] hover:bg-[#FAF8F5] hover:border-[#CBD5E1] hover:text-[#475569] transition-all active:scale-[0.98]"
                     >
                       <AlertTriangle className="h-4 w-4 text-[#8C6B6B]" />
                       <span>Report</span>
                     </button>
                   )}
                   {reportSubmitted && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F0FDF4] border border-[#86EFAC] px-4 py-2 text-xs font-semibold text-[#16A34A]">
+                    <span className="inline-flex items-center gap-1.5 rounded-md bg-[#F0FDF4] border border-[#86EFAC] px-4 py-2 text-xs font-semibold text-[#16A34A]">
                       <Check className="h-3.5 w-3.5" /> Report submitted — thank you
                     </span>
                   )}
@@ -306,14 +308,14 @@ export default function ViewProfilePage() {
                         type="button"
                         disabled={!reportReason.trim() || reporting}
                         onClick={() => void handleSubmitReport()}
-                        className="rounded-full bg-[#7A1C32] hover:bg-[#681427] active:scale-[0.98] px-5 py-2 text-xs font-semibold text-white shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="rounded-md bg-[#7A1C32] hover:bg-[#681427] active:scale-[0.98] px-5 py-2 text-xs font-semibold text-white shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {reporting ? 'Submitting…' : 'Submit Report'}
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowReportForm(false)}
-                        className="rounded-full border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#FAF8F5]"
+                        className="rounded-md border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#FAF8F5]"
                       >
                         Cancel
                       </button>
@@ -327,42 +329,42 @@ export default function ViewProfilePage() {
               {/* QUICK SNAPSHOT CHIPS BAR */}
               <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#EDE6DB] bg-white/80 p-3.5 shadow-2xs backdrop-blur-xs">
                 {/* Chips show only values the member actually entered — no fallbacks. */}
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
                   <span>🎂</span> {profile.age} yrs{profile.height ? ` • ${profile.height}` : ''}
                 </span>
                 {profile.education?.profession && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
                     <Briefcase className="h-3 w-3 text-[#7A1C32]" /> {profile.education.profession}
                   </span>
                 )}
                 {profile.education?.educationLevel && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
                     <GraduationCap className="h-3 w-3 text-[#7A1C32]" /> {profile.education.educationLevel}
                   </span>
                 )}
                 {profile.location?.city && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
                     <MapPin className="h-3 w-3 text-[#7A1C32]" /> {profile.location.city}
                   </span>
                 )}
                 {(profile.casteCommunity || profile.religion) && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
                     <Sparkles className="h-3 w-3 text-[#C49746]" />{' '}
                     {[profile.casteCommunity, profile.religion].filter(Boolean).join(', ')}
                   </span>
                 )}
                 {profile.maritalStatus && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
                     <span>💍</span> {MARITAL_STATUS_LABELS[profile.maritalStatus] ?? profile.maritalStatus}
                   </span>
                 )}
                 {profile.motherTongue && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
                     <Languages className="h-3 w-3 text-[#7A1C32]" /> {profile.motherTongue}
                   </span>
                 )}
                 {profile.dosham === 'NO' && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800">
                     <Check className="h-3 w-3 text-emerald-600" /> No Dosham
                   </span>
                 )}
@@ -382,7 +384,7 @@ export default function ViewProfilePage() {
                           <Camera className="h-4 w-4 text-[#7A1C32]" />
                           <h2 className="text-sm font-bold text-[#241C1A]">Photos</h2>
                         </div>
-                        <span className="rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-2.5 py-0.5 text-[11px] font-bold text-[#7E6F65]">
+                        <span className="rounded-md bg-[#FAF7F2] border border-[#EADBBD] px-2.5 py-0.5 text-[11px] font-bold text-[#7E6F65]">
                           {profile.photos.length} {profile.photos.length === 1 ? 'Photo' : 'Photos'}
                         </span>
                       </div>
@@ -400,7 +402,7 @@ export default function ViewProfilePage() {
                             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100 flex items-end p-3">
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-xs px-3 py-1 text-xs font-semibold text-white">
+                            <span className="inline-flex items-center gap-1.5 rounded-md bg-black/60 backdrop-blur-xs px-3 py-1 text-xs font-semibold text-white">
                               <Maximize2 className="h-3 w-3" /> Click to enlarge
                             </span>
                           </div>
@@ -483,7 +485,7 @@ export default function ViewProfilePage() {
                         </h2>
                       </div>
                       {profile.additional?.familyType && (
-                        <span className="rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#7A1C32]">
+                        <span className="rounded-md bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#7A1C32]">
                           {profile.additional.familyType}
                         </span>
                       )}
@@ -674,6 +676,8 @@ export default function ViewProfilePage() {
 
                     </div>
                   </div>
+
+                  <TheirPreferencesCard profile={profile} />
                 </div>
               </div>
             </>
@@ -685,5 +689,14 @@ export default function ViewProfilePage() {
         <PhotoLightbox url={enlargedPhotoUrl} onClose={() => setEnlargedPhotoUrl(null)} />
       )}
     </>
+  );
+}
+
+// Needs a membership plan when the server requires one (see PlanGate).
+export default function ViewProfilePage() {
+  return (
+    <PlanGate>
+      <ViewProfilePageContent />
+    </PlanGate>
   );
 }

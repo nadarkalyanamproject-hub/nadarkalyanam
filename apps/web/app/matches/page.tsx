@@ -32,6 +32,7 @@ import {
   Target,
   Users,
 } from 'lucide-react';
+import { PlanGate } from '../../components/plan/plan-gate';
 
 // Only real GET /matches fields. /matches carries no state or education, so
 // the card shows city and profession when present and omits a line otherwise.
@@ -99,7 +100,7 @@ function SectionHeading({ title, viewAllHref }: { title: string; viewAllHref?: s
   );
 }
 
-export default function MatchesPage() {
+function MatchesPageContent() {
   const { ready } = useRequireAuth();
   const { data } = useRegistration();
   const router = useRouter();
@@ -219,7 +220,7 @@ export default function MatchesPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search matches..."
-                className="w-full pl-9 pr-4 py-2 bg-white/95 border border-[#EADBBD] hover:border-[#C4B2A0] focus:border-[#7A1118] focus:ring-1 focus:ring-[#7A1118] rounded-full text-xs text-[#241C1A] placeholder-[#9C8E82] transition-colors outline-none shadow-2xs"
+                className="w-full pl-9 pr-4 py-2 bg-white/95 border border-[#EADBBD] hover:border-[#C4B2A0] focus:border-[#7A1118] focus:ring-1 focus:ring-[#7A1118] rounded-md text-xs text-[#241C1A] placeholder-[#9C8E82] transition-colors outline-none shadow-2xs"
               />
             </form>
           </div>
@@ -463,7 +464,7 @@ export default function MatchesPage() {
 
               <Link
                 href={matchCategoryHref('your-matches')}
-                className="px-4 py-2 rounded-full border border-[#7A1118]/30 hover:border-[#7A1118] hover:bg-[#7A1118]/5 text-[#7A1118] text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap"
+                className="px-4 py-2 rounded-md border border-[#7A1118]/30 hover:border-[#7A1118] hover:bg-[#7A1118]/5 text-[#7A1118] text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap"
               >
                 <span>View All Matches</span>
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -539,7 +540,7 @@ export default function MatchesPage() {
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="bg-[#FDF2F2] border border-[#F8D7DA] text-[#C53030] text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
+                      <span className="bg-[#FDF2F2] border border-[#F8D7DA] text-[#C53030] text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap">
                         {match.score}% match
                       </span>
                       <button
@@ -557,7 +558,7 @@ export default function MatchesPage() {
                   <div className="flex items-center gap-2 pt-1">
                     <Link
                       href={`/browse/${match.profileId}`}
-                      className="border border-[#C49746] text-[#C49746] hover:bg-[#C49746]/10 active:scale-[0.98] text-xs font-semibold py-1.5 px-3 rounded-full flex-1 text-center transition-colors whitespace-nowrap"
+                      className="border border-[#C49746] text-[#C49746] hover:bg-[#C49746]/10 active:scale-[0.98] text-xs font-semibold py-1.5 px-3 rounded-md flex-1 text-center transition-colors whitespace-nowrap"
                     >
                       View Profile
                     </Link>
@@ -566,7 +567,7 @@ export default function MatchesPage() {
                       type="button"
                       disabled={match.interestSent || sendingId === match.profileId}
                       onClick={() => void handleSendInterest(match)}
-                      className={`text-xs font-semibold py-1.5 px-3 rounded-full flex-1 text-center transition-all whitespace-nowrap flex items-center justify-center gap-1 cursor-pointer ${
+                      className={`text-xs font-semibold py-1.5 px-3 rounded-md flex-1 text-center transition-all whitespace-nowrap flex items-center justify-center gap-1 cursor-pointer ${
                         match.interestSent
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
                           : 'bg-[#7A1118] hover:bg-[#620D13] active:scale-[0.98] text-white shadow-xs'
@@ -591,5 +592,14 @@ export default function MatchesPage() {
         </div>
       </main>
     </>
+  );
+}
+
+// Needs a membership plan when the server requires one (see PlanGate).
+export default function MatchesPage() {
+  return (
+    <PlanGate>
+      <MatchesPageContent />
+    </PlanGate>
   );
 }
