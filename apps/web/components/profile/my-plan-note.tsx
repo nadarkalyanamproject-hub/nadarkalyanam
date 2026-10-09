@@ -28,15 +28,15 @@ export function MyPlanNote() {
 
   if (!me?.plan || !me.expiresAt) return null;
   return (
-    <div className="rounded-xl border border-[#EADBBD] bg-[#FFFBF0] px-4 py-3 text-sm" data-testid="my-plan-note">
-      <p className="text-[#2B1515]">
+    <div className="rounded-xl border border-nk-line-gold bg-[#FFFBF0] px-4 py-3 text-sm" data-testid="my-plan-note">
+      <p className="text-nk-ink">
         Your plan: <span className="font-semibold">{me.plan.name}</span>, valid till {formatPlanDate(me.expiresAt)}.{' '}
-        <Link href="/membership" className="text-xs font-semibold text-[#680A0E] underline">
+        <Link href="/membership" className="text-xs font-semibold text-nk-maroon-deep underline">
           Details
         </Link>
       </p>
-      {me.plan.searchTier > 0 && <p className="mt-0.5 text-xs text-[#5A493E]">Your profile appears higher in search.</p>}
-      <p className="mt-0.5 text-[11px] text-[#8C7B73]">Only you can see this.</p>
+      {me.plan.searchTier > 0 && <p className="mt-0.5 text-xs text-nk-ink-soft">Your profile appears higher in search.</p>}
+      <p className="mt-0.5 text-[11px] text-nk-subtle">Only you can see this.</p>
     </div>
   );
 }

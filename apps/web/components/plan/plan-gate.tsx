@@ -62,18 +62,18 @@ function PlanRequiredScreen({ me }: { me: MyMembershipResponse }) {
   return (
     <>
       <AppHeader />
-      <main className="min-h-[70vh] bg-[#FFFDF9] px-4 py-16 sm:px-6" data-testid="plan-required">
-        <div className="mx-auto max-w-lg rounded-2xl border border-[#E8DCCF] bg-white p-8 text-center shadow-xs">
-          <Crown className="mx-auto h-8 w-8 text-[#C89B3C]" />
-          <h1 className="mt-4 font-[family-name:var(--font-heading,serif)] text-2xl font-bold text-[#2B1515]">
+      <main className="min-h-[70vh] bg-nk-ivory px-4 py-16 sm:px-6" data-testid="plan-required">
+        <div className="mx-auto max-w-lg rounded-2xl border border-nk-line bg-white p-8 text-center shadow-xs">
+          <Crown className="mx-auto h-8 w-8 text-nk-gold" />
+          <h1 className="mt-4 font-[family-name:var(--font-heading,serif)] text-2xl font-bold text-nk-ink">
             Choose a membership plan to continue
           </h1>
-          <p className="mt-3 text-sm leading-relaxed text-[#5A493E]">
+          <p className="mt-3 text-sm leading-relaxed text-nk-ink-soft">
             Nadar Kalyanam is a members-only community. A plan lets you view member profiles, search for matches, send
             interests and chat with your connections.
           </p>
           {me.lastEnded && (
-            <p className="mt-3 text-sm text-[#7B1118]">
+            <p className="mt-3 text-sm text-nk-maroon">
               Your {me.lastEnded.planName} plan ended on {formatPlanDate(me.lastEnded.endedAt)}. Renew to pick up where
               you left off.
             </p>
@@ -81,13 +81,13 @@ function PlanRequiredScreen({ me }: { me: MyMembershipResponse }) {
           <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <Link
               href="/membership"
-              className="rounded-lg bg-[#7B1118] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#650B11]"
+              className="rounded-lg bg-nk-maroon px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-nk-maroon-deep"
             >
               See membership plans
             </Link>
             <Link
               href="/profile"
-              className="rounded-lg border border-[#E7CDAF] px-5 py-2.5 text-sm font-semibold text-[#7B1118] transition-colors hover:bg-[#FFF8F0]"
+              className="rounded-lg border border-[#E7CDAF] px-5 py-2.5 text-sm font-semibold text-nk-maroon transition-colors hover:bg-[#FFF8F0]"
             >
               Complete your profile
             </Link>

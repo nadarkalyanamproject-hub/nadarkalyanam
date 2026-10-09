@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import type { MatchResult, MyMembershipResponse, ProfileCard } from '@nadar-kalyanam/schemas';
-import { Crown } from 'lucide-react';
 import { AppHeader } from '../app-header';
 import { SponsoredBanner } from './sponsored-banner';
 import { SubscriptionCard } from './subscription-card';
+import { VipPromo } from './vip-promo';
+import { useMembershipPlans } from '../../lib/use-membership-plans';
 import { HomeProfileSection } from './home-profile-card';
 import { ApiError, getMyMembership, listMatchCategory, listMatches } from '../../lib/api-client';
 import { pickDailyRecommendations } from '../../lib/daily-picks';
@@ -26,6 +26,7 @@ function AuthenticatedHomeContent() {
   const [matchesError, setMatchesError] = useState<string | null>(null);
   const [membership, setMembership] = useState<MyMembershipResponse | null>(null);
   const [membershipError, setMembershipError] = useState<string | null>(null);
+  const vipPlan = useMembershipPlans()?.find((p) => p.isAssisted) ?? null;
   const [newlyJoined, setNewlyJoined] = useState<ProfileCard[] | null>(null);
   const [newlyJoinedError, setNewlyJoinedError] = useState<string | null>(null);
   const [viewedMe, setViewedMe] = useState<ProfileCard[] | null>(null);
@@ -72,7 +73,8 @@ function AuthenticatedHomeContent() {
     };
   }, [data.accessToken, profile]);
 
-  const recommended = matches ? matches.slice(0, 8) : null;
+  // One row (4 cards); the rest of the matches feed Daily Recommendations.
+  const recommended = matches ? matches.slice(0, 4) : null;
   const dailyPicks =
     matches && recommended
       ? pickDailyRecommendations(matches, {
@@ -88,7 +90,7 @@ function AuthenticatedHomeContent() {
     <>
       <AppHeader />
 
-      <main className="min-h-screen bg-[#FFFDF9] text-[#2B1515] px-4 py-8 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 space-y-12">
+      <main className="min-h-screen bg-nk-ivory text-nk-ink px-4 py-8 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 space-y-12">
         {/* =========================================================================
             SPONSORED ADVERTISEMENT BANNER
             ========================================================================= */}
@@ -129,45 +131,9 @@ function AuthenticatedHomeContent() {
         />
 
         {/* =========================================================================
-            4. MEMBERSHIP UPGRADE BANNER (PREMIUM BENEFITS)
+            4. VIP ASSISTED PROMOTION (hidden for members already on it)
             ========================================================================= */}
-        <section className="rounded-3xl bg-gradient-to-br from-[#FFFBF0] via-[#FFF9ED] to-[#FAF1DE] border border-[#EADBBD] p-6 sm:p-8 lg:p-10 shadow-xs relative overflow-hidden">
-          {/* Subtle decorative background watermarks */}
-          <div className="absolute -right-12 -bottom-12 w-64 h-64 rounded-full bg-[#C89B3C]/5 pointer-events-none" />
-          <div className="absolute -left-12 -top-12 w-48 h-48 rounded-full bg-[#7B1118]/5 pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
-            <div className="space-y-3 max-w-2xl text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 rounded-md bg-[#FAF0DC] px-3.5 py-1 text-xs font-bold text-[#7B1118] border border-[#EADBBD]">
-                <Crown className="h-3.5 w-3.5 text-[#C89B3C]" />
-                <span className="tracking-wider uppercase">MEMBERSHIP</span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#2B1515] font-[family-name:var(--font-heading,serif)] tracking-tight">
-                Membership Plans
-              </h2>
-              <p className="text-xs sm:text-sm text-[#73645C] leading-relaxed">
-                Messaging the members you&apos;re connected with is already free for everyone. Paid plans are being set
-                up: phone numbers, horoscope views and priority placement are coming soon, and online payment opens
-                shortly.
-              </p>
-            </div>
-
-            {/* CTA Box */}
-            <div className="bg-white rounded-2xl p-6 border-2 border-[#C89B3C] shadow-md flex flex-col items-center text-center shrink-0 w-full sm:w-80">
-              <h3 className="text-lg font-bold text-[#2B1515]">Gold &amp; Premium Plans</h3>
-              <p className="text-xs text-[#73645C] mt-1 mb-4">
-                See each plan&apos;s price and exactly what&apos;s available today.
-              </p>
-              <Link
-                href="/membership"
-                className="w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#7B1118] to-[#600C12] hover:opacity-95 text-white shadow-md shadow-[#7B1118]/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-              >
-                <span>View Membership Plans</span>
-                <span>→</span>
-              </Link>
-            </div>
-          </div>
-        </section>
+        {vipPlan && !membership?.plan?.isAssisted && <VipPromo plan={vipPlan} />}
 
         {/* =========================================================================
             5. NEWLY JOINED

@@ -29,10 +29,10 @@ export function OnboardingStepper({
     <div className="relative w-full select-none">
       {/* Top Header showing Step counter and % Completed */}
       <div className="mb-2.5 flex items-center justify-between px-1">
-        <span className="text-[11px] font-bold tracking-wider uppercase text-[#8E1B24]">
+        <span className="text-[11px] font-bold tracking-wider uppercase text-nk-maroon-bright">
           Step {step} of {STEPS.length}
         </span>
-        <span className="text-xs font-bold text-[#8E1B24]">
+        <span className="text-xs font-bold text-nk-maroon-bright">
           {percent}% Completed
         </span>
       </div>
@@ -44,7 +44,7 @@ export function OnboardingStepper({
 
         {/* Filled Gradient Progress Bar moving with exact progress percentage */}
         <div
-          className="absolute top-[14px] left-[12.5%] h-1.5 -translate-y-1/2 rounded-full bg-gradient-to-r from-[#8E1B24] via-[#B8323C] to-[#E67E22] transition-all duration-500 ease-out"
+          className="absolute top-[14px] left-[12.5%] h-1.5 -translate-y-1/2 rounded-full bg-gradient-to-r from-nk-maroon-bright via-[#B8323C] to-[#E67E22] transition-all duration-500 ease-out"
           style={{
             width: `calc(${percent}% * 0.75)`,
           }}
@@ -62,7 +62,7 @@ export function OnboardingStepper({
                 {/* Node Circle */}
                 <div className="flex h-7 w-7 items-center justify-center">
                   {isDone ? (
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#8E1B24] text-white shadow-sm">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-nk-maroon-bright text-white shadow-sm">
                       <svg
                         viewBox="0 0 20 20"
                         fill="currentColor"
@@ -77,7 +77,7 @@ export function OnboardingStepper({
                     </div>
                   ) : isCurrent ? (
                     <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#F6C358] bg-white shadow-sm">
-                      <span className="h-3.5 w-3.5 rounded-full bg-[#8E1B24]" />
+                      <span className="h-3.5 w-3.5 rounded-full bg-nk-maroon-bright" />
                     </div>
                   ) : (
                     <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[#DCD3C7] bg-[#FDFBF7] text-xs font-semibold text-[#6E5E5E]">
@@ -91,7 +91,7 @@ export function OnboardingStepper({
                   <span
                     className={`text-xs md:text-sm tracking-tight transition-colors ${
                       isCurrent
-                        ? 'font-bold text-[#8E1B24]'
+                        ? 'font-bold text-nk-maroon-bright'
                         : isDone
                           ? 'font-bold text-[#1C1313]'
                           : 'font-semibold text-[#3D2D2D]'
@@ -101,7 +101,7 @@ export function OnboardingStepper({
                   </span>
                   <span
                     className={`mt-0.5 text-[11px] font-medium ${
-                      isCurrent ? 'font-semibold text-[#8E1B24]' : 'text-[#7A6B6B]'
+                      isCurrent ? 'font-semibold text-nk-maroon-bright' : 'text-[#7A6B6B]'
                     }`}
                   >
                     {isCurrent ? `${statusText} (${percent}%)` : statusText}

@@ -66,10 +66,10 @@ export function BlockMemberButton({
       {confirming && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" data-testid="block-confirm">
           <div role="dialog" aria-modal="true" aria-labelledby="block-confirm-title" className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
-            <h2 id="block-confirm-title" className="text-base font-bold text-[#241C1A]">
+            <h2 id="block-confirm-title" className="text-base font-bold text-nk-ink">
               Block {memberName}?
             </h2>
-            <p className="mt-2 text-sm text-[#5A493E]">
+            <p className="mt-2 text-sm text-nk-ink-soft">
               You won&apos;t see each other in Search, Matches, Browse, Shortlist or Interests, and neither of you can
               message the other. You can unblock them later from Profile → Blocked members.
             </p>
@@ -91,7 +91,7 @@ export function BlockMemberButton({
                 type="button"
                 onClick={() => void handleConfirm()}
                 disabled={blocking}
-                className="rounded-md bg-[#7A1C32] px-5 py-2 text-xs font-semibold text-white hover:bg-[#681427] disabled:opacity-50"
+                className="rounded-md bg-nk-maroon px-5 py-2 text-xs font-semibold text-white hover:bg-[#681427] disabled:opacity-50"
               >
                 {blocking ? 'Blocking…' : 'Block'}
               </button>

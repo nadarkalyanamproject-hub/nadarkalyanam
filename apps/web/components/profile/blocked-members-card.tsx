@@ -51,36 +51,36 @@ export function BlockedMembersCard() {
   }
 
   return (
-    <div id="blocked-members" className="scroll-mt-24 rounded-2xl border border-[#E8DCC8] bg-[#FFFFFF] p-6 shadow-sm" data-testid="blocked-members">
-      <h2 className="font-[family-name:var(--font-body)] text-lg sm:text-xl font-bold tracking-tight text-[#7A0710]">
+    <div id="blocked-members" className="scroll-mt-24 rounded-2xl border border-nk-line bg-[#FFFFFF] p-6 shadow-sm" data-testid="blocked-members">
+      <h2 className="font-[family-name:var(--font-body)] text-lg sm:text-xl font-bold tracking-tight text-nk-maroon">
         Blocked members
       </h2>
-      <p className="mt-1 text-xs text-[#776B62]">
+      <p className="mt-1 text-xs text-nk-muted">
         Blocked members don&apos;t see you and you don&apos;t see them anywhere, and neither of you can message the other.
       </p>
 
       {actionError && (
-        <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-[#7A0710]">
+        <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-nk-maroon">
           {actionError}
         </p>
       )}
 
-      {state.kind === 'loading' && <p className="mt-4 text-sm text-[#776B62]">Loading…</p>}
+      {state.kind === 'loading' && <p className="mt-4 text-sm text-nk-muted">Loading…</p>}
       {state.kind === 'error' && (
         <p role="alert" className="mt-4 text-sm text-destructive">
           {state.message}
         </p>
       )}
       {state.kind === 'loaded' && state.items.length === 0 && (
-        <p className="mt-4 text-sm text-[#776B62]" data-testid="blocked-members-empty">
+        <p className="mt-4 text-sm text-nk-muted" data-testid="blocked-members-empty">
           You haven&apos;t blocked anyone.
         </p>
       )}
       {state.kind === 'loaded' && state.items.length > 0 && (
-        <ul className="mt-3 divide-y divide-[#F3EBDD]">
+        <ul className="mt-3 divide-y divide-nk-line-soft">
           {state.items.map((member) => (
             <li key={member.userId} className="flex items-center gap-3 py-3" data-testid="blocked-member">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8DCC8] bg-[#FAF6EF] text-[#A8988C]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-nk-line bg-[#FAF6EF] text-[#A8988C]">
                 {member.primaryPhotoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={member.primaryPhotoUrl} alt="" className="h-full w-full object-cover" />
@@ -89,14 +89,14 @@ export function BlockedMembersCard() {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-[#2B211C]">{member.fullName}</p>
-                <p className="text-xs text-[#776B62]">Blocked {new Date(member.blockedAt).toLocaleDateString()}</p>
+                <p className="truncate text-sm font-semibold text-nk-ink">{member.fullName}</p>
+                <p className="text-xs text-nk-muted">Blocked {new Date(member.blockedAt).toLocaleDateString()}</p>
               </div>
               <button
                 type="button"
                 disabled={pendingUserId === member.userId}
                 onClick={() => void handleUnblock(member)}
-                className="shrink-0 rounded-lg border border-[#E8DCC8] bg-[#FFFDF9] px-3 py-1.5 text-xs font-semibold text-[#7A0710] hover:bg-[#FFF9ED] disabled:opacity-60"
+                className="shrink-0 rounded-lg border border-nk-line bg-nk-ivory px-3 py-1.5 text-xs font-semibold text-nk-maroon hover:bg-nk-cream disabled:opacity-60"
               >
                 {pendingUserId === member.userId ? 'Unblocking…' : 'Unblock'}
               </button>

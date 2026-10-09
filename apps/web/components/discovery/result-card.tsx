@@ -11,7 +11,7 @@ import { VerifiedBadge } from '../ui/verified-badge';
 // system as the rest of the app regardless of which page renders it.
 const BADGE_STYLES = {
   primary: 'bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A] font-bold',
-  accent: 'bg-[#7A0710] text-[#FDE68A] border border-[#D6A33A]/50 font-bold',
+  accent: 'bg-nk-maroon text-[#FDE68A] border border-nk-gold-light/50 font-bold',
 } as const;
 
 export function ResultCard({
@@ -38,7 +38,7 @@ export function ResultCard({
   conversationId: string | null;
 }) {
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl border border-[#E8DCC8] bg-[#FFFFFF] shadow-sm transition-all duration-200 hover:border-[#F59E0B] hover:shadow-md">
+    <div className="group flex flex-col overflow-hidden rounded-2xl border border-nk-line bg-[#FFFFFF] shadow-sm transition-all duration-200 hover:border-[#F59E0B] hover:shadow-md">
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#FAF6EF]">
         {primaryPhotoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -62,21 +62,21 @@ export function ResultCard({
       </div>
 
       <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <h3 className="flex items-center gap-1.5 font-[family-name:var(--font-body)] text-base font-bold text-[#2B211C]">
+        <h3 className="flex items-center gap-1.5 font-[family-name:var(--font-body)] text-base font-bold text-nk-ink">
           <span className="flex min-w-0">
             <span className="truncate">{fullName}</span>
             <span className="shrink-0">, {age}</span>
           </span>
           {verified && <VerifiedBadge className="h-4 w-4 shrink-0" />}
         </h3>
-        {city && <p className="mt-1 text-xs font-medium text-[#776B62]">{city}</p>}
+        {city && <p className="mt-1 text-xs font-medium text-nk-muted">{city}</p>}
         {relationshipStatus === 'CONNECTED' && <ConnectedBadge className="mt-1.5 self-start" />}
 
-        <div className="mt-4 flex items-start gap-2 pt-2 border-t border-[#F3EBDD]">
+        <div className="mt-4 flex items-start gap-2 pt-2 border-t border-nk-line-soft">
           <Link href={`/browse/${profileId}`} className="flex-1">
             <button
               type="button"
-              className="w-full rounded-lg border border-[#E8DCC8] bg-[#FFFDF9] py-2 text-xs font-semibold text-[#7A0710] shadow-2xs transition-all hover:border-[#F59E0B] hover:bg-[#FEF3C7]"
+              className="w-full rounded-lg border border-nk-line bg-nk-ivory py-2 text-xs font-semibold text-nk-maroon shadow-2xs transition-all hover:border-[#F59E0B] hover:bg-[#FEF3C7]"
             >
               View Profile
             </button>

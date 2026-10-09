@@ -16,10 +16,10 @@ type Appearance = 'ui' | 'discovery' | 'home' | 'matches' | 'profile-hero';
 
 const SEND_CLASSES: Record<Exclude<Appearance, 'ui' | 'profile-hero'>, string> = {
   discovery:
-    'w-full rounded-lg bg-gradient-to-r from-[#94151C] to-[#7A0710] py-2 text-xs font-semibold text-white shadow-2xs transition-all hover:from-[#A81C24] hover:to-[#94151C] disabled:cursor-not-allowed disabled:opacity-60',
-  home: 'w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-white hover:bg-[#FFF8F0] text-[#7B1118] border border-[#E7CDAF] disabled:cursor-not-allowed disabled:opacity-60',
+    'w-full rounded-lg bg-gradient-to-r from-nk-maroon-bright to-nk-maroon py-2 text-xs font-semibold text-white shadow-2xs transition-all hover:from-[#A81C24] hover:to-nk-maroon-bright disabled:cursor-not-allowed disabled:opacity-60',
+  home: 'w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer bg-white hover:bg-[#FFF8F0] text-nk-maroon border border-[#E7CDAF] disabled:cursor-not-allowed disabled:opacity-60',
   matches:
-    'w-full text-xs font-semibold py-1.5 px-3 rounded-lg text-center whitespace-nowrap transition-all cursor-pointer bg-[#7A1118] hover:bg-[#620D13] active:scale-[0.98] text-white shadow-xs disabled:cursor-not-allowed disabled:opacity-60',
+    'w-full text-xs font-semibold py-1.5 px-3 rounded-lg text-center whitespace-nowrap transition-all cursor-pointer bg-nk-maroon hover:bg-[#620D13] active:scale-[0.98] text-white shadow-xs disabled:cursor-not-allowed disabled:opacity-60',
 };
 const SENT_CLASSES: Record<Exclude<Appearance, 'ui' | 'profile-hero'>, string> = {
   discovery: 'w-full rounded-lg bg-[#15803D] py-2 text-xs font-semibold text-white cursor-default',
@@ -28,10 +28,10 @@ const SENT_CLASSES: Record<Exclude<Appearance, 'ui' | 'profile-hero'>, string> =
 };
 const LINK_CLASSES: Record<Exclude<Appearance, 'ui' | 'profile-hero'>, string> = {
   discovery:
-    'block w-full rounded-lg bg-gradient-to-r from-[#94151C] to-[#7A0710] py-2 text-center text-xs font-semibold text-white shadow-2xs transition-all hover:from-[#A81C24] hover:to-[#94151C]',
-  home: 'w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all bg-[#7B1118] text-white hover:bg-[#650B11]',
+    'block w-full rounded-lg bg-gradient-to-r from-nk-maroon-bright to-nk-maroon py-2 text-center text-xs font-semibold text-white shadow-2xs transition-all hover:from-[#A81C24] hover:to-nk-maroon-bright',
+  home: 'w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all bg-nk-maroon text-white hover:bg-nk-maroon-deep',
   matches:
-    'block w-full text-xs font-semibold py-1.5 px-3 rounded-lg text-center whitespace-nowrap transition-all bg-[#7A1118] hover:bg-[#620D13] text-white shadow-xs',
+    'block w-full text-xs font-semibold py-1.5 px-3 rounded-lg text-center whitespace-nowrap transition-all bg-nk-maroon hover:bg-[#620D13] text-white shadow-xs',
 };
 
 // "Connected" label, shown next to a connected member's name on every
@@ -95,7 +95,7 @@ export function RelationshipAction({
           type="button"
           disabled={sending}
           onClick={() => void handleSend()}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#7A1C32] hover:bg-[#681427] active:scale-[0.98] px-6 py-2.5 text-sm font-semibold text-white shadow-xs transition-all disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-nk-maroon hover:bg-[#681427] active:scale-[0.98] px-6 py-2.5 text-sm font-semibold text-white shadow-xs transition-all disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Heart className="h-4 w-4 text-white" />
           <span>{sending ? 'Sending Interest…' : 'Send Interest'}</span>
@@ -117,7 +117,7 @@ export function RelationshipAction({
       control = (
         <Link
           href={view.href}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#7A1C32] hover:bg-[#681427] active:scale-[0.98] px-6 py-2.5 text-sm font-semibold text-white shadow-xs transition-all"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-nk-maroon hover:bg-[#681427] active:scale-[0.98] px-6 py-2.5 text-sm font-semibold text-white shadow-xs transition-all"
         >
           <MessageCircle className="h-4 w-4 text-white" />
           <span>Message</span>
@@ -128,7 +128,7 @@ export function RelationshipAction({
       control = (
         <Link
           href={view.href}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#7A1C32] hover:bg-[#681427] active:scale-[0.98] px-6 py-2.5 text-sm font-semibold text-white shadow-xs transition-all"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-nk-maroon hover:bg-[#681427] active:scale-[0.98] px-6 py-2.5 text-sm font-semibold text-white shadow-xs transition-all"
         >
           <HeartHandshake className="h-4 w-4 text-white" />
           <span>Respond to Interest</span>

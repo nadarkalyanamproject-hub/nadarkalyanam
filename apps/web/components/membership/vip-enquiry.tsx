@@ -15,7 +15,17 @@ const STATUS_TEXT: Record<VipEnquiryStatus, string> = {
 
 // "Enquire" on the VIP Assisted card: asks the team to call the member back
 // on their registered number. Name and phone come from their account.
-export function VipEnquiry() {
+// `label` / `buttonClassName` restyle the trigger (e.g. the home page promo);
+// `returnTo` is where a signed-out visitor comes back to after logging in.
+export function VipEnquiry({
+  label = 'Enquire',
+  buttonClassName = 'w-full rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15',
+  returnTo = '/membership',
+}: {
+  label?: string;
+  buttonClassName?: string;
+  returnTo?: string;
+} = {}) {
   const router = useRouter();
   const { data } = useRegistration();
   const accessToken = data.accessToken;
@@ -72,10 +82,10 @@ export function VipEnquiry() {
       <button
         type="button"
         data-testid="vip-enquire"
-        onClick={() => (accessToken ? setOpen(true) : router.push('/?login=true&returnTo=%2Fmembership'))}
-        className="w-full rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15"
+        onClick={() => (accessToken ? setOpen(true) : router.push(`/?login=true&returnTo=${encodeURIComponent(returnTo)}`))}
+        className={buttonClassName}
       >
-        Enquire
+        {label}
       </button>
       {enquiry && !isOpenEnquiry && (
         <p className="text-[11px] text-white/70" data-testid="vip-last-enquiry">
@@ -85,12 +95,12 @@ export function VipEnquiry() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" data-testid="vip-enquiry-form">
-          <div role="dialog" aria-modal="true" aria-labelledby="vip-enquiry-title" className="w-full max-w-sm rounded-2xl bg-white p-5 text-left text-[#2B1515] shadow-xl">
+          <div role="dialog" aria-modal="true" aria-labelledby="vip-enquiry-title" className="w-full max-w-sm rounded-2xl bg-white p-5 text-left text-nk-ink shadow-xl">
             <h2 id="vip-enquiry-title" className="text-base font-bold">
               VIP Assisted enquiry
             </h2>
-            <p className="mt-1 text-sm text-[#5A493E]">We will contact you on your registered phone number.</p>
-            <label htmlFor="vip-message" className="mt-3 block text-xs font-semibold text-[#5A493E]">
+            <p className="mt-1 text-sm text-nk-ink-soft">We will contact you on your registered phone number.</p>
+            <label htmlFor="vip-message" className="mt-3 block text-xs font-semibold text-nk-ink-soft">
               Message (optional)
             </label>
             <textarea
@@ -100,7 +110,7 @@ export function VipEnquiry() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="A good time to call, or anything you'd like us to know"
-              className="mt-1 w-full rounded-xl border border-[#EADBD5] px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#680A0E]"
+              className="mt-1 w-full rounded-xl border border-[#EADBD5] px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-nk-maroon-deep"
             />
             {error && (
               <p role="alert" className="mt-2 text-xs font-semibold text-destructive">
@@ -115,7 +125,7 @@ export function VipEnquiry() {
                 type="button"
                 onClick={() => void submit()}
                 disabled={sending}
-                className="rounded-md bg-[#680A0E] px-5 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                className="rounded-md bg-nk-maroon-deep px-5 py-2 text-xs font-semibold text-white disabled:opacity-50"
               >
                 {sending ? 'Sending…' : 'Send enquiry'}
               </button>

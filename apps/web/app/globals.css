@@ -5,6 +5,31 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
+  /* Nadar Kalyanam colour tokens: use `text-nk-ink`, `bg-nk-maroon`,
+     `border-nk-line` … instead of raw hex in components. Text colours here
+     all meet WCAG AA (4.5:1) on every nk surface below. */
+  --color-nk-ink: #1e1c1a; /* main text (soft black) */
+  --color-nk-ink-soft: #5a493e; /* strong secondary text */
+  --color-nk-muted: #73645c; /* secondary text */
+  --color-nk-subtle: #776a62; /* faint text: dates, captions, labels */
+  --color-nk-maroon: #7a1118; /* brand: buttons, links, active states */
+  --color-nk-maroon-deep: #680a0e; /* hover / pressed maroon */
+  --color-nk-maroon-bright: #8e1b24; /* gradients, alerts */
+  --color-nk-gold: #c89b3c; /* icons, Popular, accents */
+  --color-nk-gold-light: #d4af37; /* VIP borders, underline */
+  --color-nk-gold-text: #8a6420; /* gold-coloured text (e.g. Coming soon) */
+  --color-nk-turmeric: #e9b53f; /* header / footer rule */
+  --color-nk-butter: #fcefc7; /* header background */
+  --color-nk-butter-deep: #f7e3ae; /* header hover */
+  --color-nk-ivory: #fffdf9; /* page background */
+  --color-nk-paper: #faf7f2; /* alternate page background */
+  --color-nk-cream: #fffbf2; /* soft panels, footer */
+  --color-nk-sand: #f9f3e7; /* hover tint on light surfaces */
+  --color-nk-line: #e8dccf; /* card borders */
+  --color-nk-line-gold: #eadbbd; /* gold-tinted borders */
+  --color-nk-line-strong: #decdbb; /* dashed / emphasised borders */
+  --color-nk-line-soft: #f3ebdd; /* dividers inside cards */
+
   /* "Interest Sent": a short settle-in when a send flips the card to Sent. */
   --animate-nk-pop: nk-pop 240ms ease-out;
 
@@ -12,6 +37,12 @@
     0% { transform: scale(0.97); opacity: 0.4; }
     100% { transform: scale(1); opacity: 1; }
   }
+}
+
+:root {
+  /* Headings use Source Serif 4 (--font-heading); older components still
+     ask for --font-playfair by name. */
+  --font-playfair: var(--font-heading);
 }
 
 body {

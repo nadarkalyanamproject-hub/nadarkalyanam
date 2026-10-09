@@ -60,7 +60,7 @@ function HubTile({ href, title, subtitle, icon, iconBg, iconColor }: HubTileProp
   return (
     <Link
       href={href}
-      className="bg-white rounded-2xl border border-[#EADBBD]/80 hover:border-[#C4B2A0] p-3.5 sm:p-4 flex items-center justify-between gap-3 group transition-all shadow-2xs hover:shadow-xs"
+      className="bg-white rounded-2xl border border-nk-line-gold/80 hover:border-[#C4B2A0] p-3.5 sm:p-4 flex items-center justify-between gap-3 group transition-all shadow-2xs hover:shadow-xs"
     >
       <div className="flex items-center gap-3 min-w-0">
         <div
@@ -69,13 +69,13 @@ function HubTile({ href, title, subtitle, icon, iconBg, iconColor }: HubTileProp
           {icon}
         </div>
         <div className="min-w-0">
-          <h3 className="text-xs sm:text-sm font-bold text-[#241C1A] group-hover:text-[#7A1118] transition-colors truncate">
+          <h3 className="text-xs sm:text-sm font-bold text-nk-ink group-hover:text-nk-maroon transition-colors truncate">
             {title}
           </h3>
-          <p className="text-[11px] sm:text-xs text-[#73645C] truncate">{subtitle}</p>
+          <p className="text-[11px] sm:text-xs text-nk-muted truncate">{subtitle}</p>
         </div>
       </div>
-      <ChevronRight className="h-4 w-4 text-[#A88C78] group-hover:text-[#7A1118] group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
+      <ChevronRight className="h-4 w-4 text-[#A88C78] group-hover:text-nk-maroon group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
     </Link>
   );
 }
@@ -84,13 +84,13 @@ function SectionHeading({ title, viewAllHref }: { title: string; viewAllHref?: s
   return (
     <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-2">
-        <span className="w-1 h-3.5 rounded-full bg-[#7A1118] shrink-0" />
-        <h2 className="text-xs sm:text-sm font-bold text-[#241C1A] tracking-tight">{title}</h2>
+        <span className="w-1 h-3.5 rounded-full bg-nk-maroon shrink-0" />
+        <h2 className="text-xs sm:text-sm font-bold text-nk-ink tracking-tight">{title}</h2>
       </div>
       {viewAllHref && (
         <Link
           href={viewAllHref}
-          className="text-xs font-semibold text-[#7A1118] hover:underline flex items-center gap-1"
+          className="text-xs font-semibold text-nk-maroon hover:underline flex items-center gap-1"
         >
           <span>View all</span>
           <ArrowRight className="h-3.5 w-3.5" />
@@ -190,7 +190,7 @@ function MatchesPageContent() {
   return (
     <>
       <AppHeader />
-      <main className="relative min-h-screen bg-[#FAF7F2] text-[#241C1A] overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
+      <main className="relative min-h-screen bg-nk-paper text-nk-ink overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
         {/* Decorative corner foliage flourishes matching design system */}
         <BotanicalSprig className="pointer-events-none absolute -top-4 -right-4 w-44 h-44 sm:w-64 sm:h-64 text-[#C4A882] opacity-40 z-0" />
         <BotanicalSprig className="pointer-events-none absolute -bottom-4 -left-4 w-44 h-44 sm:w-64 sm:h-64 text-[#C4A882] opacity-35 rotate-180 z-0" />
@@ -199,14 +199,14 @@ function MatchesPageContent() {
           {/* Header Row: Title & Subtitle + Search Input */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
-              <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-full bg-[#FDF2F2] border border-[#F8D7DA] flex items-center justify-center text-[#7A1118] shrink-0 shadow-2xs">
-                <Heart className="h-5 w-5 sm:h-6 sm:w-6 fill-[#7A1118] text-[#7A1118]" />
+              <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-full bg-[#FDF2F2] border border-[#F8D7DA] flex items-center justify-center text-nk-maroon shrink-0 shadow-2xs">
+                <Heart className="h-5 w-5 sm:h-6 sm:w-6 fill-nk-maroon text-nk-maroon" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-[#241C1A] font-[family-name:var(--font-heading,serif)] tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-bold text-nk-ink font-[family-name:var(--font-heading,serif)] tracking-tight">
                   Matches
                 </h1>
-                <p className="text-xs sm:text-sm text-[#73645C] mt-0.5">
+                <p className="text-xs sm:text-sm text-nk-muted mt-0.5">
                   Find your perfect match with personalized recommendations.
                 </p>
               </div>
@@ -214,13 +214,13 @@ function MatchesPageContent() {
 
             {/* Search Input */}
             <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-72">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C7B73] pointer-events-none" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-nk-subtle pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search matches..."
-                className="w-full pl-9 pr-4 py-2 bg-white/95 border border-[#EADBBD] hover:border-[#C4B2A0] focus:border-[#7A1118] focus:ring-1 focus:ring-[#7A1118] rounded-md text-xs text-[#241C1A] placeholder-[#9C8E82] transition-colors outline-none shadow-2xs"
+                className="w-full pl-9 pr-4 py-2 bg-white/95 border border-nk-line-gold hover:border-[#C4B2A0] focus:border-nk-maroon focus:ring-1 focus:ring-nk-maroon rounded-md text-xs text-nk-ink placeholder-[#9C8E82] transition-colors outline-none shadow-2xs"
               />
             </form>
           </div>
@@ -252,7 +252,7 @@ function MatchesPageContent() {
           {/* =========================================================================
               MATCH HUB MAIN CARD (CATEGORIZED SECTIONS)
               ========================================================================= */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EADBBD]/80 p-5 sm:p-7 lg:p-8 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)] space-y-6">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-nk-line-gold/80 p-5 sm:p-7 lg:p-8 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)] space-y-6">
             {/* 1. All Matches */}
             <div>
               <SectionHeading title="All Matches" />
@@ -263,7 +263,7 @@ function MatchesPageContent() {
                   subtitle="View all the profiles that match your preferences"
                   icon={<Users className="h-5 w-5" />}
                   iconBg="bg-[#FDF2F2]"
-                  iconColor="text-[#7A1118]"
+                  iconColor="text-nk-maroon"
                 />
               </div>
             </div>
@@ -448,15 +448,15 @@ function MatchesPageContent() {
           {/* =========================================================================
               YOUR TOP MATCHES SECTION (RECOMMENDED PROFILES)
               ========================================================================= */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EADBBD]/80 p-5 sm:p-7 lg:p-8 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)]">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-nk-line-gold/80 p-5 sm:p-7 lg:p-8 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)]">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2.5">
-                <Sparkles className="h-5 w-5 text-[#7A1118]" />
+                <Sparkles className="h-5 w-5 text-nk-maroon" />
                 <div>
-                  <h2 className="text-base sm:text-lg font-bold text-[#241C1A] font-[family-name:var(--font-heading,serif)]">
+                  <h2 className="text-base sm:text-lg font-bold text-nk-ink font-[family-name:var(--font-heading,serif)]">
                     Your Top Matches
                   </h2>
-                  <p className="text-xs text-[#73645C]">
+                  <p className="text-xs text-nk-muted">
                     Recommended based on your profile and preferences.
                   </p>
                 </div>
@@ -464,7 +464,7 @@ function MatchesPageContent() {
 
               <Link
                 href={matchCategoryHref('your-matches')}
-                className="px-4 py-2 rounded-md border border-[#7A1118]/30 hover:border-[#7A1118] hover:bg-[#7A1118]/5 text-[#7A1118] text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap"
+                className="px-4 py-2 rounded-md border border-nk-maroon/30 hover:border-nk-maroon hover:bg-nk-maroon/5 text-nk-maroon text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap"
               >
                 <span>View All Matches</span>
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -472,24 +472,24 @@ function MatchesPageContent() {
             </div>
 
             {topMatchesError && (
-              <p className="mt-5 rounded-2xl border border-red-200 bg-red-50/80 p-6 text-center text-sm font-medium text-[#7A1118]" data-testid="top-matches-error">
+              <p className="mt-5 rounded-2xl border border-red-200 bg-red-50/80 p-6 text-center text-sm font-medium text-nk-maroon" data-testid="top-matches-error">
                 {topMatchesError}
               </p>
             )}
             {!topMatchesError && topMatches === null && (
-              <p className="mt-5 py-6 text-center text-sm text-[#73645C]">Loading your top matches…</p>
+              <p className="mt-5 py-6 text-center text-sm text-nk-muted">Loading your top matches…</p>
             )}
             {!topMatchesError && topMatches !== null && filteredTopMatches.length === 0 && (
-              <p className="mt-5 py-6 text-center text-sm text-[#73645C]" data-testid="top-matches-empty">
+              <p className="mt-5 py-6 text-center text-sm text-nk-muted" data-testid="top-matches-empty">
                 {topMatches.length === 0
                   ? (mustHaveNote ?? 'No matches are available for your profile right now. Check back as new members join.')
                   : 'None of your top matches match that search.'}
               </p>
             )}
             {!topMatchesError && mustHaveNote && (
-              <p className="mt-2 text-center text-xs text-[#73645C]" data-testid="must-have-note">
+              <p className="mt-2 text-center text-xs text-nk-muted" data-testid="must-have-note">
                 {topMatches && topMatches.length > 0 ? `${mustHaveNote} ` : ''}
-                <Link href="/profile#section-preferences" className="font-semibold text-[#7A1118] underline">
+                <Link href="/profile#section-preferences" className="font-semibold text-nk-maroon underline">
                   Relax your must-have preferences
                 </Link>
               </p>
@@ -501,12 +501,12 @@ function MatchesPageContent() {
                 <div
                   key={match.profileId}
                   data-profile-id={match.profileId}
-                  className="bg-white rounded-2xl border border-[#F0E8DD] hover:border-[#DECDBB] p-4 flex flex-col justify-between gap-4 transition-all shadow-2xs hover:shadow-xs"
+                  className="bg-white rounded-2xl border border-nk-line-soft hover:border-nk-line-strong p-4 flex flex-col justify-between gap-4 transition-all shadow-2xs hover:shadow-xs"
                 >
                   {/* Top Part: Avatar + Info + Score Pill */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full overflow-hidden border border-[#EADBBD] shrink-0 bg-[#FAF7F2]">
+                      <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full overflow-hidden border border-nk-line-gold shrink-0 bg-nk-paper">
                         {match.primaryPhotoUrl ? (
                           <img
                             src={match.primaryPhotoUrl}
@@ -521,17 +521,17 @@ function MatchesPageContent() {
                       </div>
 
                       <div className="min-w-0">
-                        <h3 className="text-sm sm:text-base font-bold text-[#241C1A] truncate">
+                        <h3 className="text-sm sm:text-base font-bold text-nk-ink truncate">
                           {match.fullName}, {match.age}
                         </h3>
                         {match.city && (
-                          <p className="flex items-center gap-1 text-xs text-[#73645C] mt-1 truncate">
+                          <p className="flex items-center gap-1 text-xs text-nk-muted mt-1 truncate">
                             <MapPin className="h-3 w-3 text-[#A88C78] shrink-0" />
                             <span className="truncate">{match.city}</span>
                           </p>
                         )}
                         {match.profession && (
-                          <p className="flex items-center gap-1 text-xs text-[#73645C] mt-0.5 truncate">
+                          <p className="flex items-center gap-1 text-xs text-nk-muted mt-0.5 truncate">
                             <Briefcase className="h-3 w-3 text-[#A88C78] shrink-0" />
                             <span className="truncate">{match.profession}</span>
                           </p>
@@ -547,7 +547,7 @@ function MatchesPageContent() {
                         type="button"
                         aria-label="More options"
                         onClick={() => router.push(`/browse/${match.profileId}`)}
-                        className="text-[#8C7B73] hover:text-[#241C1A] p-0.5"
+                        className="text-nk-subtle hover:text-nk-ink p-0.5"
                       >
                         <MoreVertical className="h-3.5 w-3.5" />
                       </button>
@@ -558,7 +558,7 @@ function MatchesPageContent() {
                   <div className="flex items-center gap-2 pt-1">
                     <Link
                       href={`/browse/${match.profileId}`}
-                      className="border border-[#C49746] text-[#C49746] hover:bg-[#C49746]/10 active:scale-[0.98] text-xs font-semibold py-1.5 px-3 rounded-md flex-1 text-center transition-colors whitespace-nowrap"
+                      className="border border-nk-gold text-nk-gold-text hover:bg-nk-gold/10 active:scale-[0.98] text-xs font-semibold py-1.5 px-3 rounded-md flex-1 text-center transition-colors whitespace-nowrap"
                     >
                       View Profile
                     </Link>
@@ -570,7 +570,7 @@ function MatchesPageContent() {
                       className={`text-xs font-semibold py-1.5 px-3 rounded-md flex-1 text-center transition-all whitespace-nowrap flex items-center justify-center gap-1 cursor-pointer ${
                         match.interestSent
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
-                          : 'bg-[#7A1118] hover:bg-[#620D13] active:scale-[0.98] text-white shadow-xs'
+                          : 'bg-nk-maroon hover:bg-[#620D13] active:scale-[0.98] text-white shadow-xs'
                       }`}
                     >
                       {match.interestSent ? (

@@ -29,26 +29,26 @@ export function CompletionChecklistCard({
   const nextIncomplete = checklist.find((item) => !item.completed);
 
   return (
-    <div className="rounded-2xl border border-[#E8DCC8] bg-[#FFFFFF] p-5 sm:p-6 shadow-sm">
+    <div className="rounded-2xl border border-nk-line bg-[#FFFFFF] p-5 sm:p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-[family-name:var(--font-body)] text-lg sm:text-xl font-bold tracking-tight text-[#7A0710]">
+        <h2 className="font-[family-name:var(--font-body)] text-lg sm:text-xl font-bold tracking-tight text-nk-maroon">
           Profile Completion
         </h2>
-        <span className="text-sm font-bold text-[#7A0710]">
+        <span className="text-sm font-bold text-nk-maroon">
           {percentage}% Complete
         </span>
       </div>
 
       <div className="mb-4">
-        <div className="h-2 w-full overflow-hidden rounded-full bg-[#F3EBDD]">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-nk-line-soft">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#7A0710] via-[#D97706] to-[#F59E0B] transition-all duration-500 ease-out"
+            className="h-full rounded-full bg-gradient-to-r from-nk-maroon via-[#D97706] to-[#F59E0B] transition-all duration-500 ease-out"
             style={{ width: `${percentage}%` }}
           />
         </div>
       </div>
 
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#776B62]">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-nk-muted">
         Complete your profile
       </p>
 
@@ -56,7 +56,7 @@ export function CompletionChecklistCard({
         {checklist.map((item) => (
           <li key={item.id} className="flex items-center gap-2.5 text-xs font-medium">
             {item.completed ? (
-              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#7A0710] text-white">
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-nk-maroon text-white">
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-2.5 w-2.5">
                   <path d="m3.5 8 3 3 6-6" />
                 </svg>
@@ -64,9 +64,9 @@ export function CompletionChecklistCard({
             ) : (
               <span className="h-4 w-4 shrink-0 rounded-full border-1.5 border-[#F59E0B] bg-[#FFF9E6]" />
             )}
-            <span className={item.completed ? 'text-[#2B211C]' : 'text-[#776B62]'}>
+            <span className={item.completed ? 'text-nk-ink' : 'text-nk-muted'}>
               {item.label}
-              {item.optional && <span className="ml-1 font-normal text-[#A39488]">(optional)</span>}
+              {item.optional && <span className="ml-1 font-normal text-nk-subtle">(optional)</span>}
             </span>
           </li>
         ))}
@@ -75,7 +75,7 @@ export function CompletionChecklistCard({
       <button
         type="button"
         onClick={() => onCompleteClick?.(nextIncomplete?.id || 'education')}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#94151C] to-[#7A0710] py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:from-[#A81C24] hover:to-[#94151C] hover:shadow hover:scale-[1.01]"
+        className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-nk-maroon-bright to-nk-maroon py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:from-[#A81C24] hover:to-nk-maroon-bright hover:shadow hover:scale-[1.01]"
       >
         <span>Complete Profile</span>
         <span>→</span>

@@ -54,34 +54,34 @@ export function UsePreferencesToggle({
   }
 
   return (
-    <div className="rounded-2xl border border-[#EADBBD] bg-white px-4 py-3 text-sm shadow-2xs" data-testid="use-preferences">
-      <label className="flex items-center gap-2 font-semibold text-[#241C1A]">
+    <div className="rounded-2xl border border-nk-line-gold bg-white px-4 py-3 text-sm shadow-2xs" data-testid="use-preferences">
+      <label className="flex items-center gap-2 font-semibold text-nk-ink">
         <input
           type="checkbox"
           checked={on}
           disabled={busy}
           onChange={(e) => void toggle(e.target.checked)}
-          className="h-4 w-4 accent-[#7A1118]"
+          className="h-4 w-4 accent-nk-maroon"
           data-testid="use-preferences-toggle"
         />
         Use my partner preferences
       </label>
       {message === 'none' && (
-        <p className="mt-1 text-xs text-[#73645C]" data-testid="use-preferences-none">
+        <p className="mt-1 text-xs text-nk-muted" data-testid="use-preferences-none">
           You haven&apos;t set partner preferences yet.{' '}
-          <Link href="/profile#section-preferences" className="font-semibold text-[#7A1118] underline">
+          <Link href="/profile#section-preferences" className="font-semibold text-nk-maroon underline">
             Set them on your profile
           </Link>
           .
         </p>
       )}
       {message && message !== 'none' && (
-        <p className="mt-1 text-xs font-semibold text-[#7A1118]" role="alert">
+        <p className="mt-1 text-xs font-semibold text-nk-maroon" role="alert">
           {message}
         </p>
       )}
       {on && applied && (
-        <p className="mt-1 text-xs text-[#5A493E]" data-testid="use-preferences-applied">
+        <p className="mt-1 text-xs text-nk-ink-soft" data-testid="use-preferences-applied">
           Filtering by:{' '}
           {preferenceSummary(applied)
             .map(

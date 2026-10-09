@@ -96,7 +96,7 @@ export function PhotoGalleryCard({
   }
 
   return (
-    <div className="rounded-2xl border border-[#E8DCC8] bg-[#FFFFFF] p-5 sm:p-6 shadow-sm">
+    <div className="rounded-2xl border border-nk-line bg-[#FFFFFF] p-5 sm:p-6 shadow-sm">
       <input
         ref={fileInputRef}
         type="file"
@@ -108,31 +108,31 @@ export function PhotoGalleryCard({
       {/* Header */}
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-[family-name:var(--font-body)] text-lg sm:text-xl font-bold tracking-tight text-[#7A0710]">
+          <h2 className="font-[family-name:var(--font-body)] text-lg sm:text-xl font-bold tracking-tight text-nk-maroon">
             Profile Photos
           </h2>
-          <p className="mt-0.5 text-xs text-[#776B62]">A clear, recent photo of your face helps build trust.</p>
+          <p className="mt-0.5 text-xs text-nk-muted">A clear, recent photo of your face helps build trust.</p>
         </div>
-        <span className="shrink-0 pt-1 text-xs font-semibold text-[#776B62]" data-testid="photo-count">
+        <span className="shrink-0 pt-1 text-xs font-semibold text-nk-muted" data-testid="photo-count">
           {photos.length} of {MAX_PHOTOS}
         </span>
       </div>
 
       {actionError && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-[#94151C]">
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-nk-maroon-bright">
           {actionError}
         </div>
       )}
 
       {/* Moderation hold: only approved photos are shown to other members. */}
       {pendingCount > 0 && (
-        <p className="mb-3 rounded-lg border border-[#EADBBD] bg-[#FFF9ED] p-2.5 text-xs text-[#5A493E]" data-testid="photos-pending-note">
+        <p className="mb-3 rounded-lg border border-nk-line-gold bg-nk-cream p-2.5 text-xs text-nk-ink-soft" data-testid="photos-pending-note">
           {pendingCount === 1 ? '1 photo is' : `${pendingCount} photos are`} waiting for review. Other members will see{' '}
           {pendingCount === 1 ? 'it' : 'them'} once approved; until then only you can.
         </p>
       )}
       {rejected.length > 0 && (
-        <ul className="mb-3 flex flex-col gap-1 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-[#94151C]" data-testid="photos-rejected-note">
+        <ul className="mb-3 flex flex-col gap-1 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-nk-maroon-bright" data-testid="photos-rejected-note">
           {rejected.map((photo, index) => (
             <li key={photo.id}>
               Photo {photos.indexOf(photo) + 1} was not approved{photo.rejectionReason ? `: ${photo.rejectionReason}` : ''}. Other
@@ -152,7 +152,7 @@ export function PhotoGalleryCard({
               key={photo.id}
               onClick={() => setEnlargedPhotoUrl(photo.url)}
               className={`@container group relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-[#FAF6EF] ${
-                isPrimary ? 'col-span-2 row-span-2 ring-2 ring-[#7A0710] ring-offset-2' : 'border border-[#E8DCC8]'
+                isPrimary ? 'col-span-2 row-span-2 ring-2 ring-nk-maroon ring-offset-2' : 'border border-nk-line'
               }`}
             >
               {/* Moderation status (owner-only view) */}
@@ -195,7 +195,7 @@ export function PhotoGalleryCard({
                         event.stopPropagation();
                         void handleSetPrimary(photo.id);
                       }}
-                      className="flex-1 whitespace-nowrap rounded bg-[#FFFDF9]/90 px-1.5 py-1 text-[10px] font-semibold text-[#7A0710] backdrop-blur-sm transition-colors hover:bg-[#FFFFFF]"
+                      className="flex-1 whitespace-nowrap rounded bg-nk-ivory/90 px-1.5 py-1 text-[10px] font-semibold text-nk-maroon backdrop-blur-sm transition-colors hover:bg-[#FFFFFF]"
                     >
                       Make Primary
                     </button>
@@ -225,7 +225,7 @@ export function PhotoGalleryCard({
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
             data-testid="add-photo"
-            className={`flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-[#D9C6A8] bg-[#FFFDF9] p-2 text-center text-[#7A0710] transition-colors hover:border-[#7A0710] hover:bg-[#FFF9ED] disabled:cursor-wait disabled:opacity-60 ${
+            className={`flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-[#D9C6A8] bg-nk-ivory p-2 text-center text-nk-maroon transition-colors hover:border-nk-maroon hover:bg-nk-cream disabled:cursor-wait disabled:opacity-60 ${
               photos.length === 0 ? 'col-span-3 aspect-auto py-10' : ''
             }`}
           >
@@ -234,7 +234,7 @@ export function PhotoGalleryCard({
             </svg>
             <span className="text-xs font-semibold">{uploading ? 'Uploading…' : 'Add photo'}</span>
             {photos.length === 0 && (
-              <span className="text-[11px] text-[#8A7A70]">JPG, PNG or WEBP, up to 5 MB</span>
+              <span className="text-[11px] text-nk-subtle">JPG, PNG or WEBP, up to 5 MB</span>
             )}
           </button>
         )}

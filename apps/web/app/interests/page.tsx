@@ -219,7 +219,7 @@ function InterestsPageContent() {
   return (
     <>
       <AppHeader />
-      <main className="relative min-h-screen bg-[#FAF7F2] text-[#241C1A] overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
+      <main className="relative min-h-screen bg-nk-paper text-nk-ink overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
         {/* Decorative corner foliage flourishes matching design theme */}
         <BotanicalSprig className="pointer-events-none absolute -top-4 -right-4 w-44 h-44 sm:w-64 sm:h-64 text-[#C4A882] opacity-40 z-0" />
         <BotanicalSprig className="pointer-events-none absolute -bottom-4 -left-4 w-44 h-44 sm:w-64 sm:h-64 text-[#C4A882] opacity-35 rotate-180 z-0" />
@@ -228,12 +228,12 @@ function InterestsPageContent() {
           {/* Header Title with Maroon Heart Icon */}
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
-              <Heart className="h-6 w-6 text-[#7A1118]" />
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#241C1A] tracking-tight font-[family-name:var(--font-heading,serif)]">
+              <Heart className="h-6 w-6 text-nk-maroon" />
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-nk-ink tracking-tight font-[family-name:var(--font-heading,serif)]">
                 Interests
               </h1>
             </div>
-            <p className="text-xs sm:text-sm text-[#73645C]">
+            <p className="text-xs sm:text-sm text-nk-muted">
               People you have shown interest in and those who have shown interest in you.
             </p>
           </div>
@@ -253,12 +253,12 @@ function InterestsPageContent() {
           )}
 
           {errorMessage && (
-            <div className="rounded-2xl border border-red-200 bg-red-50/90 p-4 text-xs sm:text-sm font-medium text-[#7A1118] flex items-center justify-between">
+            <div className="rounded-2xl border border-red-200 bg-red-50/90 p-4 text-xs sm:text-sm font-medium text-nk-maroon flex items-center justify-between">
               <span>{errorMessage}</span>
               <button
                 type="button"
                 onClick={() => setErrorMessage(null)}
-                className="text-[#7A1118] hover:text-[#5A0D12] cursor-pointer"
+                className="text-nk-maroon hover:text-[#5A0D12] cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -268,19 +268,19 @@ function InterestsPageContent() {
           {/* =========================================================================
               1. INTERESTS RECEIVED CARD
               ========================================================================= */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EADBBD]/80 p-5 sm:p-7 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)] transition-all">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-nk-line-gold/80 p-5 sm:p-7 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)] transition-all">
             {/* Card Header: Icon + Title + Filter Pills + Accordion Toggle */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4">
               {/* Left Title Group */}
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-[#FAF7F2] border border-[#DECDBB] flex items-center justify-center text-[#7A1118] shrink-0">
+                <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-nk-paper border border-nk-line-strong flex items-center justify-center text-nk-maroon shrink-0">
                   <UserCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-base sm:text-lg font-bold text-[#241C1A] font-[family-name:var(--font-heading,serif)]">
+                  <h2 className="text-base sm:text-lg font-bold text-nk-ink font-[family-name:var(--font-heading,serif)]">
                     Interests Received
                   </h2>
-                  <p className="text-xs text-[#73645C]">
+                  <p className="text-xs text-nk-muted">
                     People who have shown interest in your profile.
                   </p>
                 </div>
@@ -288,7 +288,7 @@ function InterestsPageContent() {
 
               {/* Right Filter Pills & Chevron */}
               <div className="flex items-center gap-3 self-end sm:self-auto flex-wrap">
-                <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-[#FAF7F2] rounded-lg border border-[#EADBBD]/70">
+                <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-nk-paper rounded-lg border border-nk-line-gold/70">
                   {(
                     [
                       { key: 'ALL', label: 'All' },
@@ -305,8 +305,8 @@ function InterestsPageContent() {
                         onClick={() => setFilterReceived(key)}
                         className={`px-3 sm:px-4 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
                           isActive
-                            ? 'bg-[#7A1118] text-white shadow-2xs'
-                            : 'bg-transparent text-[#73645C] hover:text-[#241C1A]'
+                            ? 'bg-nk-maroon text-white shadow-2xs'
+                            : 'bg-transparent text-nk-muted hover:text-nk-ink'
                         }`}
                       >
                         {label}
@@ -318,7 +318,7 @@ function InterestsPageContent() {
                 <button
                   type="button"
                   onClick={() => setReceivedOpen((v) => !v)}
-                  className="p-1 text-[#4A3D36] hover:text-[#7A1118] transition-colors cursor-pointer"
+                  className="p-1 text-[#4A3D36] hover:text-nk-maroon transition-colors cursor-pointer"
                   aria-label={receivedOpen ? 'Collapse Interests Received' : 'Expand Interests Received'}
                 >
                   {receivedOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
@@ -332,7 +332,7 @@ function InterestsPageContent() {
                 {receivedStatus ? (
                   <div
                     role={loadError ? 'alert' : undefined}
-                    className={`py-8 text-center text-xs sm:text-sm ${loadError ? 'text-[#7A1118] font-medium' : 'text-[#8C7B73]'}`}
+                    className={`py-8 text-center text-xs sm:text-sm ${loadError ? 'text-nk-maroon font-medium' : 'text-nk-subtle'}`}
                   >
                     {receivedStatus}
                   </div>
@@ -340,11 +340,11 @@ function InterestsPageContent() {
                   displayedReceived.map((item) => (
                     <div
                       key={item.id}
-                      className="bg-white rounded-2xl border border-[#F0E8DD] hover:border-[#DECDBB] p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all shadow-2xs hover:shadow-xs"
+                      className="bg-white rounded-2xl border border-nk-line-soft hover:border-nk-line-strong p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all shadow-2xs hover:shadow-xs"
                     >
                       {/* Left Profile Info */}
                       <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="h-13 w-13 sm:h-14 sm:w-14 rounded-full overflow-hidden border border-[#EADBBD] shrink-0 bg-[#FAF7F2]">
+                        <div className="h-13 w-13 sm:h-14 sm:w-14 rounded-full overflow-hidden border border-nk-line-gold shrink-0 bg-nk-paper">
                           {item.primaryPhotoUrl ? (
                             <img
                               src={item.primaryPhotoUrl}
@@ -359,10 +359,10 @@ function InterestsPageContent() {
                         </div>
 
                         <div className="min-w-0">
-                          <h3 className="text-sm sm:text-base font-bold text-[#241C1A] truncate">
+                          <h3 className="text-sm sm:text-base font-bold text-nk-ink truncate">
                             {item.fullName}, {item.age}
                           </h3>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-[#73645C] flex-wrap">
+                          <div className="flex items-center gap-2 mt-1 text-xs text-nk-muted flex-wrap">
                             <span className="flex items-center gap-1">
                               <MapPin className="h-3.5 w-3.5 text-[#A88C78] shrink-0" />
                               <span>{item.location || '—'}</span>
@@ -377,7 +377,7 @@ function InterestsPageContent() {
                       </div>
 
                       {/* Right Side: Status Badge, Date, View Profile, More Menu */}
-                      <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-4 shrink-0 border-t md:border-t-0 pt-3 md:pt-0 border-[#F0E8DD]">
+                      <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-4 shrink-0 border-t md:border-t-0 pt-3 md:pt-0 border-nk-line-soft">
                         {/* Status Badge */}
                         <div className="flex items-center gap-2 sm:gap-3">
                           {item.status === 'PENDING' && (
@@ -387,7 +387,7 @@ function InterestsPageContent() {
                             </span>
                           )}
                           {item.status === 'ACCEPTED' && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-[#F0FDF4] border border-[#DCFCE7] text-[#16A34A]">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-[#F0FDF4] border border-[#DCFCE7] text-[#15803D]">
                               <CheckCircle2 className="h-3.5 w-3.5" />
                               <span>Accepted</span>
                             </span>
@@ -405,7 +405,7 @@ function InterestsPageContent() {
                           )}
 
                           {/* Date String */}
-                          <span className="text-xs text-[#8C7B73] font-medium min-w-[76px]">
+                          <span className="text-xs text-nk-subtle font-medium min-w-[76px]">
                             {formatInterestDate(item.createdAt)}
                           </span>
                         </div>
@@ -414,7 +414,7 @@ function InterestsPageContent() {
                         <div className="flex items-center gap-2 relative">
                           <Link
                             href={`/browse/${item.profileId}`}
-                            className="px-4 sm:px-5 py-1.5 sm:py-2 rounded-md text-xs font-semibold tracking-wide border border-[#C49746] text-[#C49746] hover:bg-[#C49746]/10 active:scale-[0.98] transition-colors whitespace-nowrap"
+                            className="px-4 sm:px-5 py-1.5 sm:py-2 rounded-md text-xs font-semibold tracking-wide border border-nk-gold text-nk-gold-text hover:bg-nk-gold/10 active:scale-[0.98] transition-colors whitespace-nowrap"
                           >
                             View Profile
                           </Link>
@@ -424,7 +424,7 @@ function InterestsPageContent() {
                             onClick={() =>
                               setOpenMenuId(openMenuId === item.id ? null : item.id)
                             }
-                            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full border border-[#EADBBD] hover:border-[#C4B2A0] text-[#8C7B73] hover:text-[#241C1A] hover:bg-[#FAF7F2] flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full border border-nk-line-gold hover:border-[#C4B2A0] text-nk-subtle hover:text-nk-ink hover:bg-nk-paper flex items-center justify-center transition-colors cursor-pointer shrink-0"
                             aria-label="More options"
                           >
                             <MoreHorizontal className="h-4 w-4" />
@@ -432,7 +432,7 @@ function InterestsPageContent() {
 
                           {/* More Options Popover */}
                           {openMenuId === item.id && (
-                            <div className="absolute right-0 top-full mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-[#EADBBD] py-1.5 z-20">
+                            <div className="absolute right-0 top-full mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-nk-line-gold py-1.5 z-20">
                               {item.status === 'PENDING' && (
                                 <>
                                   <button
@@ -459,18 +459,18 @@ function InterestsPageContent() {
                               {item.status === 'ACCEPTED' && (
                                 <Link
                                   href="/messages"
-                                  className="w-full px-3.5 py-2 text-left text-xs font-medium text-[#7A1118] hover:bg-[#FAF7F2] flex items-center gap-2 transition-colors block"
+                                  className="w-full px-3.5 py-2 text-left text-xs font-medium text-nk-maroon hover:bg-nk-paper flex items-center gap-2 transition-colors block"
                                 >
-                                  <MessageSquare className="h-3.5 w-3.5 text-[#7A1118]" />
+                                  <MessageSquare className="h-3.5 w-3.5 text-nk-maroon" />
                                   <span>Send Message</span>
                                 </Link>
                               )}
 
                               <Link
                                 href={`/browse/${item.profileId}`}
-                                className="w-full px-3.5 py-2 text-left text-xs font-medium text-[#4A3D36] hover:bg-[#FAF7F2] flex items-center gap-2 transition-colors block"
+                                className="w-full px-3.5 py-2 text-left text-xs font-medium text-[#4A3D36] hover:bg-nk-paper flex items-center gap-2 transition-colors block"
                               >
-                                <User className="h-3.5 w-3.5 text-[#8C7B73]" />
+                                <User className="h-3.5 w-3.5 text-nk-subtle" />
                                 <span>Full Profile</span>
                               </Link>
                             </div>
@@ -487,25 +487,25 @@ function InterestsPageContent() {
           {/* =========================================================================
               2. INTERESTS SENT CARD
               ========================================================================= */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EADBBD]/80 p-5 sm:p-7 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)] transition-all">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-nk-line-gold/80 p-5 sm:p-7 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)] transition-all">
             {/* Card Header: Icon + Title + Filter Pills + Accordion Toggle */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4">
               {/* Left Title Group */}
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-[#FAF7F2] border border-[#DECDBB] flex items-center justify-center text-[#7A1118] shrink-0">
+                <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-nk-paper border border-nk-line-strong flex items-center justify-center text-nk-maroon shrink-0">
                   <Send className="h-4 w-4 -ml-0.5" />
                 </div>
                 <div>
-                  <h2 className="text-base sm:text-lg font-bold text-[#241C1A] font-[family-name:var(--font-heading,serif)]">
+                  <h2 className="text-base sm:text-lg font-bold text-nk-ink font-[family-name:var(--font-heading,serif)]">
                     Interests Sent
                   </h2>
-                  <p className="text-xs text-[#73645C]">People you have shown interest in.</p>
+                  <p className="text-xs text-nk-muted">People you have shown interest in.</p>
                 </div>
               </div>
 
               {/* Right Filter Pills & Chevron */}
               <div className="flex items-center gap-3 self-end sm:self-auto flex-wrap">
-                <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-[#FAF7F2] rounded-lg border border-[#EADBBD]/70">
+                <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-nk-paper rounded-lg border border-nk-line-gold/70">
                   {(
                     [
                       { key: 'ALL', label: 'All' },
@@ -522,8 +522,8 @@ function InterestsPageContent() {
                         onClick={() => setFilterSent(key)}
                         className={`px-3 sm:px-4 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
                           isActive
-                            ? 'bg-[#7A1118] text-white shadow-2xs'
-                            : 'bg-transparent text-[#73645C] hover:text-[#241C1A]'
+                            ? 'bg-nk-maroon text-white shadow-2xs'
+                            : 'bg-transparent text-nk-muted hover:text-nk-ink'
                         }`}
                       >
                         {label}
@@ -535,7 +535,7 @@ function InterestsPageContent() {
                 <button
                   type="button"
                   onClick={() => setSentOpen((v) => !v)}
-                  className="p-1 text-[#4A3D36] hover:text-[#7A1118] transition-colors cursor-pointer"
+                  className="p-1 text-[#4A3D36] hover:text-nk-maroon transition-colors cursor-pointer"
                   aria-label={sentOpen ? 'Collapse Interests Sent' : 'Expand Interests Sent'}
                 >
                   {sentOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
@@ -549,7 +549,7 @@ function InterestsPageContent() {
                 {sentStatus ? (
                   <div
                     role={loadError ? 'alert' : undefined}
-                    className={`py-8 text-center text-xs sm:text-sm ${loadError ? 'text-[#7A1118] font-medium' : 'text-[#8C7B73]'}`}
+                    className={`py-8 text-center text-xs sm:text-sm ${loadError ? 'text-nk-maroon font-medium' : 'text-nk-subtle'}`}
                   >
                     {sentStatus}
                   </div>
@@ -557,11 +557,11 @@ function InterestsPageContent() {
                   displayedSent.map((item) => (
                     <div
                       key={item.id}
-                      className="bg-white rounded-2xl border border-[#F0E8DD] hover:border-[#DECDBB] p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all shadow-2xs hover:shadow-xs"
+                      className="bg-white rounded-2xl border border-nk-line-soft hover:border-nk-line-strong p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all shadow-2xs hover:shadow-xs"
                     >
                       {/* Left Profile Info */}
                       <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="h-13 w-13 sm:h-14 sm:w-14 rounded-full overflow-hidden border border-[#EADBBD] shrink-0 bg-[#FAF7F2]">
+                        <div className="h-13 w-13 sm:h-14 sm:w-14 rounded-full overflow-hidden border border-nk-line-gold shrink-0 bg-nk-paper">
                           {item.primaryPhotoUrl ? (
                             <img
                               src={item.primaryPhotoUrl}
@@ -576,10 +576,10 @@ function InterestsPageContent() {
                         </div>
 
                         <div className="min-w-0">
-                          <h3 className="text-sm sm:text-base font-bold text-[#241C1A] truncate">
+                          <h3 className="text-sm sm:text-base font-bold text-nk-ink truncate">
                             {item.fullName}, {item.age}
                           </h3>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-[#73645C] flex-wrap">
+                          <div className="flex items-center gap-2 mt-1 text-xs text-nk-muted flex-wrap">
                             <span className="flex items-center gap-1">
                               <MapPin className="h-3.5 w-3.5 text-[#A88C78] shrink-0" />
                               <span>{item.location || '—'}</span>
@@ -594,7 +594,7 @@ function InterestsPageContent() {
                       </div>
 
                       {/* Right Side: Status Badge, Date, View Profile, More Menu */}
-                      <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-4 shrink-0 border-t md:border-t-0 pt-3 md:pt-0 border-[#F0E8DD]">
+                      <div className="flex items-center justify-between md:justify-end gap-3 sm:gap-4 shrink-0 border-t md:border-t-0 pt-3 md:pt-0 border-nk-line-soft">
                         {/* Status Badge */}
                         <div className="flex items-center gap-2 sm:gap-3">
                           {item.status === 'PENDING' && (
@@ -604,7 +604,7 @@ function InterestsPageContent() {
                             </span>
                           )}
                           {item.status === 'ACCEPTED' && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-[#F0FDF4] border border-[#DCFCE7] text-[#16A34A]">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-[#F0FDF4] border border-[#DCFCE7] text-[#15803D]">
                               <CheckCircle2 className="h-3.5 w-3.5" />
                               <span>Accepted</span>
                             </span>
@@ -622,7 +622,7 @@ function InterestsPageContent() {
                           )}
 
                           {/* Date String */}
-                          <span className="text-xs text-[#8C7B73] font-medium min-w-[76px]">
+                          <span className="text-xs text-nk-subtle font-medium min-w-[76px]">
                             {formatInterestDate(item.createdAt)}
                           </span>
                         </div>
@@ -631,7 +631,7 @@ function InterestsPageContent() {
                         <div className="flex items-center gap-2 relative">
                           <Link
                             href={`/browse/${item.profileId}`}
-                            className="px-4 sm:px-5 py-1.5 sm:py-2 rounded-md text-xs font-semibold tracking-wide border border-[#C49746] text-[#C49746] hover:bg-[#C49746]/10 active:scale-[0.98] transition-colors whitespace-nowrap"
+                            className="px-4 sm:px-5 py-1.5 sm:py-2 rounded-md text-xs font-semibold tracking-wide border border-nk-gold text-nk-gold-text hover:bg-nk-gold/10 active:scale-[0.98] transition-colors whitespace-nowrap"
                           >
                             View Profile
                           </Link>
@@ -641,7 +641,7 @@ function InterestsPageContent() {
                             onClick={() =>
                               setOpenMenuId(openMenuId === item.id ? null : item.id)
                             }
-                            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full border border-[#EADBBD] hover:border-[#C4B2A0] text-[#8C7B73] hover:text-[#241C1A] hover:bg-[#FAF7F2] flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full border border-nk-line-gold hover:border-[#C4B2A0] text-nk-subtle hover:text-nk-ink hover:bg-nk-paper flex items-center justify-center transition-colors cursor-pointer shrink-0"
                             aria-label="More options"
                           >
                             <MoreHorizontal className="h-4 w-4" />
@@ -649,22 +649,22 @@ function InterestsPageContent() {
 
                           {/* More Options Popover */}
                           {openMenuId === item.id && (
-                            <div className="absolute right-0 top-full mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-[#EADBBD] py-1.5 z-20">
+                            <div className="absolute right-0 top-full mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-nk-line-gold py-1.5 z-20">
                               {item.status === 'ACCEPTED' && (
                                 <Link
                                   href="/messages"
-                                  className="w-full px-3.5 py-2 text-left text-xs font-medium text-[#7A1118] hover:bg-[#FAF7F2] flex items-center gap-2 transition-colors block"
+                                  className="w-full px-3.5 py-2 text-left text-xs font-medium text-nk-maroon hover:bg-nk-paper flex items-center gap-2 transition-colors block"
                                 >
-                                  <MessageSquare className="h-3.5 w-3.5 text-[#7A1118]" />
+                                  <MessageSquare className="h-3.5 w-3.5 text-nk-maroon" />
                                   <span>Send Message</span>
                                 </Link>
                               )}
 
                               <Link
                                 href={`/browse/${item.profileId}`}
-                                className="w-full px-3.5 py-2 text-left text-xs font-medium text-[#4A3D36] hover:bg-[#FAF7F2] flex items-center gap-2 transition-colors block"
+                                className="w-full px-3.5 py-2 text-left text-xs font-medium text-[#4A3D36] hover:bg-nk-paper flex items-center gap-2 transition-colors block"
                               >
-                                <User className="h-3.5 w-3.5 text-[#8C7B73]" />
+                                <User className="h-3.5 w-3.5 text-nk-subtle" />
                                 <span>Full Profile</span>
                               </Link>
                             </div>

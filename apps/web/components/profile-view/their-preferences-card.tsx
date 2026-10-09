@@ -8,7 +8,7 @@ import { UserIcon } from '../app-header';
 
 function Avatar({ url, label }: { url: string | null | undefined; label: string }) {
   return (
-    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-[#EADBBD] bg-[#FAF7F2]" title={label}>
+    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-nk-line-gold bg-nk-paper" title={label}>
       {url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={url} alt={label} className="h-full w-full object-cover" />
@@ -35,27 +35,27 @@ export function TheirPreferencesCard({ profile }: { profile: PublicProfileDetail
 
   return (
     <div
-      className="rounded-3xl border border-[#EFEAE2] bg-white p-6 shadow-[0_4px_24px_rgba(0,0,0,0.02)] sm:p-7"
+      className="rounded-3xl border border-nk-line-soft bg-white p-6 shadow-[0_4px_24px_rgba(0,0,0,0.02)] sm:p-7"
       data-testid="their-preferences"
     >
-      <div className="flex items-center gap-2.5 border-b border-[#F1EBE1] pb-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#F2D6DC] bg-[#FAF5F6] text-[#7A1C32]">
+      <div className="flex items-center gap-2.5 border-b border-nk-line-soft pb-4">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#F2D6DC] bg-[#FAF5F6] text-nk-maroon">
           <HeartHandshake className="h-4 w-4" />
         </div>
         <div>
           <h2 className="font-[family-name:var(--font-playfair)] font-serif text-lg font-bold text-[#1E293B] sm:text-xl">
             {title}
           </h2>
-          <p className="text-xs text-[#7E6F65]">What {profile.fullName.split(' ')[0]} is looking for in a partner</p>
+          <p className="text-xs text-nk-muted">What {profile.fullName.split(' ')[0]} is looking for in a partner</p>
         </div>
       </div>
 
       {/* Match summary: their photo, the score, the viewer's photo */}
       <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-[#F2D6DC] bg-[#FDF8F9] p-3 sm:p-4">
         <Avatar url={profile.primaryPhotoUrl} label={profile.fullName} />
-        <p className="text-center text-sm font-semibold text-[#241C1A] sm:text-base">
+        <p className="text-center text-sm font-semibold text-nk-ink sm:text-base">
           You match{' '}
-          <span className="text-[#7A1C32]">
+          <span className="text-nk-maroon">
             {fit.matched}/{fit.total}
           </span>{' '}
           of {pronoun} preferences
@@ -64,18 +64,18 @@ export function TheirPreferencesCard({ profile }: { profile: PublicProfileDetail
       </div>
 
       <div className="mt-5">
-        <div className="flex items-center justify-between border-b border-[#F1EBE1] pb-2 text-[11px] font-semibold uppercase tracking-wider text-[#8A7A70]">
+        <div className="flex items-center justify-between border-b border-nk-line-soft pb-2 text-[11px] font-semibold uppercase tracking-wider text-nk-subtle">
           <span>Preference</span>
           <span>You match</span>
         </div>
         <ul className="divide-y divide-[#F5F0E8]">
           {rows.map((row) => (
             <li key={row.key} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] items-center gap-3 py-3 text-sm">
-              <span className="text-[#5A493E]">
+              <span className="text-nk-ink-soft">
                 Preferred {row.label.toLowerCase()}
                 {row.mustHave && <span className="block text-[11px] font-semibold text-[#B45309]">Must have</span>}
               </span>
-              <span className="font-semibold text-[#241C1A]">{row.value}</span>
+              <span className="font-semibold text-nk-ink">{row.value}</span>
               {row.matched === true ? (
                 <CheckCircle2 className="h-5 w-5 text-[#15803D]" aria-label="You match" />
               ) : row.matched === false ? (
@@ -87,7 +87,7 @@ export function TheirPreferencesCard({ profile }: { profile: PublicProfileDetail
           ))}
         </ul>
         {fit.unknown > 0 && (
-          <p className="mt-3 text-xs text-[#8A7A70]">
+          <p className="mt-3 text-xs text-nk-subtle">
             {fit.unknown === 1 ? 'One preference' : `${fit.unknown} preferences`} couldn&apos;t be checked because your
             profile doesn&apos;t state it.
           </p>

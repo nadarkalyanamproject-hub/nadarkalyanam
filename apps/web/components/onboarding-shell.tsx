@@ -44,12 +44,12 @@ export function OnboardingShell({
                 data-testid="onboarding-back"
                 aria-label="Back"
                 title="Back"
-                className="-ml-1.5 mb-3 inline-flex items-center rounded-md p-1.5 text-[#8E1B24] transition-colors hover:bg-[#8E1B24]/5 disabled:cursor-not-allowed disabled:opacity-50"
+                className="-ml-1.5 mb-3 inline-flex items-center rounded-md p-1.5 text-nk-maroon-bright transition-colors hover:bg-nk-maroon-bright/5 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <ArrowLeft className="h-5 w-5" aria-hidden="true" />
               </button>
             )}
-            <h1 className="text-2xl font-bold text-[#8E1B24]">{title}</h1>
+            <h1 className="text-2xl font-bold text-nk-maroon-bright">{title}</h1>
             <p className="mt-1 text-sm text-[#5E3D3D]">{subtitle}</p>
           </div>
           {children}

@@ -56,10 +56,10 @@ export function TrustVerificationCard({ email }: { email?: string }) {
   }
 
   return (
-    <div className="rounded-2xl border border-[#E8DCC8] bg-[#FFFFFF] p-5 sm:p-6 shadow-sm">
+    <div className="rounded-2xl border border-nk-line bg-[#FFFFFF] p-5 sm:p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 text-[#7A0710]">
+          <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 text-nk-maroon">
             <path
               d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
               stroke="currentColor"
@@ -75,7 +75,7 @@ export function TrustVerificationCard({ email }: { email?: string }) {
               strokeLinejoin="round"
             />
           </svg>
-          <h2 className="font-[family-name:var(--font-body)] text-lg sm:text-xl font-bold tracking-tight text-[#7A0710]">
+          <h2 className="font-[family-name:var(--font-body)] text-lg sm:text-xl font-bold tracking-tight text-nk-maroon">
             Trust & Verification
           </h2>
         </div>
@@ -83,10 +83,10 @@ export function TrustVerificationCard({ email }: { email?: string }) {
 
       <div className="space-y-3 text-sm">
         {/* Mobile Verification */}
-        <div className="flex items-center justify-between rounded-xl border border-[#F3EBDD] bg-[#FFFDF9] p-3">
+        <div className="flex items-center justify-between rounded-xl border border-nk-line-soft bg-nk-ivory p-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#FFF9ED] text-[#7A0710]">
-              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-[#D6A33A]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-nk-cream text-nk-maroon">
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-nk-gold-light">
                 <path
                   fillRule="evenodd"
                   d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z"
@@ -95,24 +95,24 @@ export function TrustVerificationCard({ email }: { email?: string }) {
               </svg>
             </div>
             <div>
-              <p className="font-semibold text-[#2B211C]">Mobile Verified</p>
-              <p className="text-[11px] text-[#776B62]">Primary number confirmed with OTP</p>
+              <p className="font-semibold text-nk-ink">Mobile Verified</p>
+              <p className="text-[11px] text-nk-muted">Primary number confirmed with OTP</p>
             </div>
           </div>
         </div>
 
         {/* Email: contact info only — no verification exists for it */}
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-[#F3EBDD] bg-[#FFFDF9] p-3" data-testid="trust-email">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-nk-line-soft bg-nk-ivory p-3" data-testid="trust-email">
           <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FFF9ED] text-[#7A0710]">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-nk-cream text-nk-maroon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4 text-[#A88C78]">
                 <rect x="3" y="5" width="18" height="14" rx="2" />
                 <path d="m3 7 9 6 9-6" />
               </svg>
             </div>
             <div className="min-w-0">
-              <p className="font-semibold text-[#2B211C]">Email</p>
-              <p className="truncate text-[11px] text-[#776B62]">{email?.trim() ? email : '—'}</p>
+              <p className="font-semibold text-nk-ink">Email</p>
+              <p className="truncate text-[11px] text-nk-muted">{email?.trim() ? email : '—'}</p>
             </div>
           </div>
         </div>
@@ -122,8 +122,8 @@ export function TrustVerificationCard({ email }: { email?: string }) {
           <div className="rounded-xl border border-[#FDE68A] bg-[#FFFBEB] p-3.5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-semibold text-[#7A0710]">Identity Verification</p>
-                <p className="mt-0.5 text-xs text-[#776B62]">
+                <p className="font-semibold text-nk-maroon">Identity Verification</p>
+                <p className="mt-0.5 text-xs text-nk-muted">
                   Verify your identity (Aadhaar / Government ID) to receive a verified profile badge.
                 </p>
               </div>
@@ -139,12 +139,12 @@ export function TrustVerificationCard({ email }: { email?: string }) {
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-between rounded-xl border border-[#F3EBDD] bg-[#FFFDF9] p-3">
+          <div className="flex items-center justify-between rounded-xl border border-nk-line-soft bg-nk-ivory p-3">
             <div className="flex items-center gap-2.5">
               <VerifiedBadge className="h-7 w-7 shrink-0" />
               <div>
-                <p className="font-semibold text-[#2B211C]">Identity Verified</p>
-                <p className="text-[11px] text-[#776B62]">Government ID confirmed</p>
+                <p className="font-semibold text-nk-ink">Identity Verified</p>
+                <p className="text-[11px] text-nk-muted">Government ID confirmed</p>
               </div>
             </div>
           </div>
@@ -154,27 +154,27 @@ export function TrustVerificationCard({ email }: { email?: string }) {
       {/* Identity Verification Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-[#E8DCC8] bg-[#FFFFFF] p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-2xl border border-nk-line bg-[#FFFFFF] p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-[family-name:var(--font-body)] text-xl font-bold tracking-tight text-[#7A0710]">
+              <h3 className="font-[family-name:var(--font-body)] text-xl font-bold tracking-tight text-nk-maroon">
                 Identity Verification
               </h3>
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="text-[#776B62] hover:text-[#2B211C]"
+                className="text-nk-muted hover:text-nk-ink"
               >
                 ✕
               </button>
             </div>
-            <p className="text-xs text-[#776B62] leading-relaxed">
+            <p className="text-xs text-nk-muted leading-relaxed">
               Submit a government ID (Aadhaar, Passport, or Voter ID) to request a Verified badge on your profile.
             </p>
-            <div className="my-4 rounded-xl bg-[#FFF9ED] border border-[#E8DCC8] p-3 text-xs text-[#7A0710]">
+            <div className="my-4 rounded-xl bg-nk-cream border border-nk-line p-3 text-xs text-nk-maroon">
               🔒 Your document details are encrypted and never displayed publicly to other members.
             </div>
             {submitError && (
-              <p className="mb-3 text-xs text-[#94151C]" role="alert">
+              <p className="mb-3 text-xs text-nk-maroon-bright" role="alert">
                 {submitError}
               </p>
             )}
@@ -183,14 +183,14 @@ export function TrustVerificationCard({ email }: { email?: string }) {
                 type="button"
                 disabled={submitting}
                 onClick={() => void handleSubmitVerification()}
-                className="flex-1 rounded-lg bg-[#7A0710] py-2.5 text-xs font-semibold text-white shadow hover:bg-[#94151C] transition-colors disabled:opacity-60"
+                className="flex-1 rounded-lg bg-nk-maroon py-2.5 text-xs font-semibold text-white shadow hover:bg-nk-maroon-bright transition-colors disabled:opacity-60"
               >
                 {submitting ? 'Submitting…' : 'Submit ID Verification'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="rounded-lg border border-[#E8DCC8] px-4 py-2.5 text-xs font-medium text-[#776B62] hover:bg-[#F9F3E7]"
+                className="rounded-lg border border-nk-line px-4 py-2.5 text-xs font-medium text-nk-muted hover:bg-nk-sand"
               >
                 Cancel
               </button>

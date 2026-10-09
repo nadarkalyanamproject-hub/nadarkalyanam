@@ -25,7 +25,7 @@ export interface HomeProfile {
 export function HomeProfileCard({ profile }: { profile: HomeProfile }) {
   const place = [profile.city, profile.religion].filter(Boolean).join(' · ');
   return (
-    <div className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-[#E8DCCF] bg-white shadow-xs transition-all hover:shadow-md">
+    <div className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-nk-line bg-white shadow-xs transition-all hover:shadow-md">
       <div>
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#F3EDE6]">
           {profile.primaryPhotoUrl ? (
@@ -44,7 +44,7 @@ export function HomeProfileCard({ profile }: { profile: HomeProfile }) {
 
         <div className="p-3.5">
           <Link href={`/browse/${profile.profileId}`} className="flex items-center gap-1.5">
-            <h3 className="flex min-w-0 text-sm font-bold text-[#2B1515] transition-colors hover:text-[#7B1118] sm:text-base">
+            <h3 className="flex min-w-0 text-sm font-bold text-nk-ink transition-colors hover:text-nk-maroon sm:text-base">
               <span className="truncate">{profile.fullName}</span>
               <span className="shrink-0">, {profile.age}</span>
             </h3>
@@ -55,13 +55,13 @@ export function HomeProfileCard({ profile }: { profile: HomeProfile }) {
 
           {profile.profession && (
             <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-[#4A3B33]">
-              <Briefcase className="h-3.5 w-3.5 shrink-0 text-[#8A7A70]" />
+              <Briefcase className="h-3.5 w-3.5 shrink-0 text-nk-subtle" />
               <span className="truncate">{profile.profession}</span>
             </p>
           )}
 
           {place && (
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-[#8A7A70]">
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-nk-subtle">
               <MapPin className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{place}</span>
             </p>
@@ -113,15 +113,15 @@ export function HomeProfileSection({
     <section className="space-y-4" data-testid={testId}>
       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
         <div>
-          <h2 className="font-[family-name:var(--font-heading,serif)] text-xl font-bold text-[#2B1515] sm:text-2xl">
+          <h2 className="font-[family-name:var(--font-heading,serif)] text-xl font-bold text-nk-ink sm:text-2xl">
             {title}
           </h2>
-          <p className="mt-0.5 text-xs text-[#73645C] sm:text-sm">{subtitle}</p>
+          <p className="mt-0.5 text-xs text-nk-muted sm:text-sm">{subtitle}</p>
         </div>
         {viewAllHref && (
           <Link
             href={viewAllHref}
-            className="inline-flex items-center gap-1 text-xs font-bold text-[#7B1118] hover:underline sm:text-sm"
+            className="inline-flex items-center gap-1 text-xs font-bold text-nk-maroon hover:underline sm:text-sm"
           >
             <span>{viewAllLabel}</span>
             <span aria-hidden="true">→</span>
@@ -132,7 +132,7 @@ export function HomeProfileSection({
       {children}
 
       {error ? (
-        <p role="alert" className="py-6 text-center text-sm font-medium text-[#7B1118]">
+        <p role="alert" className="py-6 text-center text-sm font-medium text-nk-maroon">
           {error}
         </p>
       ) : profiles === null ? (
@@ -142,7 +142,7 @@ export function HomeProfileSection({
           ))}
         </div>
       ) : profiles.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-[#E8DCCF] py-6 text-center text-sm text-[#73645C]">
+        <p className="rounded-2xl border border-dashed border-nk-line py-6 text-center text-sm text-nk-muted">
           {emptyMessage}
         </p>
       ) : (

@@ -89,9 +89,9 @@ function CloseIcon(props: IconProps) {
   );
 }
 
-function MandalaEmblem() {
+export function MandalaEmblem() {
   return (
-    <svg viewBox="0 0 40 40" fill="none" className="h-7 w-7 text-[#7A0710]">
+    <svg viewBox="0 0 40 40" fill="none" className="h-7 w-7 text-nk-maroon">
       <circle cx="20" cy="20" r="18" stroke="#D6A33A" strokeWidth="1.5" strokeDasharray="3 2" />
       <circle cx="20" cy="20" r="12" stroke="#7A0710" strokeWidth="1.2" />
       <path d="M20 4L22 14H18L20 4Z" fill="#7A0710" />
@@ -275,16 +275,16 @@ export function AppHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#EBC75A]/60 bg-[#FFE38A] transition-shadow">
+    <header className="sticky top-0 z-40 border-b-2 border-nk-turmeric bg-nk-butter transition-shadow">
       <div className="mx-auto flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
         {/* Brand Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2.5 transition-transform hover:scale-[1.01]">
           <MandalaEmblem />
           <div className="flex flex-col">
-            <span className="font-[family-name:var(--font-body)] text-xl font-bold tracking-tight text-[#7A0710] sm:text-2xl">
+            <span className="font-[family-name:var(--font-body)] text-xl font-bold tracking-tight text-nk-maroon sm:text-2xl">
               Nadar Kalyanam
             </span>
-            <span className="hidden text-[10px] font-medium tracking-wider text-[#6B4E1E] uppercase sm:inline-block">
+            <span className="hidden text-[10px] font-medium tracking-wider text-nk-muted uppercase sm:inline-block">
               Matrimonial Portal
             </span>
           </div>
@@ -305,13 +305,13 @@ export function AppHeader() {
                       href={item.href}
                       className={`group relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                         isActive
-                          ? 'text-[#7A0710] font-semibold'
-                          : 'text-[#2B211C] hover:bg-white/40 hover:text-[#7A0710]'
+                          ? 'text-nk-maroon font-semibold'
+                          : 'text-nk-ink hover:bg-nk-butter-deep hover:text-nk-maroon'
                       }`}
                     >
                       <Icon
                         className={`h-[18px] w-[18px] shrink-0 transition-colors ${
-                          isActive ? 'text-[#7A0710]' : 'text-[#5A4636] group-hover:text-[#7A0710]'
+                          isActive ? 'text-nk-maroon' : 'text-nk-muted group-hover:text-nk-maroon'
                         }`}
                       />
                       <span>{item.label}</span>
@@ -321,20 +321,20 @@ export function AppHeader() {
                             role="status"
                             aria-label={navBadges[item.key]!.label}
                             data-testid={`${item.key}-badge`}
-                            className="ml-0.5 inline-block h-2 w-2 rounded-full bg-[#7A0710]"
+                            className="ml-0.5 inline-block h-2 w-2 rounded-full bg-nk-maroon"
                           />
                         ) : (
                           <span
                             aria-label={navBadges[item.key]!.label}
                             data-testid={`${item.key}-badge`}
-                            className="ml-0.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#7A0710] px-1 text-[10px] font-bold leading-none text-white"
+                            className="ml-0.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-nk-maroon px-1 text-[10px] font-bold leading-none text-white"
                           >
                             {navBadges[item.key]!.text}
                           </span>
                         ))}
                       {/* Active gold/maroon indicator */}
                       {isActive && (
-                        <span className="absolute bottom-0 left-2.5 right-2.5 h-[2.5px] rounded-full bg-[#7A0710]" />
+                        <span className="absolute bottom-0 left-2.5 right-2.5 h-[2.5px] rounded-full bg-nk-gold-light" />
                       )}
                     </Link>
                   );
@@ -345,11 +345,11 @@ export function AppHeader() {
                   <div
                     key={item.key}
                     title={`${item.label} — Coming soon`}
-                    className="group relative flex cursor-default items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-[#5A4636]/70 transition-colors hover:text-[#2B211C]"
+                    className="group relative flex cursor-default items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-nk-muted/75 transition-colors hover:text-nk-ink"
                   >
-                    <Icon className="h-[18px] w-[18px] shrink-0 text-[#8A7350]" />
+                    <Icon className="h-[18px] w-[18px] shrink-0 text-[#968A82]" />
                     <span>{item.label}</span>
-                    <span className="hidden text-[9px] text-[#8A7350] italic lg:inline">soon</span>
+                    <span className="hidden text-[9px] text-nk-subtle italic lg:inline">soon</span>
                   </div>
                 );
               })}
@@ -366,11 +366,11 @@ export function AppHeader() {
                 }}
                 aria-label={menuOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={menuOpen}
-                className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[#2B211C] transition-colors hover:bg-white/40 md:hidden"
+                className="relative flex h-9 w-9 items-center justify-center rounded-lg text-nk-ink transition-colors hover:bg-nk-butter-deep md:hidden"
               >
                 {menuOpen ? <CloseIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
                 {!menuOpen && anyBadge && (
-                  <span aria-hidden="true" className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#7A0710]" />
+                  <span aria-hidden="true" className="absolute right-1 top-1 h-2 w-2 rounded-full bg-nk-maroon" />
                 )}
               </button>
 
@@ -385,7 +385,7 @@ export function AppHeader() {
                   aria-haspopup="menu"
                   aria-expanded={avatarMenuOpen}
                   aria-controls="account-menu"
-                  className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-[#E8DCC8] bg-[#F9F3E7] text-[#7A0710] shadow-sm transition-all hover:border-[#D6A33A] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#D6A33A]/30"
+                  className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-nk-line bg-nk-sand text-nk-maroon shadow-sm transition-all hover:border-nk-gold-light hover:shadow-md focus:outline-none focus:ring-2 focus:ring-nk-gold-light/30"
                 >
                   {avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -396,12 +396,12 @@ export function AppHeader() {
                 </button>
 
                 {avatarMenuOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-[#E8DCC8] bg-[#FFFFFF] p-2 shadow-lg animate-in fade-in zoom-in-95 duration-150">
-                    <div className="border-b border-[#F3EBDD] px-3 py-2">
-                      <p className="truncate text-sm font-semibold text-[#2B211C]">
+                  <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-nk-line bg-[#FFFFFF] p-2 shadow-lg animate-in fade-in zoom-in-95 duration-150">
+                    <div className="border-b border-nk-line-soft px-3 py-2">
+                      <p className="truncate text-sm font-semibold text-nk-ink">
                         {profile?.fullName || 'My Account'}
                       </p>
-                      <p className="truncate text-xs text-[#776B62]">
+                      <p className="truncate text-xs text-nk-muted">
                         {profile?.details?.email || 'Nadar Kalyanam Member'}
                       </p>
                     </div>
@@ -412,55 +412,55 @@ export function AppHeader() {
                           href="/profile"
                           role="menuitem"
                           onClick={closeAvatarMenu}
-                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-[#2B211C] hover:bg-[#F9F3E7] hover:text-[#7A0710] focus:bg-[#F9F3E7]`}
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-nk-ink hover:bg-nk-butter-deep hover:text-nk-maroon focus:bg-nk-sand`}
                         >
-                          <UserIcon className="h-4 w-4 text-[#7A0710]" />
+                          <UserIcon className="h-4 w-4 text-nk-maroon" />
                           My Profile
                         </Link>
                         <Link
                           href="/membership"
                           role="menuitem"
                           onClick={closeAvatarMenu}
-                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-[#2B211C] hover:bg-[#F9F3E7] hover:text-[#7A0710] focus:bg-[#F9F3E7]`}
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-nk-ink hover:bg-nk-butter-deep hover:text-nk-maroon focus:bg-nk-sand`}
                         >
-                          <CrownIcon className="h-4 w-4 text-[#C89B3C]" />
+                          <CrownIcon className="h-4 w-4 text-nk-maroon" />
                           Membership
                         </Link>
                         <Link
                           href="/membership/contacts"
                           role="menuitem"
                           onClick={closeAvatarMenu}
-                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-[#2B211C] hover:bg-[#F9F3E7] hover:text-[#7A0710] focus:bg-[#F9F3E7]`}
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-nk-ink hover:bg-nk-butter-deep hover:text-nk-maroon focus:bg-nk-sand`}
                         >
-                          <UserIcon className="h-4 w-4 text-[#776B62]" />
+                          <UserIcon className="h-4 w-4 text-nk-muted" />
                           My Unlocked Contacts
                         </Link>
                         <Link
                           href="/contact"
                           role="menuitem"
                           onClick={closeAvatarMenu}
-                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-[#2B211C] hover:bg-[#F9F3E7] hover:text-[#7A0710] focus:bg-[#F9F3E7]`}
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-nk-ink hover:bg-nk-butter-deep hover:text-nk-maroon focus:bg-nk-sand`}
                         >
-                          <ChatIcon className="h-4 w-4 text-[#776B62]" />
+                          <ChatIcon className="h-4 w-4 text-nk-muted" />
                           Contact Us
                         </Link>
                         <Link
                           href="/"
                           role="menuitem"
                           onClick={closeAvatarMenu}
-                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-[#2B211C] hover:bg-[#F9F3E7] hover:text-[#7A0710] focus:bg-[#F9F3E7]`}
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-nk-ink hover:bg-nk-butter-deep hover:text-nk-maroon focus:bg-nk-sand`}
                         >
-                          <HomeIcon className="h-4 w-4 text-[#776B62]" />
+                          <HomeIcon className="h-4 w-4 text-nk-muted" />
                           Home Page
                         </Link>
                       </div>
 
-                      <div className="border-t border-[#F3EBDD] pt-1">
+                      <div className="border-t border-nk-line-soft pt-1">
                         <button
                           type="button"
                           role="menuitem"
                           onClick={() => void handleLogout()}
-                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-[#94151C] hover:bg-red-50 focus:bg-red-50`}
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-nk-maroon-bright hover:bg-red-50 focus:bg-red-50`}
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-4 w-4">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -484,7 +484,7 @@ export function AppHeader() {
                 header past a phone's width. */}
             <Link
               href="/"
-              className="hidden sm:inline text-xs sm:text-sm font-semibold text-[#2B211C] hover:text-[#7A0710] transition-colors"
+              className="hidden sm:inline text-xs sm:text-sm font-semibold text-nk-ink hover:text-nk-maroon transition-colors"
             >
               Home
             </Link>
@@ -492,16 +492,16 @@ export function AppHeader() {
               href="/membership"
               className={`text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 ${
                 pathname === '/membership'
-                  ? 'text-[#7A0710] font-bold'
-                  : 'text-[#2B211C] hover:text-[#7A0710]'
+                  ? 'text-nk-maroon font-bold'
+                  : 'text-nk-ink hover:text-nk-maroon'
               }`}
             >
-              <CrownIcon className="h-4 w-4 text-[#C89B3C]" />
+              <CrownIcon className="h-4 w-4 text-nk-maroon" />
               <span>Membership</span>
             </Link>
             <Link
               href="/"
-              className="rounded-xl border border-[#7A0710] bg-[#FFFBF5] px-3.5 py-1.5 text-xs sm:text-sm font-bold text-[#7A0710] shadow-xs transition-all hover:bg-[#7A0710] hover:text-white"
+              className="rounded-xl border border-nk-maroon bg-[#FFFBF5] px-3.5 py-1.5 text-xs sm:text-sm font-bold text-nk-maroon shadow-xs transition-all hover:bg-nk-maroon hover:text-white"
             >
               Log In
             </Link>
@@ -518,7 +518,7 @@ export function AppHeader() {
             className="fixed inset-0 z-10 bg-black/20 md:hidden"
             onClick={() => setMenuOpen(false)}
           />
-          <nav className="relative z-20 flex flex-col gap-1 border-b border-[#E8DCC8] bg-[#FFFDF9] p-3 shadow-lg md:hidden">
+          <nav className="relative z-20 flex flex-col gap-1 border-b border-nk-line bg-nk-ivory p-3 shadow-lg md:hidden">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = item.href ? pathname === item.href : false;
@@ -531,30 +531,30 @@ export function AppHeader() {
                     onClick={() => setMenuOpen(false)}
                     className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                       isActive
-                        ? 'bg-[#F9F3E7] text-[#7A0710] font-semibold border-l-4 border-[#7A0710]'
-                        : 'text-[#2B211C] hover:bg-[#F9F3E7]'
+                        ? 'bg-nk-sand text-nk-maroon font-semibold border-l-4 border-nk-maroon'
+                        : 'text-nk-ink hover:bg-nk-butter-deep'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <Icon className="h-5 w-5 text-[#7A0710]" />
+                      <Icon className="h-5 w-5 text-nk-maroon" />
                       <span>{item.label}</span>
                       {navBadges[item.key] &&
                         (navBadges[item.key]!.dot ? (
                           <span
                             role="status"
                             aria-label={navBadges[item.key]!.label}
-                            className="inline-block h-2 w-2 rounded-full bg-[#7A0710]"
+                            className="inline-block h-2 w-2 rounded-full bg-nk-maroon"
                           />
                         ) : (
                           <span
                             aria-label={navBadges[item.key]!.label}
-                            className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#7A0710] px-1 text-[10px] font-bold leading-none text-white"
+                            className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-nk-maroon px-1 text-[10px] font-bold leading-none text-white"
                           >
                             {navBadges[item.key]!.text}
                           </span>
                         ))}
                     </div>
-                    {isActive && <span className="h-1.5 w-1.5 rounded-full bg-[#D6A33A]" />}
+                    {isActive && <span className="h-1.5 w-1.5 rounded-full bg-nk-gold-light" />}
                   </Link>
                 );
               }
@@ -562,13 +562,13 @@ export function AppHeader() {
               return (
                 <div
                   key={item.key}
-                  className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-[#776B62]/75"
+                  className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-nk-muted/75"
                 >
                   <div className="flex items-center gap-3">
                     <Icon className="h-5 w-5 text-[#968A82]" />
                     <span>{item.label}</span>
                   </div>
-                  <span className="text-[10px] text-[#A69990] italic">Coming soon</span>
+                  <span className="text-[10px] text-nk-subtle italic">Coming soon</span>
                 </div>
               );
             })}

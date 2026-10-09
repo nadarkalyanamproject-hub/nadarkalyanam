@@ -97,10 +97,10 @@ function DetailItem({
 }) {
   return (
     <div className={`space-y-1 ${className}`}>
-      <dt className="text-[11px] font-bold uppercase tracking-wider text-[#776B62]">
+      <dt className="text-[11px] font-bold uppercase tracking-wider text-nk-muted">
         {itemLabel}
       </dt>
-      <dd className="text-sm font-semibold text-[#2B211C] break-words">
+      <dd className="text-sm font-semibold text-nk-ink break-words">
         {value && value.trim().length > 0 ? value : '—'}
       </dd>
     </div>
@@ -144,24 +144,24 @@ function AccordionSection({
       id={`section-${id}`}
       className={`rounded-2xl border transition-all duration-200 bg-[#FFFFFF] ${
         isEditing
-          ? 'border-[#7A0710] shadow-md ring-1 ring-[#7A0710]/20'
+          ? 'border-nk-maroon shadow-md ring-1 ring-nk-maroon/20'
           : isOpen
-          ? 'border-[#E8DCC8] shadow-sm'
-          : 'border-[#E8DCC8] hover:border-[#D9C8B0]'
+          ? 'border-nk-line shadow-sm'
+          : 'border-nk-line hover:border-[#D9C8B0]'
       }`}
     >
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 sm:p-6 border-b border-[#F3EBDD]/70">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 sm:p-6 border-b border-nk-line-soft/70">
         <button
           type="button"
           onClick={onToggle}
           className="flex flex-1 items-center gap-3 text-left focus:outline-none"
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FFF9ED] text-[#7A0710] border border-[#E8DCC8]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-nk-cream text-nk-maroon border border-nk-line">
             {icon}
           </div>
           <div>
-            <h2 className="font-[family-name:var(--font-body)] text-lg sm:text-xl font-bold tracking-tight text-[#7A0710]">
+            <h2 className="font-[family-name:var(--font-body)] text-lg sm:text-xl font-bold tracking-tight text-nk-maroon">
               {title}
             </h2>
             {comingSoon && (
@@ -173,7 +173,7 @@ function AccordionSection({
             {statusBadge && statusBadge.variant !== 'complete' && (
               <p
                 className={`mt-0.5 text-xs ${
-                  statusBadge.variant === 'progress' ? 'font-semibold text-[#8C6110]' : 'font-medium text-[#776B62]'
+                  statusBadge.variant === 'progress' ? 'font-semibold text-[#8C6110]' : 'font-medium text-nk-muted'
                 }`}
               >
                 {statusBadge.label}
@@ -188,10 +188,10 @@ function AccordionSection({
             <button
               type="button"
               onClick={onEdit}
-              className="inline-flex items-center gap-1 rounded-lg border border-[#E8DCC8] bg-[#FFFDF9] px-3 py-1.5 text-xs font-semibold text-[#7A0710] shadow-2xs transition-all hover:border-[#D6A33A] hover:bg-[#FFF9ED] hover:text-[#94151C]"
+              className="inline-flex items-center gap-1 rounded-lg border border-nk-line bg-nk-ivory px-3 py-1.5 text-xs font-semibold text-nk-maroon shadow-2xs transition-all hover:border-nk-gold-light hover:bg-nk-cream hover:text-nk-maroon-bright"
             >
               <span>Edit</span>
-              <span className="text-[#D6A33A]">→</span>
+              <span className="text-nk-gold-light">→</span>
             </button>
           )}
 
@@ -199,7 +199,7 @@ function AccordionSection({
             type="button"
             onClick={onToggle}
             aria-label={isOpen ? 'Collapse section' : 'Expand section'}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-[#776B62] hover:bg-[#FAF6EF]"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-nk-muted hover:bg-[#FAF6EF]"
           >
             <svg
               viewBox="0 0 20 20"
@@ -324,9 +324,9 @@ export default function ProfilePage() {
     ) : null;
   const extrasBody = (section: 'preferences' | 'horoscope', body: ReactNode) =>
     extrasError ? (
-      <p className="text-sm text-[#94151C]">{extrasError}</p>
+      <p className="text-sm text-nk-maroon-bright">{extrasError}</p>
     ) : (section === 'preferences' ? preferences : horoscope) === undefined ? (
-      <p className="text-sm text-[#776B62]">Loading…</p>
+      <p className="text-sm text-nk-muted">Loading…</p>
     ) : (
       <>
         {sectionMessage(section)}
@@ -346,7 +346,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="profile-page-root min-h-screen bg-[#FFF8E8] text-[#2B211C]">
+    <div className="profile-page-root min-h-screen bg-[#FFF8E8] text-nk-ink">
       <AppHeader />
 
       <main className="w-full px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
@@ -358,16 +358,16 @@ export default function ProfilePage() {
         </div>
 
         {loading && (
-          <div className="rounded-2xl border border-[#E8DCC8] bg-[#FFFFFF] p-12 text-center shadow-sm">
-            <div className="mx-auto flex h-10 w-10 animate-spin items-center justify-center rounded-full border-2 border-[#7A0710] border-t-transparent" />
-            <p className="mt-4 text-sm font-medium text-[#776B62]">
+          <div className="rounded-2xl border border-nk-line bg-[#FFFFFF] p-12 text-center shadow-sm">
+            <div className="mx-auto flex h-10 w-10 animate-spin items-center justify-center rounded-full border-2 border-nk-maroon border-t-transparent" />
+            <p className="mt-4 text-sm font-medium text-nk-muted">
               Loading your matrimonial profile…
             </p>
           </div>
         )}
 
         {error && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-sm font-medium text-[#94151C] shadow-sm">
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-sm font-medium text-nk-maroon-bright shadow-sm">
             {error}
           </div>
         )}

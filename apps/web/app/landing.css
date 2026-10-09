@@ -27,9 +27,9 @@
 
   --color-bg-ivory: #FFFDF8;
   --color-white: #FFFFFF;
-  --color-text-dark: #2B1515;
+  --color-text-dark: var(--color-nk-ink);
   --color-text-muted: #5E3D3D;
-  --color-text-light: #876868;
+  --color-text-light: var(--color-nk-subtle);
 
   --color-input-border: #EADBCA;
   --color-input-bg: #FFFFFF;
@@ -279,7 +279,7 @@ html {
 .nav-link {
   font-size: 0.92rem;
   font-weight: 600;
-  color: #382A2A;
+  color: #2E2B29;
   padding: 6px 0;
   position: relative;
   transition: color var(--transition-fast);
@@ -563,7 +563,7 @@ html {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #8C7B7B;
+  color: var(--color-nk-subtle);
   flex-grow: 1;
 }
 
@@ -584,7 +584,7 @@ html {
 }
 
 .form-input::placeholder {
-  color: #8C7B7B;
+  color: var(--color-nk-subtle);
   font-weight: 400;
 }
 
@@ -632,7 +632,7 @@ html {
 
 .selected-value {
   font-size: 0.9rem;
-  color: #8C7B7B;
+  color: var(--color-nk-subtle);
   font-weight: 400;
 }
 
@@ -701,7 +701,7 @@ html {
 .dial-code {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #382A2A;
+  color: #2E2B29;
 }
 
 .chevron-icon-sm {
@@ -842,7 +842,7 @@ html {
 .gender-chip-text {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #382A2A;
+  color: #2E2B29;
 }
 
 .gender-chip.active .gender-chip-text {
@@ -906,7 +906,7 @@ html {
 
 .terms-text {
   font-size: 0.65rem;
-  color: #8C8080;
+  color: var(--color-nk-subtle);
   text-align: center;
   line-height: 1.4;
   margin-top: 9px;
@@ -1354,14 +1354,14 @@ html {
   font-family: var(--font-heading);
   font-size: 2.1rem;
   font-weight: 800;
-  color: #2B1515;
+  color: #1E1C1A;
   line-height: 1.25;
   margin-bottom: 10px;
 }
 
 .membership-promo-section .section-subtitle {
   font-size: 0.92rem;
-  color: #73645C;
+  color: var(--color-nk-muted);
   line-height: 1.6;
 }
 
@@ -1422,7 +1422,7 @@ html {
   display: block;
   font-size: 1.25rem;
   font-weight: 800;
-  color: #2B1515;
+  color: #1E1C1A;
   letter-spacing: 0.04em;
 }
 
@@ -1430,7 +1430,7 @@ html {
   display: block;
   font-size: 0.7rem;
   font-weight: 700;
-  color: #8C7B73;
+  color: var(--color-nk-subtle);
   letter-spacing: 0.12em;
   margin-top: 2px;
 }
@@ -1447,13 +1447,13 @@ html {
 .tier-price .currency {
   font-size: 1.35rem;
   font-weight: 800;
-  color: #2B1515;
+  color: #1E1C1A;
 }
 
 .tier-price .amount {
   font-size: 2.3rem;
   font-weight: 800;
-  color: #2B1515;
+  color: #1E1C1A;
   letter-spacing: -0.02em;
 }
 
@@ -1537,7 +1537,7 @@ html {
   flex-wrap: wrap;
   gap: 12px;
   font-size: 0.84rem;
-  color: #73645C;
+  color: var(--color-nk-muted);
 }
 
 .view-all-link {

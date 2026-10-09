@@ -34,7 +34,7 @@ export function PartnerPreferencesView({ saved }: { saved: SavedPartnerPreferenc
   const lines = saved ? preferenceSummary(saved) : [];
   if (lines.length === 0) {
     return (
-      <p className="text-sm text-[#776B62]" data-testid="preferences-empty">
+      <p className="text-sm text-nk-muted" data-testid="preferences-empty">
         You haven&apos;t set any partner preferences. Add them to rank your Matches by what you&apos;re looking for.
       </p>
     );
@@ -44,17 +44,17 @@ export function PartnerPreferencesView({ saved }: { saved: SavedPartnerPreferenc
       <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
         {lines.map((line) => (
           <div key={line.label}>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[#776B62]">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-nk-muted">
               {line.label}
               {line.mustHave && (
-                <span className="ml-2 rounded-md bg-[#7A0710]/10 px-2 py-0.5 text-[10px] font-bold normal-case text-[#7A0710]">Must have</span>
+                <span className="ml-2 rounded-md bg-nk-maroon/10 px-2 py-0.5 text-[10px] font-bold normal-case text-nk-maroon">Must have</span>
               )}
             </dt>
-            <dd className="mt-0.5 text-sm font-medium text-[#2B211C]">{line.value}</dd>
+            <dd className="mt-0.5 text-sm font-medium text-nk-ink">{line.value}</dd>
           </div>
         ))}
       </dl>
-      <p className="text-xs text-[#776B62]">Only you can see your preferences. They rank your Matches; must-haves also filter them.</p>
+      <p className="text-xs text-nk-muted">Only you can see your preferences. They rank your Matches; must-haves also filter them.</p>
     </div>
   );
 }
@@ -74,16 +74,16 @@ function CheckboxGroup({
 }) {
   return (
     <div
-      className={`grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-3 ${scroll ? 'max-h-48 overflow-y-auto rounded-lg border border-[#E8DCC8] p-3' : ''}`}
+      className={`grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-3 ${scroll ? 'max-h-48 overflow-y-auto rounded-lg border border-nk-line p-3' : ''}`}
     >
       {options.map((option) => (
-        <label key={option.value} className="flex items-center gap-2 text-sm text-[#2B211C]">
+        <label key={option.value} className="flex items-center gap-2 text-sm text-nk-ink">
           <input
             type="checkbox"
             name={name}
             checked={values.includes(option.value)}
             onChange={(e) => onChange(e.target.checked ? [...values, option.value] : values.filter((v) => v !== option.value))}
-            className="h-4 w-4 accent-[#7A0710]"
+            className="h-4 w-4 accent-nk-maroon"
           />
           {option.label}
         </label>
@@ -94,8 +94,8 @@ function CheckboxGroup({
 
 function MustHave({ checked, onChange, id }: { checked: boolean; onChange: (v: boolean) => void; id: string }) {
   return (
-    <label htmlFor={id} className="mt-2 flex items-center gap-2 text-xs font-semibold text-[#7A0710]">
-      <input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 accent-[#7A0710]" />
+    <label htmlFor={id} className="mt-2 flex items-center gap-2 text-xs font-semibold text-nk-maroon">
+      <input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 accent-nk-maroon" />
       Must have (only show matches that meet this)
     </label>
   );
@@ -156,7 +156,7 @@ export function PartnerPreferencesEditor({
   const heightOptions = HEIGHT_OPTIONS;
   return (
     <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate data-testid="preferences-form">
-      <p className="text-xs text-[#776B62]">Leave anything blank for &ldquo;doesn&apos;t matter&rdquo;. Only you can see these.</p>
+      <p className="text-xs text-nk-muted">Leave anything blank for &ldquo;doesn&apos;t matter&rdquo;. Only you can see these.</p>
 
       <div>
         <div className="grid grid-cols-2 gap-4">
@@ -209,7 +209,7 @@ export function PartnerPreferencesEditor({
       </div>
 
       <div>
-        <p className="mb-2 text-sm font-semibold text-[#2B211C]">Marital status</p>
+        <p className="mb-2 text-sm font-semibold text-nk-ink">Marital status</p>
         <CheckboxGroup
           name="pref-marital"
           options={Object.entries(MARITAL_LABELS).map(([value, label]) => ({
@@ -224,7 +224,7 @@ export function PartnerPreferencesEditor({
       </div>
 
       <div>
-        <p className="mb-2 text-sm font-semibold text-[#2B211C]">Mother tongue</p>
+        <p className="mb-2 text-sm font-semibold text-nk-ink">Mother tongue</p>
         <CheckboxGroup
           name="pref-tongue"
           options={MOTHER_TONGUES.map((t) => ({ value: t, label: t }))}
@@ -234,8 +234,8 @@ export function PartnerPreferencesEditor({
       </div>
 
       <div>
-        <p className="mb-1 text-sm font-semibold text-[#2B211C]">Location (India)</p>
-        <p className="mb-2 text-xs text-[#776B62]">Choose states and/or type cities. Leave both empty for anywhere.</p>
+        <p className="mb-1 text-sm font-semibold text-nk-ink">Location (India)</p>
+        <p className="mb-2 text-xs text-nk-muted">Choose states and/or type cities. Leave both empty for anywhere.</p>
         <CheckboxGroup
           name="pref-states"
           options={INDIA_STATES_AND_UTS.map((s) => ({ value: s, label: s }))}

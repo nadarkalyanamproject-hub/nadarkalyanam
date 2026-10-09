@@ -12,33 +12,33 @@ export function HoroscopeCard({ view }: { view: HoroscopeView }) {
   const rows = horoscopeViewRows(view);
   const chartUrl = view.shared ? view.chartImageUrl : null;
   return (
-    <div className="rounded-3xl border border-[#EFEAE2] bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]" data-testid="horoscope-card">
-      <div className="border-b border-[#F1EBE1] pb-4">
+    <div className="rounded-3xl border border-nk-line-soft bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]" data-testid="horoscope-card">
+      <div className="border-b border-nk-line-soft pb-4">
         <h2 className="font-[family-name:var(--font-playfair)] font-serif text-lg sm:text-xl font-bold text-[#1E293B]">Horoscope</h2>
-        <p className="text-xs text-[#7E6F65]">Shared at this member&apos;s choice</p>
+        <p className="text-xs text-nk-muted">Shared at this member&apos;s choice</p>
       </div>
       {!view.shared ? (
-        <p className="mt-4 text-sm text-[#7E6F65]" data-testid="horoscope-not-shared">
+        <p className="mt-4 text-sm text-nk-muted" data-testid="horoscope-not-shared">
           Not shared.
         </p>
       ) : rows.length === 0 && !chartUrl ? (
-        <p className="mt-4 text-sm text-[#7E6F65]" data-testid="horoscope-not-added">
+        <p className="mt-4 text-sm text-nk-muted" data-testid="horoscope-not-added">
           No horoscope details added yet.
         </p>
       ) : (
         <>
           <dl className="mt-5 grid grid-cols-1 gap-3.5 sm:grid-cols-2" data-testid="horoscope-rows">
             {rows.map((row) => (
-              <div key={row.label} className="rounded-xl border border-[#F1EBE1] bg-[#FDFBF7] p-3">
-                <dt className="text-[11px] font-semibold uppercase tracking-wider text-[#7E6F65]">{row.label}</dt>
-                <dd className="mt-0.5 text-sm font-semibold text-[#241C1A]">{row.value}</dd>
+              <div key={row.label} className="rounded-xl border border-nk-line-soft bg-[#FDFBF7] p-3">
+                <dt className="text-[11px] font-semibold uppercase tracking-wider text-nk-muted">{row.label}</dt>
+                <dd className="mt-0.5 text-sm font-semibold text-nk-ink">{row.value}</dd>
               </div>
             ))}
           </dl>
           {chartUrl && (
             <button type="button" onClick={() => setEnlarged(true)} className="mt-4 block" aria-label="Enlarge jathagam chart">
               {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL */}
-              <img src={chartUrl} alt="Jathagam chart" className="h-40 w-auto max-w-full rounded-lg border border-[#EFEAE2] object-contain" />
+              <img src={chartUrl} alt="Jathagam chart" className="h-40 w-auto max-w-full rounded-lg border border-nk-line-soft object-contain" />
             </button>
           )}
         </>
@@ -52,12 +52,12 @@ export function HoroscopeCard({ view }: { view: HoroscopeView }) {
 export function PreferenceFitNote({ fit }: { fit: PreferenceFit | null }) {
   if (!fit) return null;
   return (
-    <div className="rounded-2xl border border-[#EADBBD] bg-[#FFFBF0] px-4 py-3 text-sm" data-testid="preference-fit">
-      <p className="font-semibold text-[#7A1C32]">{preferenceFitLine(fit)}</p>
-      <p className="mt-1 text-xs text-[#5A493E]">
+    <div className="rounded-2xl border border-nk-line-gold bg-[#FFFBF0] px-4 py-3 text-sm" data-testid="preference-fit">
+      <p className="font-semibold text-nk-maroon">{preferenceFitLine(fit)}</p>
+      <p className="mt-1 text-xs text-nk-ink-soft">
         {fit.fields.map((f) => `${FIT_KEY_LABELS[f.key]} ${f.matched === true ? '✓' : f.matched === false ? '✗' : '–'}`).join(' · ')}
       </p>
-      <p className="mt-1 text-[11px] text-[#7E6F65]">Only you see this. It uses your own partner preferences.</p>
+      <p className="mt-1 text-[11px] text-nk-muted">Only you see this. It uses your own partner preferences.</p>
     </div>
   );
 }
