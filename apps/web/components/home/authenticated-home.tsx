@@ -55,14 +55,14 @@ function AuthenticatedHomeContent() {
       });
     listMatchCategory(token, 'newly-joined')
       .then((result) => {
-        if (!cancelled) setNewlyJoined(result.items.slice(0, 4));
+        if (!cancelled) setNewlyJoined(result.items.slice(0, 5));
       })
       .catch((err: unknown) => {
         if (!cancelled) setNewlyJoinedError(message(err, 'Could not load new members.'));
       });
     listMatchCategory(token, 'viewed-me')
       .then((result) => {
-        if (!cancelled) setViewedMe(result.items.slice(0, 4));
+        if (!cancelled) setViewedMe(result.items.slice(0, 5));
       })
       .catch((err: unknown) => {
         if (!cancelled) setViewedMeError(message(err, 'Could not load who viewed you.'));
@@ -79,7 +79,7 @@ function AuthenticatedHomeContent() {
     matches && recommended
       ? pickDailyRecommendations(matches, {
           userId: data.userId ?? profile?.id ?? '',
-          count: 4,
+          count: 5,
           exclude: new Set(recommended.map((match) => match.profileId)),
         })
       : null;
@@ -110,6 +110,7 @@ function AuthenticatedHomeContent() {
               subtitle="Curated based on your preferences, location, and lifestyle."
               viewAllHref="/matches"
               viewAllLabel="View All Matches"
+              columns={4}
               profiles={recommended}
               error={matchesError}
               emptyMessage="No recommendations yet. New ones appear here as more members join."

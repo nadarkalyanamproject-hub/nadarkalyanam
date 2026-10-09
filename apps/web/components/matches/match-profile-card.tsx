@@ -26,13 +26,13 @@ export function MatchProfileCard({ profile }: { profile: MatchProfileCardData })
   const location = [profile.city, profile.state].filter(Boolean).join(', ');
   return (
     <div
-      className="bg-white rounded-2xl border border-nk-line-soft hover:border-nk-line-strong p-4 flex flex-col justify-between gap-4 transition-all shadow-2xs hover:shadow-xs"
+      className="bg-white rounded-2xl border border-nk-line-soft hover:border-nk-line-strong p-3.5 flex flex-col justify-between gap-3 transition-all shadow-2xs hover:shadow-xs"
       data-testid="match-card"
       data-profile-id={profile.profileId}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full overflow-hidden border border-nk-line-gold shrink-0 bg-nk-paper">
+          <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full overflow-hidden border border-nk-line-gold shrink-0 bg-nk-paper">
             {profile.primaryPhotoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={profile.primaryPhotoUrl} alt={profile.fullName} className="h-full w-full object-cover" />

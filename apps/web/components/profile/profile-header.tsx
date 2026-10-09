@@ -84,9 +84,9 @@ export function ProfileHeader({
         </div>
 
         {/* Small horizontal progress bar */}
-        <div className="h-2 w-full overflow-hidden rounded-full bg-nk-line-soft">
+        <div className="h-2 w-full overflow-hidden rounded-sm bg-nk-line-soft">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-nk-maroon via-[#D97706] to-[#F59E0B] transition-all duration-700 ease-out"
+            className="h-full rounded-sm bg-gradient-to-r from-nk-maroon via-[#D97706] to-[#F59E0B] transition-all duration-700 ease-out"
             style={{
               width: `${Math.min(100, Math.max(0, completionPercent))}%`,
             }}

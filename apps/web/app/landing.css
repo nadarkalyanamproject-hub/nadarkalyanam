@@ -249,7 +249,7 @@ html {
 }
 
 .brand-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-landing);
   font-size: 1.65rem;
   font-weight: 700;
   line-height: 1.2;
@@ -446,7 +446,7 @@ html {
 }
 
 .hero-heading {
-  font-family: var(--font-heading);
+  font-family: var(--font-landing);
   font-size: 3.4rem;
   line-height: 1.15;
   font-weight: 700;
@@ -517,7 +517,7 @@ html {
 }
 
 .card-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-landing);
   font-size: 1.95rem;
   font-weight: 700;
   color: var(--color-maroon-primary);
@@ -1054,7 +1054,7 @@ html {
 }
 
 .footer-brand {
-  font-family: var(--font-heading);
+  font-family: var(--font-landing);
   font-size: 1rem;
   font-weight: 700;
   color: var(--color-yellow-light);
@@ -1213,7 +1213,7 @@ html {
 }
 
 .modal-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-landing);
   font-size: 1.6rem;
   font-weight: 700;
   color: var(--color-maroon-primary);
@@ -1351,7 +1351,7 @@ html {
 }
 
 .membership-promo-section .section-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-landing);
   font-size: 2.1rem;
   font-weight: 800;
   color: #1E1C1A;

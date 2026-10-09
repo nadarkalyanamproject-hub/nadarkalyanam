@@ -79,7 +79,7 @@ export function VipPromo({ plan, imageUrl = DEFAULT_IMAGE }: { plan: MembershipP
                 <VipEnquiry
                   label="Request a Relationship Manager"
                   returnTo="/"
-                  buttonClassName="w-full cursor-pointer rounded-full bg-gradient-to-r from-[#B8892A] via-[#E9C46A] to-[#B8892A] px-6 py-3 text-sm font-bold text-[#3A0E15] shadow-lg transition-opacity hover:opacity-95 sm:w-auto"
+                  buttonClassName="w-full cursor-pointer rounded-xl bg-gradient-to-r from-[#B8892A] via-[#E9C46A] to-[#B8892A] px-6 py-3 text-sm font-bold text-[#3A0E15] shadow-lg transition-opacity hover:opacity-95 sm:w-auto"
                 />
               </div>
               <Link href="/membership" className="text-xs font-semibold text-[#F6DE94] underline-offset-2 hover:underline">

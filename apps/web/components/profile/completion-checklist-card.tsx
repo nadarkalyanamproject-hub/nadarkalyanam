@@ -40,9 +40,9 @@ export function CompletionChecklistCard({
       </div>
 
       <div className="mb-4">
-        <div className="h-2 w-full overflow-hidden rounded-full bg-nk-line-soft">
+        <div className="h-2 w-full overflow-hidden rounded-sm bg-nk-line-soft">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-nk-maroon via-[#D97706] to-[#F59E0B] transition-all duration-500 ease-out"
+            className="h-full rounded-sm bg-gradient-to-r from-nk-maroon via-[#D97706] to-[#F59E0B] transition-all duration-500 ease-out"
             style={{ width: `${percentage}%` }}
           />
         </div>

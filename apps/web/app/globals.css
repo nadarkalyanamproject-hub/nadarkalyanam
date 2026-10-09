@@ -37,6 +37,50 @@
     0% { transform: scale(0.97); opacity: 0.4; }
     100% { transform: scale(1); opacity: 1; }
   }
+
+  /* Welcome screen after sign-up (app/onboarding/success). */
+  --animate-nk-pop-in: nk-pop-in 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-nk-fade-up: nk-fade-up 500ms ease-out 700ms both;
+  --animate-nk-glow: nk-glow 1400ms ease-out both;
+
+  @keyframes nk-pop-in {
+    0% { transform: scale(0.4); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes nk-fade-up {
+    0% { transform: translateY(10px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes nk-glow {
+    0% { transform: scale(0.6); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+}
+
+/* Check mark drawing itself after the circle pops in. */
+.nk-check {
+  stroke-dasharray: 70;
+  stroke-dashoffset: 70;
+  animation: nk-check-draw 420ms ease-out 360ms forwards;
+}
+@keyframes nk-check-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Marigold petals bursting outwards from the mark, then fading. */
+.nk-petal {
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(var(--nk-angle)) translateY(0) scale(0.6);
+  animation: nk-petal-burst 900ms cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+@keyframes nk-petal-burst {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--nk-angle)) translateY(0) scale(0.6); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--nk-angle)) translateY(-86px) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nk-check { animation: none; stroke-dashoffset: 0; }
 }
 
 :root {

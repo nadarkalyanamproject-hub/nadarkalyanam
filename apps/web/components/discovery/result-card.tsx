@@ -39,13 +39,13 @@ export function ResultCard({
 }) {
   return (
     <div className="group flex flex-col overflow-hidden rounded-2xl border border-nk-line bg-[#FFFFFF] shadow-sm transition-all duration-200 hover:border-[#F59E0B] hover:shadow-md">
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#FAF6EF]">
+      <div className="relative aspect-[3/2] w-full overflow-hidden bg-[#FAF6EF]">
         {primaryPhotoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={primaryPhotoUrl}
             alt=""
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-cover object-[50%_25%] transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-[#968A82]">
@@ -61,8 +61,8 @@ export function ResultCard({
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <h3 className="flex items-center gap-1.5 font-[family-name:var(--font-body)] text-base font-bold text-nk-ink">
+      <div className="flex flex-1 flex-col p-3.5">
+        <h3 className="flex items-center gap-1.5 font-[family-name:var(--font-body)] text-sm font-bold text-nk-ink">
           <span className="flex min-w-0">
             <span className="truncate">{fullName}</span>
             <span className="shrink-0">, {age}</span>
@@ -72,7 +72,7 @@ export function ResultCard({
         {city && <p className="mt-1 text-xs font-medium text-nk-muted">{city}</p>}
         {relationshipStatus === 'CONNECTED' && <ConnectedBadge className="mt-1.5 self-start" />}
 
-        <div className="mt-4 flex items-start gap-2 pt-2 border-t border-nk-line-soft">
+        <div className="mt-3 flex items-start gap-2 pt-2 border-t border-nk-line-soft">
           <Link href={`/browse/${profileId}`} className="flex-1">
             <button
               type="button"

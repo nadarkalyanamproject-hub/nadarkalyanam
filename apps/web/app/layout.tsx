@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Cinzel, Plus_Jakarta_Sans, Source_Serif_4 } from 'next/font/google';
+import { Cinzel, Cormorant_Garamond, Plus_Jakarta_Sans, Source_Serif_4 } from 'next/font/google';
 import { RegistrationProvider } from './providers/registration-provider';
 import { NavigationTracker } from '../lib/navigation-history';
 import { SiteFooter } from '../components/site-footer';
@@ -9,6 +9,14 @@ import './globals.css';
 // globals.css for the components that still name it.
 const sourceSerif = Source_Serif_4({
   variable: '--font-heading',
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  style: ['normal', 'italic'],
+});
+
+// The public landing page keeps its original elegant serif (--font-landing).
+const cormorantGaramond = Cormorant_Garamond({
+  variable: '--font-landing',
   subsets: ['latin'],
   weight: ['500', '600', '700'],
   style: ['normal', 'italic'],
@@ -40,7 +48,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sourceSerif.variable} ${cinzel.variable} ${plusJakartaSans.variable}`}
+      className={`${sourceSerif.variable} ${cormorantGaramond.variable} ${cinzel.variable} ${plusJakartaSans.variable}`}
     >
       <body>
         <NavigationTracker />

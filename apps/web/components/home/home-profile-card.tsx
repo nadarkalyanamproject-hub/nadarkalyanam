@@ -27,13 +27,13 @@ export function HomeProfileCard({ profile }: { profile: HomeProfile }) {
   return (
     <div className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-nk-line bg-white shadow-xs transition-all hover:shadow-md">
       <div>
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#F3EDE6]">
+        <div className="relative aspect-[3/2] w-full overflow-hidden bg-[#F3EDE6]">
           {profile.primaryPhotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={profile.primaryPhotoUrl}
               alt={profile.fullName}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="h-full w-full object-cover object-[50%_25%] transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-[#A88C78]">
@@ -42,9 +42,9 @@ export function HomeProfileCard({ profile }: { profile: HomeProfile }) {
           )}
         </div>
 
-        <div className="p-3.5">
+        <div className="p-3">
           <Link href={`/browse/${profile.profileId}`} className="flex items-center gap-1.5">
-            <h3 className="flex min-w-0 text-sm font-bold text-nk-ink transition-colors hover:text-nk-maroon sm:text-base">
+            <h3 className="flex min-w-0 text-sm font-bold text-nk-ink transition-colors hover:text-nk-maroon">
               <span className="truncate">{profile.fullName}</span>
               <span className="shrink-0">, {profile.age}</span>
             </h3>
@@ -93,7 +93,7 @@ export function HomeProfileSection({
   profiles,
   error,
   emptyMessage,
-  columns = 4,
+  columns = 5,
   children,
   testId,
 }: {
@@ -136,9 +136,9 @@ export function HomeProfileSection({
           {error}
         </p>
       ) : profiles === null ? (
-        <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 ${grid}`} aria-hidden="true">
+        <div className={`grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 ${grid}`} aria-hidden="true">
           {Array.from({ length: columns }).map((_, index) => (
-            <div key={index} className="h-72 rounded-2xl border border-[#F0E6D8] bg-[#FAF6EF]" />
+            <div key={index} className="h-60 rounded-2xl border border-[#F0E6D8] bg-[#FAF6EF]" />
           ))}
         </div>
       ) : profiles.length === 0 ? (
@@ -146,7 +146,7 @@ export function HomeProfileSection({
           {emptyMessage}
         </p>
       ) : (
-        <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 ${grid}`}>
+        <div className={`grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 ${grid}`}>
           {profiles.map((profile) => (
             <HomeProfileCard key={profile.profileId} profile={profile} />
           ))}

@@ -334,7 +334,7 @@ export function AppHeader() {
                         ))}
                       {/* Active gold/maroon indicator */}
                       {isActive && (
-                        <span className="absolute bottom-0 left-2.5 right-2.5 h-[2.5px] rounded-full bg-nk-gold-light" />
+                        <span className="absolute bottom-0 left-2.5 right-2.5 h-[2.5px] rounded-sm bg-nk-gold-light" />
                       )}
                     </Link>
                   );

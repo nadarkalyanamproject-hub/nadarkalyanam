@@ -40,11 +40,11 @@ export function OnboardingStepper({
       {/* Progress Track & Nodes Container */}
       <div className="relative w-full py-1">
         {/* Background Track Line connecting center of Node 1 to center of Node 4 */}
-        <div className="absolute top-[14px] left-[12.5%] right-[12.5%] h-1.5 -translate-y-1/2 rounded-full bg-[#EAE3D9]" />
+        <div className="absolute top-[14px] left-[12.5%] right-[12.5%] h-1.5 -translate-y-1/2 rounded-sm bg-[#EAE3D9]" />
 
         {/* Filled Gradient Progress Bar moving with exact progress percentage */}
         <div
-          className="absolute top-[14px] left-[12.5%] h-1.5 -translate-y-1/2 rounded-full bg-gradient-to-r from-nk-maroon-bright via-[#B8323C] to-[#E67E22] transition-all duration-500 ease-out"
+          className="absolute top-[14px] left-[12.5%] h-1.5 -translate-y-1/2 rounded-sm bg-gradient-to-r from-nk-maroon-bright via-[#B8323C] to-[#E67E22] transition-all duration-500 ease-out"
           style={{
             width: `calc(${percent}% * 0.75)`,
           }}

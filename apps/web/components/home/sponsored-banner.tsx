@@ -252,7 +252,7 @@ export function SponsoredBanner({ ads = DEFAULT_ADS }: { ads?: SponsoredAd[] }) 
                 aria-label={`Go to ad ${idx + 1}`}
                 aria-current={idx === currentIndex}
                 onClick={() => setCurrentIndex(idx)}
-                className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                className={`h-2 rounded-sm transition-all duration-300 cursor-pointer ${
                   idx === currentIndex ? 'w-5 bg-[#A89284]' : 'w-2 bg-[#DCD1C8] hover:bg-[#BDB0A6]'
                 }`}
               />

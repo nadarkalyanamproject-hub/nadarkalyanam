@@ -84,7 +84,7 @@ function SectionHeading({ title, viewAllHref }: { title: string; viewAllHref?: s
   return (
     <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-2">
-        <span className="w-1 h-3.5 rounded-full bg-nk-maroon shrink-0" />
+        <span className="w-1 h-3.5 rounded-sm bg-nk-maroon shrink-0" />
         <h2 className="text-xs sm:text-sm font-bold text-nk-ink tracking-tight">{title}</h2>
       </div>
       {viewAllHref && (
@@ -496,17 +496,17 @@ function MatchesPageContent() {
             )}
 
             {/* Match Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5" data-testid="top-matches-grid">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mt-5" data-testid="top-matches-grid">
               {filteredTopMatches.map((match) => (
                 <div
                   key={match.profileId}
                   data-profile-id={match.profileId}
-                  className="bg-white rounded-2xl border border-nk-line-soft hover:border-nk-line-strong p-4 flex flex-col justify-between gap-4 transition-all shadow-2xs hover:shadow-xs"
+                  className="bg-white rounded-2xl border border-nk-line-soft hover:border-nk-line-strong p-3.5 flex flex-col justify-between gap-3 transition-all shadow-2xs hover:shadow-xs"
                 >
                   {/* Top Part: Avatar + Info + Score Pill */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full overflow-hidden border border-nk-line-gold shrink-0 bg-nk-paper">
+                      <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full overflow-hidden border border-nk-line-gold shrink-0 bg-nk-paper">
                         {match.primaryPhotoUrl ? (
                           <img
                             src={match.primaryPhotoUrl}
