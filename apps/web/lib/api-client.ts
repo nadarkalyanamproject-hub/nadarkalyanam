@@ -357,6 +357,15 @@ export function declineInterest(accessToken: string, interestId: string): Promis
   });
 }
 
+// Withdraws a pending interest the caller sent (DELETE /interests/:id; the row
+// is kept with status WITHDRAWN).
+export function withdrawInterest(accessToken: string, interestId: string): Promise<{ id: string; status: string }> {
+  return request(`/interests/${interestId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
 export function listConversations(accessToken: string): Promise<ConversationListResponse> {
   return request<ConversationListResponse>('/conversations', {
     headers: { Authorization: `Bearer ${accessToken}` },

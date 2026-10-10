@@ -28,6 +28,10 @@ interface InterestParty {
   fullName: string;
   age: number;
   primaryPhotoUrl: string | null;
+  city: string | null;
+  state: string | null;
+  educationLevel: string | null;
+  profession: string | null;
 }
 
 @Injectable()
@@ -387,11 +391,21 @@ export class InterestsService {
     for (const profile of profiles) {
       const photos = await this.photosService.getPhotosForProfile(profile.id);
       const primaryPhotoUrl = photos.find((photo) => photo.isPrimary)?.url ?? photos[0]?.url ?? null;
+      // Same public card fields (and the same reads) as toProfileCards;
+      // explicitly picked, never contact details. Blank values become null.
+      const details = profile.details as {
+        location?: { city?: string; state?: string };
+        education?: { educationLevel?: string; profession?: string };
+      } | null;
       result.set(profile.userId, {
         profileId: profile.id,
         fullName: profile.fullName,
         age: calculateAge(profile.dateOfBirth),
         primaryPhotoUrl,
+        city: details?.location?.city || null,
+        state: details?.location?.state || null,
+        educationLevel: details?.education?.educationLevel || null,
+        profession: details?.education?.profession || null,
       });
     }
     return result;
@@ -399,5 +413,14 @@ export class InterestsService {
 }
 
 function unknownParty(): InterestParty {
-  return { profileId: '', fullName: 'Unknown', age: 0, primaryPhotoUrl: null };
+  return {
+    profileId: '',
+    fullName: 'Unknown',
+    age: 0,
+    primaryPhotoUrl: null,
+    city: null,
+    state: null,
+    educationLevel: null,
+    profession: null,
+  };
 }

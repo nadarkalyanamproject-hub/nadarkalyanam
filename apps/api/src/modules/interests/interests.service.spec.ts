@@ -444,6 +444,59 @@ describe('InterestsService.listForUser', () => {
     expect(typeof result.sent[0].target.age).toBe('number');
     expect(result.sent[0].target.fullName).toBe('Target Person');
   });
+
+  it('fills city, state, education and profession from the real profile details, null when not filled in', async () => {
+    const { service, prisma } = buildService();
+    prisma.interest.findMany
+      .mockResolvedValueOnce([
+        { id: 'interest-1', senderId: CALLER_USER_ID, targetId: TARGET_USER_ID, status: 'PENDING', createdAt: new Date(), respondedAt: null },
+      ])
+      .mockResolvedValueOnce([
+        { id: 'interest-2', senderId: 'user-sparse', targetId: CALLER_USER_ID, status: 'PENDING', createdAt: new Date(), respondedAt: null },
+      ]);
+    const dateOfBirth = new Date('1998-06-15T00:00:00.000Z');
+    const profiles = [
+      {
+        id: TARGET_PROFILE_ID,
+        userId: TARGET_USER_ID,
+        fullName: 'Target Person',
+        dateOfBirth,
+        email: 'target@example.com',
+        phone: '+919999999999',
+        details: {
+          location: { city: 'Madurai', state: 'Tamil Nadu' },
+          education: { educationLevel: 'Bachelors', profession: 'Software Engineer' },
+          contactNumber: '+919999999999',
+        },
+      },
+      // Blank strings and a missing section both come back as null.
+      { id: 'profile-sparse', userId: 'user-sparse', fullName: 'Sparse Person', dateOfBirth, details: { location: { city: '', state: 'Kerala' } } },
+      { id: CALLER_PROFILE_ID, userId: CALLER_USER_ID, fullName: 'Caller Person', dateOfBirth },
+    ];
+    prisma.profile.findMany.mockImplementation(({ where }: { where: { userId: { in: string[] } } }) =>
+      Promise.resolve(profiles.filter((profile) => where.userId.in.includes(profile.userId))),
+    );
+
+    const result = await service.listForUser(CALLER_USER_ID);
+
+    expect(result.sent[0].target).toEqual({
+      profileId: TARGET_PROFILE_ID,
+      fullName: 'Target Person',
+      age: expect.any(Number),
+      primaryPhotoUrl: null,
+      city: 'Madurai',
+      state: 'Tamil Nadu',
+      educationLevel: 'Bachelors',
+      profession: 'Software Engineer',
+    });
+    expect(result.received[0].sender).toMatchObject({ city: null, state: 'Kerala', educationLevel: null, profession: null });
+    // The caller's own profile has no details at all.
+    expect(result.sent[0].sender).toMatchObject({ city: null, state: null, educationLevel: null, profession: null });
+    // Never contact details.
+    const body = JSON.stringify(result);
+    expect(body).not.toContain('target@example.com');
+    expect(body).not.toContain('+919999999999');
+  });
   it('leaves out interests with a member blocked in either direction (sent and received)', async () => {
     const { service, prisma } = buildService();
     prisma.block.findMany.mockResolvedValueOnce([
