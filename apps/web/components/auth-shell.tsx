@@ -14,7 +14,7 @@ export function AuthShell({
     <main
       className="relative flex min-h-screen items-center justify-center bg-cover bg-center bg-fixed bg-no-repeat px-4 py-12"
       style={{
-        backgroundImage: "url('/assets/onboarding_bg.png')",
+        backgroundImage: "url('/assets/onboarding_bg.jpg')",
       }}
     >
       {/* Soft warm overlay */}

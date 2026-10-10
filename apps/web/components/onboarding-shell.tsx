@@ -26,7 +26,7 @@ export function OnboardingShell({
     <main
       className="relative min-h-screen bg-cover bg-center bg-fixed bg-no-repeat px-4 py-8 md:py-12"
       style={{
-        backgroundImage: "url('/assets/onboarding_bg.png')",
+        backgroundImage: "url('/assets/onboarding_bg.jpg')",
       }}
     >
       {/* Soft warm overlay to ensure high contrast and legibility */}
