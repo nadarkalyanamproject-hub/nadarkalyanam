@@ -61,6 +61,9 @@ export const envSchema = z.object({
   // dev stub — photos are approved on upload. Unset: 'pending' in
   // production, 'auto_approve' elsewhere.
   PHOTO_MODERATION: z.enum(['pending', 'auto_approve']).optional(),
+  // Maximum allowed size for uploaded photos in bytes (NFR-4.5).
+  // Defaults to 5 MB (5 * 1024 * 1024 = 5,242,880 bytes).
+  MAX_PHOTO_SIZE_BYTES: z.coerce.number().int().positive().default(5242880),
   // Sweep that marks past-due subscriptions EXPIRED and sends PLAN_EXPIRED.
   // On by default; entitlement checks go by dates, so turning it off never
   // grants extra time. Same safe-boolean pattern as above.

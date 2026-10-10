@@ -53,6 +53,11 @@ export class PhotosService {
       throw new BadRequestException('objectKey does not belong to this profile');
     }
 
+    // Validate uploaded file content type (JPEG, PNG, WebP only) and size limit (NFR-4.5).
+    // Rejects invalid/malicious files, deletes them from storage, and throws BadRequestException.
+    const maxPhotoSizeBytes = this.configService.get('MAX_PHOTO_SIZE_BYTES', { infer: true });
+    await this.storage.validateUploadedImage(objectKey, { maxSizeBytes: maxPhotoSizeBytes });
+
     const existingCount = await this.prisma.profilePhoto.count({
       where: { profileId: profile.id },
     });

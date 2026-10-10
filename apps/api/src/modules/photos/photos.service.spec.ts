@@ -39,6 +39,7 @@ function buildService(nodeEnv: string = 'test', photoModeration?: 'pending' | 'a
     createUploadUrl: vi.fn().mockResolvedValue('https://minio.example/presigned-put-url'),
     deleteObject: vi.fn().mockResolvedValue(undefined),
     getObjectUrl: vi.fn((objectKey: string) => Promise.resolve(`https://minio.example/bucket/${objectKey}`)),
+    validateUploadedImage: vi.fn().mockResolvedValue({ mime: 'image/jpeg', sizeBytes: 1024 }),
   };
   const env: Record<string, unknown> = { NODE_ENV: nodeEnv, PHOTO_MODERATION: photoModeration };
   const configService = { get: vi.fn((key: string) => env[key]) };
@@ -176,6 +177,35 @@ describe('PhotosService.confirmPhoto', () => {
     await expect(
       service.confirmPhoto(USER_ID, 'profiles/some-other-profile/photo.jpg'),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('validates upload content type and size via storage before creating photo record', async () => {
+    const { service, prisma, storage } = buildService();
+    const objectKey = `profiles/${PROFILE_ID}/valid.jpg`;
+    prisma.profilePhoto.create.mockResolvedValueOnce({
+      id: 'photo-1',
+      objectKey,
+      isPrimary: true,
+      sortOrder: 0,
+    });
+
+    await service.confirmPhoto(USER_ID, objectKey);
+
+    expect(storage.validateUploadedImage).toHaveBeenCalledWith(objectKey, { maxSizeBytes: undefined });
+    expect(prisma.profilePhoto.create).toHaveBeenCalled();
+  });
+
+  it('rejects photo confirmation if storage validation fails (e.g. fake .jpg or .exe)', async () => {
+    const { service, prisma, storage } = buildService();
+    const objectKey = `profiles/${PROFILE_ID}/fake.jpg`;
+    storage.validateUploadedImage.mockRejectedValueOnce(
+      new BadRequestException('Invalid file content: only JPEG, PNG, and WebP images are allowed.'),
+    );
+
+    await expect(service.confirmPhoto(USER_ID, objectKey)).rejects.toThrow(
+      'Invalid file content: only JPEG, PNG, and WebP images are allowed.',
+    );
+    expect(prisma.profilePhoto.create).not.toHaveBeenCalled();
   });
 
   it('throws NotFoundException when the user has no profile', async () => {
