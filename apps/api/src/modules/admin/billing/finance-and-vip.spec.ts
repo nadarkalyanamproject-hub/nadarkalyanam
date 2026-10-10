@@ -279,6 +279,7 @@ describe('plan edits', () => {
       priceInPaise: 149900,
       isActive: true,
       sortOrder: 1,
+      originalPriceInPaise: null,
       durationDays: 90,
       phoneUnlockLimit: 50,
       isAssisted: false,
@@ -344,6 +345,24 @@ describe('plan edits', () => {
     expect(subscription).toEqual(before);
     // The limit and duration the subscription reads stay as they were.
     expect(updated).toMatchObject({ phoneUnlockLimit: 50, durationDays: 90 });
+  });
+
+  it('an original price is saved and audited, must stay above the price, and null removes it', async () => {
+    const { prisma, audit, service } = planWorld();
+
+    const updated = await service.updatePlan('a1', 'gold', { originalPriceInPaise: 250000 });
+    expect(updated.originalPriceInPaise).toBe(250000);
+    expect(audit.record.mock.calls[0]![4]).toMatchObject({ before: { originalPriceInPaise: null }, after: { originalPriceInPaise: 250000 } });
+
+    // Not above the price: on its own, or after a price change that overtakes it.
+    await expect(service.updatePlan('a1', 'gold', { originalPriceInPaise: 149900 })).rejects.toThrow('Original price must be more than the price');
+    await expect(service.updatePlan('a1', 'gold', { priceInPaise: 260000 })).rejects.toThrow('Original price must be more than the price');
+    // Raising both together is fine.
+    await service.updatePlan('a1', 'gold', { priceInPaise: 260000, originalPriceInPaise: 300000 });
+
+    prisma.membershipPlan.update.mockClear();
+    await service.updatePlan('a1', 'gold', { originalPriceInPaise: null });
+    expect(prisma.membershipPlan.update).toHaveBeenCalledWith({ where: { id: 'gold' }, data: { originalPriceInPaise: null } });
   });
 
   it('an empty description clears it; a no-op edit writes and audits nothing', async () => {

@@ -5,9 +5,10 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard.js';
 import { DiscoveryService } from './discovery.service.js';
+import { PlanRequiredGuard } from '../../common/plan-required.guard.js';
 
 @Controller('search')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PlanRequiredGuard)
 export class DiscoveryController {
   constructor(private readonly discoveryService: DiscoveryService) {}
 

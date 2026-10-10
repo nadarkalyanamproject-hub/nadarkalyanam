@@ -9,6 +9,7 @@ import { ApiError, getMyUnlockedContacts, unlockPhone } from '../../../lib/api-c
 import { formatPlanDate } from '../../../lib/membership';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { useRegistration } from '../../providers/registration-provider';
+import { PlanGate } from '../../../components/plan/plan-gate';
 
 const PAGE = 20;
 
@@ -33,7 +34,7 @@ function ContactRow({ contact, accessToken }: { contact: UnlockedContact; access
 
   return (
     <li className="flex flex-wrap items-center gap-3 py-3" data-testid="unlocked-contact">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#E8DCC8] bg-[#FAF6EF] text-[#A8988C]">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-nk-line bg-[#FAF6EF] text-[#A8988C]">
         {contact.primaryPhotoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={contact.primaryPhotoUrl} alt="" className="h-full w-full object-cover" />
@@ -42,22 +43,22 @@ function ContactRow({ contact, accessToken }: { contact: UnlockedContact; access
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <Link href={`/browse/${contact.profileId}`} className="truncate text-sm font-semibold text-[#2B211C] hover:text-[#7A0710]">
+        <Link href={`/browse/${contact.profileId}`} className="truncate text-sm font-semibold text-nk-ink hover:text-nk-maroon">
           {contact.fullName}, {contact.age}
         </Link>
-        <p className="text-xs text-[#776B62]">
+        <p className="text-xs text-nk-muted">
           {[contact.city, contact.state].filter(Boolean).join(', ') || 'Location not added'} · unlocked {formatPlanDate(contact.unlockedAt)}
         </p>
         {error && <p role="alert" className="mt-1 text-xs text-destructive">{error}</p>}
       </div>
       {phone ? (
-        <span className="font-mono text-sm text-[#2B211C]" data-testid="contact-phone">{phone}</span>
+        <span className="font-mono text-sm text-nk-ink" data-testid="contact-phone">{phone}</span>
       ) : (
         <button
           type="button"
           onClick={() => void show()}
           disabled={busy}
-          className="rounded-full border border-[#E8DCC8] bg-[#FFFDF9] px-4 py-1.5 text-xs font-semibold text-[#7A0710] hover:bg-[#FFF9ED] disabled:opacity-60"
+          className="rounded-md border border-nk-line bg-nk-ivory px-4 py-1.5 text-xs font-semibold text-nk-maroon hover:bg-nk-cream disabled:opacity-60"
         >
           {busy ? 'Loading…' : 'Show number'}
         </button>
@@ -66,7 +67,7 @@ function ContactRow({ contact, accessToken }: { contact: UnlockedContact; access
   );
 }
 
-export default function UnlockedContactsPage() {
+function UnlockedContactsPageContent() {
   const { ready } = useRequireAuth();
   const { data } = useRegistration();
   const [items, setItems] = useState<UnlockedContact[] | null>(null);
@@ -94,40 +95,49 @@ export default function UnlockedContactsPage() {
   return (
     <>
       <AppHeader />
-      <main className="min-h-screen bg-[#FFFDF9] px-4 py-8 sm:px-6">
+      <main className="min-h-screen bg-nk-ivory px-4 py-8 sm:px-6">
         <div className="mx-auto flex max-w-2xl flex-col gap-4">
-          <Link href="/membership" className="text-xs font-semibold text-[#7E6F65] hover:text-[#7A0710]">
+          <Link href="/membership" className="text-xs font-semibold text-nk-muted hover:text-nk-maroon">
             ← Back to Membership
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-[#2B1515]">My unlocked contacts</h1>
-            <p className="mt-1 text-sm text-[#73645C]">
+            <h1 className="text-2xl font-bold text-nk-ink">My unlocked contacts</h1>
+            <p className="mt-1 text-sm text-nk-muted">
               Members whose phone numbers you unlocked. Someone disappears from this list if they turn sharing off, if either of
               you blocks the other, or if you&apos;re no longer connected.
             </p>
           </div>
           {error && <Card className="rounded-2xl p-4 text-sm text-destructive" role="alert">{error}</Card>}
-          {items === null && !error && <Card className="rounded-2xl p-6 text-sm text-[#73645C]">Loading…</Card>}
+          {items === null && !error && <Card className="rounded-2xl p-6 text-sm text-nk-muted">Loading…</Card>}
           {items?.length === 0 && (
-            <Card className="rounded-2xl p-6 text-sm text-[#73645C]" data-testid="contacts-empty">
+            <Card className="rounded-2xl p-6 text-sm text-nk-muted" data-testid="contacts-empty">
               You haven&apos;t unlocked any phone numbers yet. You can unlock the number of a member you&apos;re connected with from
               their profile.
             </Card>
           )}
           {items && items.length > 0 && data.accessToken && (
             <Card className="rounded-2xl px-4">
-              <ul className="divide-y divide-[#F3EBDD]">
+              <ul className="divide-y divide-nk-line-soft">
                 {items.map((c) => <ContactRow key={c.profileId} contact={c} accessToken={data.accessToken!} />)}
               </ul>
             </Card>
           )}
           {nextOffset !== null && (
-            <button type="button" onClick={() => load(nextOffset)} className="self-center rounded-full border border-[#E8DCC8] px-4 py-1.5 text-xs font-semibold text-[#7A0710]">
+            <button type="button" onClick={() => load(nextOffset)} className="self-center rounded-md border border-nk-line px-4 py-1.5 text-xs font-semibold text-nk-maroon">
               Load more
             </button>
           )}
         </div>
       </main>
     </>
+  );
+}
+
+// Needs a membership plan when the server requires one (see PlanGate).
+export default function UnlockedContactsPage() {
+  return (
+    <PlanGate>
+      <UnlockedContactsPageContent />
+    </PlanGate>
   );
 }

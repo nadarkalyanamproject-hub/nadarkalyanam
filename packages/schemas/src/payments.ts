@@ -20,6 +20,9 @@ export const membershipPlanResponseSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   priceInPaise: z.number(),
+  // The "was" price shown struck out (always more than priceInPaise), or
+  // null for no discount. Display only — orders charge priceInPaise.
+  originalPriceInPaise: z.number().nullable(),
   durationDays: z.number(),
   sortOrder: z.number(),
   // null = unlimited.
@@ -95,6 +98,9 @@ export const myMembershipResponseSchema = z.object({
     })
     .nullable(),
   status: z.enum(['ACTIVE', 'FREE']),
+  // True when the server requires a plan (REQUIRE_PAID_PLAN) and the member
+  // has none: browsing members, search, interests and chat are refused.
+  accessLocked: z.boolean(),
   // Current plan period.
   startedAt: z.string().nullable(),
   expiresAt: z.string().nullable(),
@@ -120,10 +126,14 @@ export const myMembershipResponseSchema = z.object({
 });
 export type MyMembershipResponse = z.infer<typeof myMembershipResponseSchema>;
 
-// GET /membership-plans. freeInterestsPerMonth is the free tier's monthly
-// interest limit (FREE_INTERESTS_PER_MONTH), so copy never hardcodes it.
+// GET /membership-plans. freeInterestsPerMonth is the monthly interest limit
+// for members without a plan (FREE_INTERESTS_PER_MONTH), so copy never
+// hardcodes it. requirePaidPlan mirrors REQUIRE_PAID_PLAN: when true, members
+// without a plan can't browse, search, send interests or chat, and the
+// Membership page says so (it's public, so it can't rely on /me/membership).
 export const membershipPlansResponseSchema = z.object({
   items: z.array(membershipPlanResponseSchema),
   freeInterestsPerMonth: z.number(),
+  requirePaidPlan: z.boolean(),
 });
 export type MembershipPlansResponse = z.infer<typeof membershipPlansResponseSchema>;

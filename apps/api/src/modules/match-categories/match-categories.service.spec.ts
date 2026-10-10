@@ -9,6 +9,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { MatchCategoriesController } from './match-categories.controller.js';
 import { MatchCategoriesService } from './match-categories.service.js';
+import { PlanRequiredGuard } from '../../common/plan-required.guard.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = new Date(Date.UTC(2026, 8, 30));
@@ -138,9 +139,9 @@ describe('MatchCategoriesService', () => {
 });
 
 describe('MatchCategoriesController', () => {
-  it('is mounted at /match-categories behind the member JwtAuthGuard', () => {
+  it('is mounted at /match-categories behind the member JwtAuthGuard and the plan check', () => {
     expect(Reflect.getMetadata('path', MatchCategoriesController)).toBe('match-categories');
-    expect(Reflect.getMetadata('__guards__', MatchCategoriesController)).toEqual([JwtAuthGuard]);
+    expect(Reflect.getMetadata('__guards__', MatchCategoriesController)).toEqual([JwtAuthGuard, PlanRequiredGuard]);
     for (const [handler, path] of [
       ['newlyJoined', 'newly-joined'],
       ['nearby', 'nearby'],

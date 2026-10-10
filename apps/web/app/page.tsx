@@ -1,7 +1,6 @@
 'use client';
 
 import { Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthenticatedHome } from '../components/home/authenticated-home';
 import { useRegistration } from './providers/registration-provider';
@@ -910,27 +909,6 @@ function HomeContent() {
           </div>
         </div>
       </aside>
-
-      {/* Footer */}
-      <footer className="site-footer">
-        <div className="footer-container">
-          <span className="footer-brand">Nadar Kalyanam</span>
-          <span className="footer-copy">&copy; 2026 Nadar Kalyanam. All rights reserved.</span>
-          <div className="footer-links">
-            <a href="#terms" className="legal-link">
-              Terms &amp; Conditions
-            </a>
-            <span className="pipe">|</span>
-            <a href="#privacy" className="legal-link">
-              Privacy Policy
-            </a>
-            <span className="pipe">|</span>
-            <Link href="/contact" className="legal-link">
-              Contact Us
-            </Link>
-          </div>
-        </div>
-      </footer>
 
       {/* Toast Notification */}
       <div className={`toast-notification${toast.visible ? ' active' : ''}`} role="alert" aria-live="assertive">

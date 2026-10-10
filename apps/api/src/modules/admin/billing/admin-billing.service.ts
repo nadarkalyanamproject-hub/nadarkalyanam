@@ -110,6 +110,7 @@ export class AdminBillingService {
         name: p.name,
         description: p.description,
         priceInPaise: p.priceInPaise,
+        originalPriceInPaise: p.originalPriceInPaise,
         durationDays: p.durationDays,
         phoneUnlockLimit: p.phoneUnlockLimit,
         isAssisted: p.isAssisted,
@@ -135,7 +136,14 @@ export class AdminBillingService {
     const data: Prisma.MembershipPlanUpdateInput = {};
     // An empty description clears it.
     const description = change.description === undefined ? undefined : change.description?.trim() || null;
-    for (const key of ['name', 'description', 'priceInPaise', 'isActive', 'sortOrder'] as const) {
+    // A discount only makes sense above the price the member pays, so check
+    // the pair as it will be after this change.
+    const price = change.priceInPaise ?? plan.priceInPaise;
+    const original = change.originalPriceInPaise === undefined ? plan.originalPriceInPaise : change.originalPriceInPaise;
+    if (original !== null && original <= price) {
+      throw new BadRequestException('Original price must be more than the price, or remove it');
+    }
+    for (const key of ['name', 'description', 'priceInPaise', 'originalPriceInPaise', 'isActive', 'sortOrder'] as const) {
       const next = key === 'description' ? description : change[key];
       if (next === undefined || next === plan[key]) continue;
       before[key] = plan[key];

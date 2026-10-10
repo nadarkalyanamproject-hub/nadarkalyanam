@@ -1,17 +1,21 @@
 import type { Metadata } from 'next';
-import { Cinzel, Cormorant_Garamond, Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
+import { Cinzel, Cormorant_Garamond, Plus_Jakarta_Sans, Source_Serif_4 } from 'next/font/google';
 import { RegistrationProvider } from './providers/registration-provider';
 import { NavigationTracker } from '../lib/navigation-history';
+import { SiteFooter } from '../components/site-footer';
 import './globals.css';
 
-const cormorantGaramond = Cormorant_Garamond({
+// Headings (--font-heading). --font-playfair is kept as an alias in
+// globals.css for the components that still name it.
+const sourceSerif = Source_Serif_4({
   variable: '--font-heading',
   subsets: ['latin'],
   weight: ['500', '600', '700'],
 });
 
-const playfairDisplay = Playfair_Display({
-  variable: '--font-playfair',
+// The public landing page keeps its original elegant serif (--font-landing).
+const cormorantGaramond = Cormorant_Garamond({
+  variable: '--font-landing',
   subsets: ['latin'],
   weight: ['500', '600', '700'],
 });
@@ -42,11 +46,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cormorantGaramond.variable} ${playfairDisplay.variable} ${cinzel.variable} ${plusJakartaSans.variable}`}
+      className={`${sourceSerif.variable} ${cormorantGaramond.variable} ${cinzel.variable} ${plusJakartaSans.variable}`}
     >
       <body>
         <NavigationTracker />
-        <RegistrationProvider>{children}</RegistrationProvider>
+        <RegistrationProvider>
+          {children}
+          <SiteFooter />
+        </RegistrationProvider>
       </body>
     </html>
   );

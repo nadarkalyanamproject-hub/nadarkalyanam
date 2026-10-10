@@ -34,9 +34,10 @@ export function toPublicProfileSummary(
 // nothing, so a caller that doesn't compute them can never leak a horoscope.
 export interface ProfileViewExtras {
   preferenceFit: PreferenceFit | null;
+  theirPreferences: PublicProfileDetail['theirPreferences'];
   horoscope: HoroscopeView;
 }
-const NO_EXTRAS: ProfileViewExtras = { preferenceFit: null, horoscope: { shared: false } };
+const NO_EXTRAS: ProfileViewExtras = { preferenceFit: null, theirPreferences: null, horoscope: { shared: false } };
 
 export function toPublicProfileDetail(
   profile: Profile,
@@ -57,6 +58,7 @@ export function toPublicProfileDetail(
     additional: details.additional,
     photos,
     preferenceFit: extras.preferenceFit,
+    theirPreferences: extras.theirPreferences,
     horoscope: extras.horoscope,
   };
 }

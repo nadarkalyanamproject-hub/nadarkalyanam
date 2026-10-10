@@ -26,6 +26,7 @@ import { HoroscopeService, hasHoroscopeContent } from '../horoscope/horoscope.se
 import { PartnerPreferencesService } from '../partner-preferences/partner-preferences.service.js';
 import { ProfilesService } from './profiles.service.js';
 import { toPublicProfileDetail, toPublicProfileSummary } from './public-profile.mapper.js';
+import { PlanRequiredGuard } from '../../common/plan-required.guard.js';
 
 // Re-exported so existing imports of the public mappers keep working.
 export { toPublicProfileDetail, toPublicProfileSummary };
@@ -128,7 +129,7 @@ export class ProfilesController {
   // "Browse Profiles". Simple offset pagination — ?offset=0&limit=20 by
   // default, capped at 50 per page since nothing here needs to be fancy yet.
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PlanRequiredGuard)
   async list(
     @CurrentUser() user: AuthenticatedUser,
     @Query('offset') offsetParam?: string,
@@ -159,7 +160,7 @@ export class ProfilesController {
   // matches routes in declaration order, and this :id param would otherwise
   // swallow /profiles/me.
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PlanRequiredGuard)
   async getOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -178,19 +179,21 @@ export class ProfilesController {
     const photos = await this.photosService.getPhotosForProfile(profile.id);
     const relationships = await this.profilesService.getRelationshipStates(user.userId, [profile.userId]);
     const relationship = relationships.get(profile.userId);
-    // Both computed for THIS viewer only: their own preferences against this
-    // profile, and what the owner's horoscope setting allows them to see.
-    const [preferenceFit, horoscope] = await Promise.all([
+    // Computed for THIS viewer: their own preferences against this profile,
+    // the owner's preferences against the viewer, and what the owner's
+    // horoscope setting allows them to see.
+    const [preferenceFit, theirPreferences, horoscope] = await Promise.all([
       this.partnerPreferences.fitForViewer(user.userId, profile),
+      this.partnerPreferences.theirPreferencesFor(profile.userId, user.userId),
       this.horoscope.viewFor(profile.id, relationship?.status),
     ]);
-    return toPublicProfileDetail(profile, photos, relationship, { preferenceFit, horoscope });
+    return toPublicProfileDetail(profile, photos, relationship, { preferenceFit, theirPreferences, horoscope });
   }
 
   // What the caller can do about this member's phone number. Never contains
   // the number itself. Registered after `me` routes (see getOne).
   @Get(':id/phone-status')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PlanRequiredGuard)
   phoneStatus(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string): Promise<PhoneStatusResponse> {
     return this.phoneUnlocks.status(user.userId, id);
   }
@@ -199,7 +202,7 @@ export class ProfilesController {
   // Idempotent: unlocking the same member again returns it without quota.
   @Post(':id/phone-unlock')
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, PlanRequiredGuard)
   phoneUnlock(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string): Promise<PhoneUnlockResponse> {
     return this.phoneUnlocks.unlock(user.userId, id);
   }

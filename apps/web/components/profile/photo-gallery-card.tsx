@@ -33,7 +33,8 @@ export function PhotoGalleryCard({
 
   const photos = [...(profile.photos || [])].sort((a, b) => a.sortOrder - b.sortOrder);
   const primaryPhoto = photos.find((p) => p.isPrimary) || photos[0];
-  const emptySlotsCount = Math.max(0, MAX_PHOTOS - photos.length);
+  // Primary first, so it lands in the grid's large top-left block.
+  const orderedPhotos = primaryPhoto ? [primaryPhoto, ...photos.filter((p) => p !== primaryPhoto)] : photos;
   const pendingCount = photos.filter((photo) => photo.status === 'PENDING').length;
   const rejected = photos.filter((photo) => photo.status === 'REJECTED');
 
@@ -95,7 +96,7 @@ export function PhotoGalleryCard({
   }
 
   return (
-    <div className="rounded-2xl border border-[#E8DCC8] bg-[#FFFFFF] p-5 sm:p-6 shadow-sm">
+    <div className="rounded-2xl border border-nk-line bg-[#FFFFFF] p-5 sm:p-6 shadow-sm">
       <input
         ref={fileInputRef}
         type="file"
@@ -105,51 +106,33 @@ export function PhotoGalleryCard({
       />
 
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-[family-name:var(--font-body)] text-lg sm:text-xl font-bold tracking-tight text-[#7A0710]">
+          <h2 className="font-[family-name:var(--font-body)] text-lg sm:text-xl font-bold tracking-tight text-nk-maroon">
             Profile Photos
           </h2>
-          <p className="text-xs font-medium text-[#776B62]">
-            Add up to 5 photos · A clear profile photo helps build trust.
-          </p>
+          <p className="mt-0.5 text-xs text-nk-muted">A clear, recent photo of your face helps build trust.</p>
         </div>
-
-        <button
-          type="button"
-          disabled={uploading || photos.length >= MAX_PHOTOS}
-          onClick={() => fileInputRef.current?.click()}
-          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-[#D6A33A]/60 bg-[#FFF9ED] px-3 py-1.5 text-xs font-semibold text-[#7A0710] shadow-sm transition-all hover:bg-[#FBEED1] hover:border-[#D6A33A] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {uploading ? (
-            <span>Uploading…</span>
-          ) : (
-            <>
-              {/* The icon is the button's only "+" (the label used to repeat it). */}
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5" aria-hidden="true">
-                <path d="M8 3v10M3 8h10" />
-              </svg>
-              <span>Add Photos</span>
-            </>
-          )}
-        </button>
+        <span className="shrink-0 pt-1 text-xs font-semibold text-nk-muted" data-testid="photo-count">
+          {photos.length} of {MAX_PHOTOS}
+        </span>
       </div>
 
       {actionError && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-[#94151C]">
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-nk-maroon-bright">
           {actionError}
         </div>
       )}
 
       {/* Moderation hold: only approved photos are shown to other members. */}
       {pendingCount > 0 && (
-        <p className="mb-3 rounded-lg border border-[#EADBBD] bg-[#FFF9ED] p-2.5 text-xs text-[#5A493E]" data-testid="photos-pending-note">
+        <p className="mb-3 rounded-lg border border-nk-line-gold bg-nk-cream p-2.5 text-xs text-nk-ink-soft" data-testid="photos-pending-note">
           {pendingCount === 1 ? '1 photo is' : `${pendingCount} photos are`} waiting for review. Other members will see{' '}
           {pendingCount === 1 ? 'it' : 'them'} once approved; until then only you can.
         </p>
       )}
       {rejected.length > 0 && (
-        <ul className="mb-3 flex flex-col gap-1 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-[#94151C]" data-testid="photos-rejected-note">
+        <ul className="mb-3 flex flex-col gap-1 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-nk-maroon-bright" data-testid="photos-rejected-note">
           {rejected.map((photo, index) => (
             <li key={photo.id}>
               Photo {photos.indexOf(photo) + 1} was not approved{photo.rejectionReason ? `: ${photo.rejectionReason}` : ''}. Other
@@ -159,29 +142,24 @@ export function PhotoGalleryCard({
         </ul>
       )}
 
-      {/* Photo Gallery Grid */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {photos.map((photo) => {
-          const isPrimary = photo.isPrimary || (!primaryPhoto && photo === photos[0]);
+      {/* Photo Gallery Grid: the primary photo takes a 2x2 block. */}
+      <div className="grid grid-cols-3 gap-2.5">
+        {orderedPhotos.map((photo) => {
+          const isPrimary = photo === primaryPhoto;
 
           return (
             <div
               key={photo.id}
               onClick={() => setEnlargedPhotoUrl(photo.url)}
-              className="@container group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-[#E8DCC8] bg-[#FAF6EF]"
+              className={`@container group relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-[#FAF6EF] ${
+                isPrimary ? 'col-span-2 row-span-2 ring-2 ring-nk-maroon ring-offset-2' : 'border border-nk-line'
+              }`}
             >
-              {/* Primary Badge */}
-              {isPrimary && (
-                <span className="absolute left-2.5 top-2.5 z-10 inline-flex items-center gap-1 rounded bg-[#7A0710]/95 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-[#F2D58A] shadow-sm">
-                  Primary
-                </span>
-              )}
-
               {/* Moderation status (owner-only view) */}
               {photo.status !== 'APPROVED' && (
                 <span
                   data-testid="photo-status"
-                  className={`absolute right-2.5 top-2.5 z-10 rounded px-2 py-0.5 text-[10px] font-semibold shadow-sm ${
+                  className={`absolute right-2 top-2 z-10 rounded px-1.5 py-0.5 text-[10px] font-semibold shadow-sm ${
                     photo.status === 'PENDING' ? 'bg-[#FFF2D6] text-[#7A4A00]' : 'bg-red-600/95 text-white'
                   }`}
                 >
@@ -189,20 +167,24 @@ export function PhotoGalleryCard({
                 </span>
               )}
 
-              {/* Photo Image */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={photo.url}
-                alt="Profile photo"
+                alt={isPrimary ? 'Primary profile photo' : 'Profile photo'}
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
 
+              {/* Primary caption: along the bottom edge, never over the face.
+                  Gives way to the action buttons on hover. */}
+              {isPrimary && (
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2.5 pb-2 pt-6 transition-opacity duration-200 group-hover:opacity-0 [@media(hover:none)]:hidden">
+                  <span className="text-[11px] font-semibold text-white">Primary photo</span>
+                </div>
+              )}
+
               {/* Overlay actions: shown on hover, and always on touch screens
                   (no hover there, so they'd otherwise be unreachable). Sized
-                  against the TILE's width (container query), not the
-                  screen's: in the narrow desktop side column tiles are
-                  ~85-100px, so the pills stack full-width; on wider tiles
-                  they sit side by side. */}
+                  against the tile's own width (container query). */}
               <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/75 via-black/20 to-transparent p-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 [@media(hover:none)]:opacity-100 @[140px]:p-2">
                 <div className="flex flex-col gap-1 @[140px]:flex-row @[140px]:gap-1.5">
                   {!isPrimary && (
@@ -213,7 +195,7 @@ export function PhotoGalleryCard({
                         event.stopPropagation();
                         void handleSetPrimary(photo.id);
                       }}
-                      className="flex-1 whitespace-nowrap rounded bg-[#FFFDF9]/90 px-1.5 py-1 text-[10px] font-semibold text-[#7A0710] backdrop-blur-sm transition-colors hover:bg-[#FFFFFF]"
+                      className="flex-1 whitespace-nowrap rounded bg-nk-ivory/90 px-1.5 py-1 text-[10px] font-semibold text-nk-maroon backdrop-blur-sm transition-colors hover:bg-[#FFFFFF]"
                     >
                       Make Primary
                     </button>
@@ -236,25 +218,26 @@ export function PhotoGalleryCard({
           );
         })}
 
-        {/* Empty Photo Slots */}
-        {Array.from({ length: emptySlotsCount }).map((_, index) => (
+        {/* One add tile while there's room (no rows of empty placeholders). */}
+        {photos.length < MAX_PHOTOS && (
           <button
-            key={`empty-${index}`}
             type="button"
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
-            className="group flex aspect-square flex-col items-center justify-center rounded-xl border-1.5 border-dashed border-[#E8DCC8] bg-[#FFFDF9] p-3 text-center transition-all hover:border-[#D6A33A] hover:bg-[#FFF9ED] disabled:opacity-50"
+            data-testid="add-photo"
+            className={`flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-[#D9C6A8] bg-nk-ivory p-2 text-center text-nk-maroon transition-colors hover:border-nk-maroon hover:bg-nk-cream disabled:cursor-wait disabled:opacity-60 ${
+              photos.length === 0 ? 'col-span-3 aspect-auto py-10' : ''
+            }`}
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FAF6EF] text-[#7A0710] transition-transform group-hover:scale-110 group-hover:bg-[#FFF2D6]">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            </div>
-            <span className="mt-2 text-xs font-semibold text-[#776B62] group-hover:text-[#7A0710]">
-              Add Photo
-            </span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            <span className="text-xs font-semibold">{uploading ? 'Uploading…' : 'Add photo'}</span>
+            {photos.length === 0 && (
+              <span className="text-[11px] text-nk-subtle">JPG, PNG or WEBP, up to 5 MB</span>
+            )}
           </button>
-        ))}
+        )}
       </div>
 
       {enlargedPhotoUrl && (

@@ -22,7 +22,7 @@ export function AuthShell({
 
       <Card className="relative z-10 w-full max-w-md rounded-2xl border border-[#FFE082]/70 bg-white/95 p-8 shadow-xl backdrop-blur-sm">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-[#8E1B24]">{title}</h1>
+          <h1 className="text-2xl font-bold text-nk-maroon-bright">{title}</h1>
           <p className="mt-1 text-sm text-[#5E3D3D]">{subtitle}</p>
         </div>
         {children}

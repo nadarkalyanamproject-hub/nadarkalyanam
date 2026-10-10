@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { MessagesController, MessagesUnreadController } from './messages.controller.js';
 import { MessagesService } from './messages.service.js';
+import { PlanRequiredGuard } from '../../common/plan-required.guard.js';
 
 const A = 'user-a';
 const B = 'user-b';
@@ -169,7 +170,8 @@ describe('MessagesService.getConversation (thread header)', () => {
 describe('routes', () => {
   it('GET /messages/unread-count and GET /conversations/:id are behind JwtAuthGuard (401 without a token)', () => {
     expect(Reflect.getMetadata('__guards__', MessagesUnreadController)).toEqual([JwtAuthGuard]);
-    expect(Reflect.getMetadata('__guards__', MessagesController)).toEqual([JwtAuthGuard]);
+    // Conversations also need a plan; the header unread badge does not.
+    expect(Reflect.getMetadata('__guards__', MessagesController)).toEqual([JwtAuthGuard, PlanRequiredGuard]);
     expect(Reflect.getMetadata('path', MessagesUnreadController)).toBe('messages');
     expect(Reflect.getMetadata('path', MessagesUnreadController.prototype.unreadCount)).toBe('unread-count');
     expect(Reflect.getMetadata('path', MessagesController.prototype.getConversation)).toBe(':id');

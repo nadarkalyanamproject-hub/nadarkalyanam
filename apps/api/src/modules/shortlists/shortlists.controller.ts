@@ -5,9 +5,10 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard.js';
 import { ShortlistsService } from './shortlists.service.js';
+import { PlanRequiredGuard } from '../../common/plan-required.guard.js';
 
 @Controller('shortlists')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PlanRequiredGuard)
 export class ShortlistsController {
   constructor(private readonly shortlistsService: ShortlistsService) {}
 

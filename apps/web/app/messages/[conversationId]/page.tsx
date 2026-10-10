@@ -11,6 +11,7 @@ import { announceMessagesChanged } from '../../../lib/notifications';
 import { useRegistration } from '../../providers/registration-provider';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { BlockMemberButton } from '../../../components/block/block-member-button';
+import { PlanGate } from '../../../components/plan/plan-gate';
 
 // Plain interval-based refetch — deliberately not WebSocket-backed, per this
 // task's explicit scope decision to stay polling-based for now.
@@ -40,7 +41,7 @@ function ReadTicks({ read }: { read: boolean }) {
   );
 }
 
-export default function ConversationThreadPage() {
+function ConversationThreadPageContent() {
   const { ready } = useRequireAuth();
   const params = useParams<{ conversationId: string }>();
   const { data } = useRegistration();
@@ -258,5 +259,14 @@ export default function ConversationThreadPage() {
         </Card>
       </main>
     </div>
+  );
+}
+
+// Needs a membership plan when the server requires one (see PlanGate).
+export default function ConversationThreadPage() {
+  return (
+    <PlanGate>
+      <ConversationThreadPageContent />
+    </PlanGate>
   );
 }

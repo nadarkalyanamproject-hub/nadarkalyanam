@@ -27,9 +27,9 @@
 
   --color-bg-ivory: #FFFDF8;
   --color-white: #FFFFFF;
-  --color-text-dark: #2B1515;
+  --color-text-dark: var(--color-nk-ink);
   --color-text-muted: #5E3D3D;
-  --color-text-light: #876868;
+  --color-text-light: var(--color-nk-subtle);
 
   --color-input-border: #EADBCA;
   --color-input-bg: #FFFFFF;
@@ -207,9 +207,9 @@ html {
   width: 100%;
   margin: 0 auto;
   padding: 12px 32px;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
 }
 
 /* Logo */
@@ -218,6 +218,7 @@ html {
   align-items: center;
   gap: 14px;
   text-decoration: none;
+  justify-self: start;
 }
 
 .logo-symbol {
@@ -248,7 +249,7 @@ html {
 }
 
 .brand-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-landing);
   font-size: 1.65rem;
   font-weight: 700;
   line-height: 1.2;
@@ -272,12 +273,13 @@ html {
   display: flex;
   align-items: center;
   gap: 28px;
+  justify-self: center;
 }
 
 .nav-link {
   font-size: 0.92rem;
   font-weight: 600;
-  color: #382A2A;
+  color: #2E2B29;
   padding: 6px 0;
   position: relative;
   transition: color var(--transition-fast);
@@ -307,6 +309,7 @@ html {
   display: flex;
   align-items: center;
   gap: 12px;
+  justify-self: end;
 }
 
 .nav-login-group {
@@ -426,9 +429,9 @@ html {
 .hero-container {
   width: 100%;
   margin: 0 auto;
-  padding: 32px 48px;
+  padding: 32px 32px;
   display: grid;
-  grid-template-columns: 1.15fr 1.05fr 0.8fr;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 32px;
   position: relative;
@@ -436,12 +439,14 @@ html {
 }
 
 .hero-left-content {
-  padding-right: 10px;
+  justify-self: end;
+  max-width: 480px;
+  padding-right: 16px;
   animation: fadeInDown 0.8s ease-out;
 }
 
 .hero-heading {
-  font-family: var(--font-heading);
+  font-family: var(--font-landing);
   font-size: 3.4rem;
   line-height: 1.15;
   font-weight: 700;
@@ -471,11 +476,13 @@ html {
 }
 
 .hero-form-wrapper {
+  justify-self: center;
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 15;
   width: 100%;
+  max-width: 440px;
 }
 
 .reg-card {
@@ -510,7 +517,7 @@ html {
 }
 
 .card-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-landing);
   font-size: 1.95rem;
   font-weight: 700;
   color: var(--color-maroon-primary);
@@ -556,7 +563,7 @@ html {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #8C7B7B;
+  color: var(--color-nk-subtle);
   flex-grow: 1;
 }
 
@@ -577,7 +584,7 @@ html {
 }
 
 .form-input::placeholder {
-  color: #8C7B7B;
+  color: var(--color-nk-subtle);
   font-weight: 400;
 }
 
@@ -625,7 +632,7 @@ html {
 
 .selected-value {
   font-size: 0.9rem;
-  color: #8C7B7B;
+  color: var(--color-nk-subtle);
   font-weight: 400;
 }
 
@@ -694,7 +701,7 @@ html {
 .dial-code {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #382A2A;
+  color: #2E2B29;
 }
 
 .chevron-icon-sm {
@@ -835,7 +842,7 @@ html {
 .gender-chip-text {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #382A2A;
+  color: #2E2B29;
 }
 
 .gender-chip.active .gender-chip-text {
@@ -899,7 +906,7 @@ html {
 
 .terms-text {
   font-size: 0.65rem;
-  color: #8C8080;
+  color: var(--color-nk-subtle);
   text-align: center;
   line-height: 1.4;
   margin-top: 9px;
@@ -1047,7 +1054,7 @@ html {
 }
 
 .footer-brand {
-  font-family: var(--font-heading);
+  font-family: var(--font-landing);
   font-size: 1rem;
   font-weight: 700;
   color: var(--color-yellow-light);
@@ -1206,7 +1213,7 @@ html {
 }
 
 .modal-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-landing);
   font-size: 1.6rem;
   font-weight: 700;
   color: var(--color-maroon-primary);
@@ -1242,7 +1249,7 @@ html {
    ========================================================================== */
 @media (max-width: 1200px) {
   .hero-heading { font-size: 2.8rem; }
-  .hero-container { gap: 28px; grid-template-columns: 1.1fr 1fr; padding: 24px 32px; }
+  .hero-container { gap: 24px; padding: 24px 24px; }
   .trust-container { flex-wrap: wrap; justify-content: center; gap: 20px; }
   .trust-vertical-divider { display: none; }
   .trust-community-badge { width: 100%; margin-top: 10px; }
@@ -1251,6 +1258,7 @@ html {
 @media (max-width: 992px) {
   .top-bar-left { display: none; }
   .top-bar-container { justify-content: flex-end; }
+  .nav-container { display: flex; justify-content: space-between; }
 
   .nav-menu {
     position: fixed;
@@ -1337,23 +1345,23 @@ html {
   font-weight: 700;
   letter-spacing: 0.18em;
   padding: 4px 12px;
-  border-radius: 999px;
+  border-radius: 6px;
   text-transform: uppercase;
   margin-bottom: 10px;
 }
 
 .membership-promo-section .section-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-landing);
   font-size: 2.1rem;
   font-weight: 800;
-  color: #2B1515;
+  color: #1E1C1A;
   line-height: 1.25;
   margin-bottom: 10px;
 }
 
 .membership-promo-section .section-subtitle {
   font-size: 0.92rem;
-  color: #73645C;
+  color: var(--color-nk-muted);
   line-height: 1.6;
 }
 
@@ -1399,7 +1407,7 @@ html {
   font-weight: 800;
   letter-spacing: 0.12em;
   padding: 3px 12px;
-  border-radius: 999px;
+  border-radius: 6px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   white-space: nowrap;
 }
@@ -1414,7 +1422,7 @@ html {
   display: block;
   font-size: 1.25rem;
   font-weight: 800;
-  color: #2B1515;
+  color: #1E1C1A;
   letter-spacing: 0.04em;
 }
 
@@ -1422,7 +1430,7 @@ html {
   display: block;
   font-size: 0.7rem;
   font-weight: 700;
-  color: #8C7B73;
+  color: var(--color-nk-subtle);
   letter-spacing: 0.12em;
   margin-top: 2px;
 }
@@ -1439,13 +1447,13 @@ html {
 .tier-price .currency {
   font-size: 1.35rem;
   font-weight: 800;
-  color: #2B1515;
+  color: #1E1C1A;
 }
 
 .tier-price .amount {
   font-size: 2.3rem;
   font-weight: 800;
-  color: #2B1515;
+  color: #1E1C1A;
   letter-spacing: -0.02em;
 }
 
@@ -1529,7 +1537,7 @@ html {
   flex-wrap: wrap;
   gap: 12px;
   font-size: 0.84rem;
-  color: #73645C;
+  color: var(--color-nk-muted);
 }
 
 .view-all-link {

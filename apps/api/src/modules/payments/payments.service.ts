@@ -54,7 +54,7 @@ export class PaymentsService {
     private readonly subscriptions: SubscriptionService,
   ) {}
 
-  async listPlans(): Promise<{ items: MembershipPlanResponse[]; freeInterestsPerMonth: number }> {
+  async listPlans(): Promise<{ items: MembershipPlanResponse[]; freeInterestsPerMonth: number; requirePaidPlan: boolean }> {
     const plans = await this.prisma.membershipPlan.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } });
     return {
       items: plans.map((plan) => ({
@@ -63,6 +63,7 @@ export class PaymentsService {
         name: plan.name,
         description: plan.description,
         priceInPaise: plan.priceInPaise,
+        originalPriceInPaise: plan.originalPriceInPaise,
         durationDays: plan.durationDays,
         sortOrder: plan.sortOrder,
         phoneUnlockLimit: plan.phoneUnlockLimit,
@@ -71,6 +72,7 @@ export class PaymentsService {
       })),
       // So member-facing copy follows the setting instead of hardcoding it.
       freeInterestsPerMonth: this.configService.get('FREE_INTERESTS_PER_MONTH', { infer: true }),
+      requirePaidPlan: this.configService.get('REQUIRE_PAID_PLAN', { infer: true }),
     };
   }
 

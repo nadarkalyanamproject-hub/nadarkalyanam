@@ -284,12 +284,12 @@ export function BotanicalSprig({ className = '' }: { className?: string }) {
 }
 
 const CONTROL_CLASS =
-  'w-full bg-white border border-[#DECDBB] hover:border-[#BFA892] focus:border-[#7A1118] focus:ring-1 focus:ring-[#7A1118] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm transition-colors outline-none';
+  'w-full bg-white border border-nk-line-strong hover:border-[#BFA892] focus:border-nk-maroon focus:ring-1 focus:ring-nk-maroon rounded-xl px-3.5 py-2.5 text-xs sm:text-sm transition-colors outline-none';
 
 type Option = { value: string; label: string };
 
 function FieldLabel({ htmlFor, children }: { htmlFor?: string; children: ReactNode }) {
-  const className = 'block text-xs font-semibold text-[#241C1A]';
+  const className = 'block text-xs font-semibold text-nk-ink';
   return htmlFor ? (
     <label htmlFor={htmlFor} className={className}>
       {children}
@@ -322,22 +322,22 @@ function SelectControl({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={`${CONTROL_CLASS} appearance-none pr-8 cursor-pointer ${
-          value ? 'text-[#241C1A] font-medium' : 'text-[#8C7B73]'
+          value ? 'text-nk-ink font-medium' : 'text-nk-subtle'
         }`}
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (
-          <option key={option.value} value={option.value} className="text-[#241C1A]">
+          <option key={option.value} value={option.value} className="text-nk-ink">
             {option.label}
           </option>
         ))}
         {value && !options.some((option) => option.value === value) && (
-          <option value={value} className="text-[#241C1A]">
+          <option value={value} className="text-nk-ink">
             {value}
           </option>
         )}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C7B73]" />
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-nk-subtle" />
     </div>
   );
 }
@@ -373,7 +373,7 @@ function TextField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`${CONTROL_CLASS} text-[#241C1A] font-medium placeholder:font-normal placeholder:text-[#8C7B73]`}
+        className={`${CONTROL_CLASS} text-nk-ink font-medium placeholder:font-normal placeholder:text-nk-subtle`}
       />
     </div>
   );
@@ -401,7 +401,7 @@ function RangeField({
 }) {
   return (
     <fieldset className="space-y-1.5 text-left">
-      <legend className="block text-xs font-semibold text-[#241C1A] mb-1.5">{label}</legend>
+      <legend className="block text-xs font-semibold text-nk-ink mb-1.5">{label}</legend>
       <div className="grid grid-cols-2 gap-2">
         <SelectControl id={`${id}-min`} ariaLabel={`${label} from`} value={min} onChange={onMin} placeholder="From" options={minOptions} />
         <SelectControl id={`${id}-max`} ariaLabel={`${label} to`} value={max} onChange={onMax} placeholder="To" options={maxOptions} />
@@ -426,18 +426,18 @@ function CheckboxField({
   return (
     <label
       htmlFor={id}
-      className="flex items-start gap-2.5 rounded-xl border border-[#DECDBB] hover:border-[#BFA892] bg-white px-3.5 py-2.5 cursor-pointer transition-colors"
+      className="flex items-start gap-2.5 rounded-xl border border-nk-line-strong hover:border-[#BFA892] bg-white px-3.5 py-2.5 cursor-pointer transition-colors"
     >
       <input
         id={id}
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 h-4 w-4 shrink-0 accent-[#7A1118] cursor-pointer"
+        className="mt-0.5 h-4 w-4 shrink-0 accent-nk-maroon cursor-pointer"
       />
       <span className="min-w-0">
-        <span className="block text-xs sm:text-sm font-medium text-[#241C1A]">{label}</span>
-        {hint && <span className="block text-[11px] sm:text-xs text-[#73645C] mt-0.5">{hint}</span>}
+        <span className="block text-xs sm:text-sm font-medium text-nk-ink">{label}</span>
+        {hint && <span className="block text-[11px] sm:text-xs text-nk-muted mt-0.5">{hint}</span>}
       </span>
     </label>
   );
@@ -461,13 +461,13 @@ function Section({
   return (
     <section
       aria-labelledby={id}
-      className="bg-white rounded-2xl sm:rounded-3xl border border-[#EADBBD]/80 p-5 sm:p-6 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)]"
+      className="bg-white rounded-2xl sm:rounded-3xl border border-nk-line-gold/80 p-5 sm:p-6 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)]"
     >
       <div className="flex items-center gap-2.5 mb-4">
-        <span className="h-9 w-9 rounded-full bg-[#FAF7F2] border border-[#DECDBB] flex items-center justify-center text-[#7A1118] shrink-0">
+        <span className="h-9 w-9 rounded-full bg-nk-paper border border-nk-line-strong flex items-center justify-center text-nk-maroon shrink-0">
           {icon}
         </span>
-        <h2 id={id} className="text-base sm:text-lg font-bold text-[#241C1A] font-[family-name:var(--font-heading,serif)]">
+        <h2 id={id} className="text-base sm:text-lg font-bold text-nk-ink font-[family-name:var(--font-heading,serif)]">
           {title}
         </h2>
       </div>
@@ -518,7 +518,7 @@ export function PartnerSearchBar({
   else
     countText = (
       <>
-        <span className="text-[#7A1118] font-bold" data-testid="match-count">
+        <span className="text-nk-maroon font-bold" data-testid="match-count">
           {matchCount.toLocaleString('en-IN')}
         </span>{' '}
         {matchCount === 1 ? 'profile matches' : 'profiles match'} your search
@@ -536,10 +536,10 @@ export function PartnerSearchBar({
             </span>
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#241C1A] tracking-tight font-[family-name:var(--font-heading,serif)]">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-nk-ink tracking-tight font-[family-name:var(--font-heading,serif)]">
               Find Your Life Partner
             </h1>
-            <p className="mt-1 text-xs sm:text-sm text-[#73645C] font-normal">
+            <p className="mt-1 text-xs sm:text-sm text-nk-muted font-normal">
               Search by basic, religious, professional, location and family details.
             </p>
           </div>
@@ -548,14 +548,14 @@ export function PartnerSearchBar({
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         {/* Decorative only: no plan check, and nothing here unlocks a filter. */}
-        <div className="rounded-2xl border border-[#E6D3B0] bg-gradient-to-r from-[#FFF8EC] to-[#FAF7F2] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="rounded-2xl border border-[#E6D3B0] bg-gradient-to-r from-[#FFF8EC] to-nk-paper p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-start gap-3">
-            <span className="h-9 w-9 rounded-full bg-white border border-[#E6D3B0] flex items-center justify-center text-[#9C7328] shrink-0">
+            <span className="h-9 w-9 rounded-full bg-white border border-[#E6D3B0] flex items-center justify-center text-nk-gold-text shrink-0">
               <Crown className="h-4.5 w-4.5" />
             </span>
             <div>
-              <p className="text-sm font-bold text-[#241C1A]">More premium filters are on the way</p>
-              <p className="text-xs text-[#73645C] mt-0.5">
+              <p className="text-sm font-bold text-nk-ink">More premium filters are on the way</p>
+              <p className="text-xs text-nk-muted mt-0.5">
                 Fields marked <span className="font-semibold">Coming soon</span> can be searched once members can add that
                 detail to their profile. No plan unlocks them yet.
               </p>
@@ -563,7 +563,7 @@ export function PartnerSearchBar({
           </div>
           <Link
             href="/membership"
-            className="self-start sm:self-auto shrink-0 px-4 py-2 rounded-full border border-[#C49746] text-[#9C7328] hover:bg-[#C49746]/10 text-xs font-semibold transition-colors whitespace-nowrap"
+            className="self-start sm:self-auto shrink-0 px-4 py-2 rounded-md border border-nk-gold text-nk-gold-text hover:bg-nk-gold/10 text-xs font-semibold transition-colors whitespace-nowrap"
           >
             View Membership
           </Link>
@@ -603,11 +603,11 @@ export function PartnerSearchBar({
                 id="search-country"
                 value={filters.country}
                 onChange={(e) => set('country')(e.target.value)}
-                className={`${CONTROL_CLASS} appearance-none pr-8 cursor-pointer text-[#241C1A] font-medium`}
+                className={`${CONTROL_CLASS} appearance-none pr-8 cursor-pointer text-nk-ink font-medium`}
               >
                 <option value="India">India</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C7B73]" />
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-nk-subtle" />
             </div>
           </div>
           <TextField id="search-city" label="City" value={filters.city} onChange={set('city')} placeholder="e.g. Madurai" />
@@ -636,17 +636,17 @@ export function PartnerSearchBar({
 
         <Section id="search-recent" title="Recently Created Profiles" icon={<Clock className="h-4 w-4" />}>
           <fieldset className="space-y-1.5 text-left sm:col-span-2 lg:col-span-3">
-            <legend className="block text-xs font-semibold text-[#241C1A] mb-1.5">Profile created</legend>
+            <legend className="block text-xs font-semibold text-nk-ink mb-1.5">Profile created</legend>
             <div className="flex flex-wrap gap-2">
               {JOINED_OPTIONS.map((option) => {
                 const active = filters.joinedWithinDays === option.value;
                 return (
                   <label
                     key={option.value || 'all'}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium border cursor-pointer transition-colors ${
+                    className={`px-3.5 py-1.5 rounded-md text-xs font-medium border cursor-pointer transition-colors ${
                       active
-                        ? 'bg-[#7A1118] border-[#7A1118] text-white'
-                        : 'bg-white border-[#DECDBB] text-[#4A3D36] hover:border-[#BFA892]'
+                        ? 'bg-nk-maroon border-nk-maroon text-white'
+                        : 'bg-white border-nk-line-strong text-[#4A3D36] hover:border-[#BFA892]'
                     }`}
                   >
                     <input
@@ -687,15 +687,15 @@ export function PartnerSearchBar({
         </Section>
 
         {/* Match count footer: stays in view while scrolling the filters. */}
-        <div className="sticky bottom-3 z-20 rounded-2xl border border-[#EADBBD] bg-white/95 backdrop-blur px-4 py-3 sm:px-5 shadow-[0_8px_30px_-6px_rgba(43,21,21,0.18)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <p className="text-xs sm:text-sm font-semibold text-[#241C1A]" aria-live="polite" data-testid="match-count-footer">
+        <div className="sticky bottom-3 z-20 rounded-2xl border border-nk-line-gold bg-white/95 backdrop-blur px-4 py-3 sm:px-5 shadow-[0_8px_30px_-6px_rgba(43,21,21,0.18)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-xs sm:text-sm font-semibold text-nk-ink" aria-live="polite" data-testid="match-count-footer">
             {countText}
           </p>
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <button
               type="button"
               onClick={onClear}
-              className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-medium text-xs sm:text-sm bg-white hover:bg-[#FAF7F2] active:scale-[0.99] text-[#4A3D36] border border-[#DECDBB] transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-medium text-xs sm:text-sm bg-white hover:bg-nk-paper active:scale-[0.99] text-[#4A3D36] border border-nk-line-strong transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <RotateCcw className="h-3.5 w-3.5 text-[#5A4D45]" />
               <span>Clear</span>
@@ -703,7 +703,7 @@ export function PartnerSearchBar({
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-medium text-xs sm:text-sm bg-[#7A1118] hover:bg-[#620D13] active:scale-[0.99] text-white shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+              className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-medium text-xs sm:text-sm bg-nk-maroon hover:bg-[#620D13] active:scale-[0.99] text-white shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
             >
               <Search className="h-4 w-4" />
               <span>{loading ? 'Searching…' : 'Search'}</span>

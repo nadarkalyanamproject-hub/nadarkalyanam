@@ -17,6 +17,7 @@ import {
   toSearchQuery,
   type SearchFilters,
 } from '../../lib/search-query';
+import { PlanGate } from '../../components/plan/plan-gate';
 
 type SearchOutcome =
   | { items: SearchProfileResult[]; total: number; nextCursor: string | null; filters: SearchFilters }
@@ -145,7 +146,7 @@ function SearchPageContent() {
   return (
     <>
       <AppHeader />
-      <main className="relative min-h-screen bg-[#FAF7F2] text-[#241C1A] overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
+      <main className="relative min-h-screen bg-nk-paper text-nk-ink overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
         {/* Decorative corner foliage flourishes matching the reference design */}
         <BotanicalSprig className="pointer-events-none absolute -top-4 -right-4 w-44 h-44 sm:w-64 sm:h-64 text-[#C4A882] opacity-40 z-0" />
         <BotanicalSprig className="pointer-events-none absolute -bottom-4 -left-4 w-44 h-44 sm:w-64 sm:h-64 text-[#C4A882] opacity-35 rotate-180 z-0" />
@@ -167,27 +168,27 @@ function SearchPageContent() {
 
           {/* Error Message */}
           {error && (
-            <div data-search-outcome className="scroll-mt-28 rounded-2xl border border-red-200 bg-red-50/80 p-6 text-center text-sm font-medium text-[#7A1118]">
+            <div data-search-outcome className="scroll-mt-28 rounded-2xl border border-red-200 bg-red-50/80 p-6 text-center text-sm font-medium text-nk-maroon">
               {error}
             </div>
           )}
 
           {/* Empty Results state */}
           {results && results.length === 0 && !error && (
-            <div data-search-outcome className="scroll-mt-28 bg-white rounded-2xl sm:rounded-3xl border border-[#EADBBD] p-8 sm:p-12 text-center max-w-xl mx-auto shadow-xs">
-              <div className="h-12 w-12 rounded-full bg-[#FAF7F2] border border-[#DECDBB] flex items-center justify-center mx-auto mb-3 text-[#7A1118]">
+            <div data-search-outcome className="scroll-mt-28 bg-white rounded-2xl sm:rounded-3xl border border-nk-line-gold p-8 sm:p-12 text-center max-w-xl mx-auto shadow-xs">
+              <div className="h-12 w-12 rounded-full bg-nk-paper border border-nk-line-strong flex items-center justify-center mx-auto mb-3 text-nk-maroon">
                 <BotanicalSprig className="h-6 w-6 text-[#C4A882]" />
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-[#241C1A] font-[family-name:var(--font-heading,serif)]">
+              <h3 className="text-base sm:text-lg font-bold text-nk-ink font-[family-name:var(--font-heading,serif)]">
                 {countIsStale ? 'No profiles matched your previous search' : 'No profiles match these filters'}
               </h3>
-              <p className="mt-1 text-xs sm:text-sm text-[#73645C] max-w-md mx-auto">
+              <p className="mt-1 text-xs sm:text-sm text-nk-muted max-w-md mx-auto">
                 Try removing a filter or widening a range to see more profiles.
               </p>
               <button
                 type="button"
                 onClick={handleClear}
-                className="mt-4 px-4 py-2 rounded-xl text-xs font-semibold text-[#7A1118] bg-[#FAF7F2] hover:bg-[#F3EDE3] border border-[#DECDBB] transition-colors"
+                className="mt-4 px-4 py-2 rounded-xl text-xs font-semibold text-nk-maroon bg-nk-paper hover:bg-[#F3EDE3] border border-nk-line-strong transition-colors"
               >
                 Clear all filters
               </button>
@@ -197,31 +198,31 @@ function SearchPageContent() {
           {/* Search Results Grid */}
           {results && results.length > 0 && (
             <div data-search-outcome className="scroll-mt-28 flex flex-col gap-5 pt-2">
-              <div className="flex items-center justify-between border-b border-[#EADBBD]/60 pb-3">
+              <div className="flex items-center justify-between border-b border-nk-line-gold/60 pb-3">
                 {/* The count is only shown for the filters it was computed for. */}
                 {countIsStale || total === null ? (
-                  <p className="text-xs sm:text-sm font-medium text-[#73645C]" data-testid="results-stale">
+                  <p className="text-xs sm:text-sm font-medium text-nk-muted" data-testid="results-stale">
                     These are results for your previous search. Click Search to update them.
                   </p>
                 ) : (
-                  <p className="text-xs sm:text-sm font-semibold text-[#241C1A]" data-testid="results-count">
-                    Found <span className="text-[#7A1118] font-bold">{total}</span>{' '}
+                  <p className="text-xs sm:text-sm font-semibold text-nk-ink" data-testid="results-count">
+                    Found <span className="text-nk-maroon font-bold">{total}</span>{' '}
                     {total === 1 ? 'profile' : 'profiles'} matching your criteria
                     {total > results.length && (
-                      <span className="font-normal text-[#73645C]"> · showing {results.length}</span>
+                      <span className="font-normal text-nk-muted"> · showing {results.length}</span>
                     )}
                   </p>
                 )}
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="text-xs font-medium text-[#73645C] hover:text-[#7A1118] underline transition-colors cursor-pointer"
+                  className="text-xs font-medium text-nk-muted hover:text-nk-maroon underline transition-colors cursor-pointer"
                 >
                   Reset search
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {results.map((profile) => (
                   <ResultCard
                     key={profile.profileId}
@@ -232,8 +233,7 @@ function SearchPageContent() {
                     primaryPhotoUrl={profile.primaryPhotoUrl}
                     relationshipStatus={profile.relationshipStatus}
                     conversationId={profile.conversationId}
-                    badgeLabel={profile.isVerified ? 'Verified' : undefined}
-                    badgeVariant="accent"
+                    verified={profile.isVerified}
                   />
                 ))}
               </div>
@@ -243,7 +243,7 @@ function SearchPageContent() {
                   type="button"
                   onClick={() => void handleLoadMore()}
                   disabled={loadingMore}
-                  className="self-center px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-[#7A1118] bg-white hover:bg-[#FAF7F2] border border-[#DECDBB] transition-colors cursor-pointer disabled:opacity-60"
+                  className="self-center px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-nk-maroon bg-white hover:bg-nk-paper border border-nk-line-strong transition-colors cursor-pointer disabled:opacity-60"
                 >
                   {loadingMore ? 'Loading…' : 'Load more profiles'}
                 </button>
@@ -256,16 +256,25 @@ function SearchPageContent() {
   );
 }
 
-export default function SearchPage() {
+function SearchPageWithSuspense() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center">
-          <div className="text-xs font-medium text-[#73645C]">Loading search…</div>
+        <div className="min-h-screen bg-nk-paper flex items-center justify-center">
+          <div className="text-xs font-medium text-nk-muted">Loading search…</div>
         </div>
       }
     >
       <SearchPageContent />
     </Suspense>
+  );
+}
+
+// Needs a membership plan when the server requires one (see PlanGate).
+export default function SearchPage() {
+  return (
+    <PlanGate>
+      <SearchPageWithSuspense />
+    </PlanGate>
   );
 }

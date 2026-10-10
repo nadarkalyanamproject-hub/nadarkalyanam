@@ -143,7 +143,7 @@ describe('ProfilesController — photo URLs are signed, not plain', () => {
       photosService as never,
       { notify: vi.fn() } as never,
       {} as never,
-      { findForUser: async () => null, fitForViewer: async () => null } as never,
+      { findForUser: async () => null, fitForViewer: async () => null, theirPreferencesFor: async () => null } as never,
       { findByProfileId: async () => null, viewFor: async () => ({ shared: false }) } as never,
     );
     return { controller, photosService };

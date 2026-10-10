@@ -536,8 +536,9 @@ export function markAllNotificationsRead(accessToken: string): Promise<{ updated
   });
 }
 
-// Active plans, plus the free monthly interest limit (so copy follows the
-// FREE_INTERESTS_PER_MONTH setting).
+// Active plans, the monthly interest limit without a plan, and whether a plan
+// is required at all (so copy follows FREE_INTERESTS_PER_MONTH and
+// REQUIRE_PAID_PLAN).
 export function listMembershipPlans(): Promise<MembershipPlansResponse> {
   return request('/membership-plans');
 }
