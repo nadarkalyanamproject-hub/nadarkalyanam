@@ -55,6 +55,12 @@ pnpm dev
 
 Ports 5439/6380 were chosen because this development machine already has native PostgreSQL/Redis services and other projects' Docker containers bound to the more common ports — see `docker-compose.yml` if you need to change them.
 
+## Environment configuration
+
+Core environment variables and configuration options are documented in `apps/api/.env.example`.
+- `MAX_PHOTO_SIZE_BYTES`: Enforces photo and horoscope upload size limit (default 5 MB / `5242880` bytes).
+- Cloudflare R2 / S3 settings: Configured via `MINIO_*` variables (for R2, set `STORAGE_REGION="auto"` and `STORAGE_FORCE_PATH_STYLE=false`).
+
 ## Data model
 
 `apps/api/prisma/schema.prisma` implements the core entities from SRS Section 6 (users, sessions, profiles, photos, interests, conversations/messages, blocks/reports, membership plans/orders/payments, verification requests, admin users/audit log). Note: FR-2.6's "at most one primary photo per profile" constraint requires a partial unique index, which Prisma's schema DSL can't express directly — add it by hand to the generated migration SQL (`CREATE UNIQUE INDEX ... ON profile_photos (profile_id) WHERE is_primary`).

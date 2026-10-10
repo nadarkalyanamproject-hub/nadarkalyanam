@@ -53,6 +53,7 @@ function horoscopeService(row: Record<string, unknown> | null, mode: 'pending' |
     getObjectUrl: async (key: string) => `https://signed.example/${key}?sig=1`,
     createUploadUrl: async (key: string) => `https://upload.example/${key}`,
     deleteObject: vi.fn(async () => undefined),
+    validateUploadedImage: vi.fn(async () => ({ mime: 'image/jpeg', sizeBytes: 1024 })),
   };
   const service = new HoroscopeService(prisma as never, storage as never, { moderationMode: () => mode } as never);
   return { service, state, prisma, storage };
