@@ -9,10 +9,19 @@ import { ApiError, listConversations } from '../../lib/api-client';
 import { useRegistration } from '../providers/registration-provider';
 import { useRequireAuth } from '../../lib/use-require-auth';
 import { PlanGate } from '../../components/plan/plan-gate';
+import { formatMessageTime } from '../../lib/message-time';
+import { useNow } from '../../lib/use-now';
 
-function formatTimestamp(iso: string): string {
-  const date = new Date(iso);
-  return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+// The last message's time, WhatsApp-style ("10:45 AM", "Yesterday",
+// "8 Oct"), with the exact moment in the tooltip. Nothing for a bad date.
+function MessageTime({ iso, now }: { iso: string; now: Date }) {
+  const time = formatMessageTime(iso, now);
+  if (!time) return null;
+  return (
+    <time dateTime={time.dateTime} title={time.title} className="shrink-0 text-xs text-muted-foreground">
+      {time.label}
+    </time>
+  );
 }
 
 function MessagesPageContent() {
@@ -20,6 +29,7 @@ function MessagesPageContent() {
   const { data } = useRegistration();
   const [conversations, setConversations] = useState<ConversationSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const now = useNow();
 
   useEffect(() => {
     if (!ready || !data.accessToken) return;
@@ -128,11 +138,7 @@ function MessagesPageContent() {
                           )}
                           <span className="truncate">{conversation.otherParticipant.fullName}</span>
                         </p>
-                        {conversation.lastMessage ? (
-                          <span className="shrink-0 text-xs text-muted-foreground">
-                            {formatTimestamp(conversation.lastMessage.createdAt)}
-                          </span>
-                        ) : null}
+                        {conversation.lastMessage ? <MessageTime iso={conversation.lastMessage.createdAt} now={now} /> : null}
                       </div>
                       <p className="mt-1 truncate text-sm text-muted-foreground">
                         {conversation.lastMessage ? conversation.lastMessage.body : 'Say hello!'}
