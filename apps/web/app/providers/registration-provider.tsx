@@ -8,6 +8,7 @@ import {
   type RegistrationDraft,
   type WizardStepKey,
 } from '../../lib/registration-types';
+import { adoptStoredDraft, draftsEqual, lostSession, mergeDraftForWrite, parseDraft } from '../../lib/draft-sync';
 
 interface RegistrationContextValue {
   data: RegistrationDraft;
@@ -41,16 +42,23 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<RegistrationDraft>({});
   const [hydrated, setHydrated] = useState(false);
   const hasHydrated = useRef(false);
+  // The draft as this tab last read it from, or wrote it to, storage. Every
+  // tab shares the stored draft, and it's the source of truth for the
+  // tokens: writes merge in only what this tab changed since (see
+  // lib/draft-sync.ts), so a tab holding old tokens never writes them back
+  // over a pair another tab has refreshed.
+  const syncedRef = useRef<RegistrationDraft>({});
 
   useEffect(() => {
     if (hasHydrated.current) return;
     hasHydrated.current = true;
     try {
-      const raw = window.localStorage.getItem(REGISTRATION_STORAGE_KEY);
+      const stored = parseDraft(window.localStorage.getItem(REGISTRATION_STORAGE_KEY));
+      syncedRef.current = stored;
       // Reading localStorage must happen after mount (no `window` during SSR),
       // so this one-time hydration read can only run inside an effect.
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (raw) setData(JSON.parse(raw) as RegistrationDraft);
+      setData(stored);
     } catch {
       // Corrupt or inaccessible storage — proceed with an empty draft.
     } finally {
@@ -58,14 +66,57 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Another tab signed out, or a different account signed in: this tab's
+  // page belongs to a session that's gone, so start over from the homepage.
+  const leaveIfSessionLost = useCallback(
+    (prev: RegistrationDraft, next: RegistrationDraft) => {
+      if (!lostSession(prev, next)) return;
+      claimAuthRedirect();
+      router.push('/');
+    },
+    [router],
+  );
+
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || data === syncedRef.current) return;
+    const prev = syncedRef.current;
     try {
-      window.localStorage.setItem(REGISTRATION_STORAGE_KEY, JSON.stringify(data));
+      const raw = window.localStorage.getItem(REGISTRATION_STORAGE_KEY);
+      const merged = mergeDraftForWrite(parseDraft(raw), prev, data);
+      const serialized = JSON.stringify(merged);
+      if (serialized !== raw) window.localStorage.setItem(REGISTRATION_STORAGE_KEY, serialized);
+      if (draftsEqual(merged, data)) {
+        syncedRef.current = data;
+      } else {
+        // Storage had newer tokens (or another account): adopt it.
+        syncedRef.current = merged;
+        setData(merged);
+        leaveIfSessionLost(data, merged);
+      }
     } catch {
       // Storage may be unavailable (private browsing, quota) — draft just won't survive a refresh.
+      syncedRef.current = data;
     }
-  }, [data, hydrated]);
+  }, [data, hydrated, leaveIfSessionLost]);
+
+  // Another tab wrote the draft (refreshed tokens, signed in or out, saved a
+  // step): pick it up. The event only fires in the other tabs, never in the
+  // one that wrote.
+  useEffect(() => {
+    if (!hydrated) return;
+    function handleStorage(event: StorageEvent) {
+      if (event.storageArea !== window.localStorage) return;
+      if (event.key !== null && event.key !== REGISTRATION_STORAGE_KEY) return;
+      // key === null: storage was cleared.
+      const incoming = parseDraft(event.key === null ? null : event.newValue);
+      const synced = syncedRef.current;
+      syncedRef.current = incoming;
+      setData((current) => adoptStoredDraft(incoming, synced, current));
+      leaveIfSessionLost(synced, incoming);
+    }
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [hydrated, leaveIfSessionLost]);
 
   const setPhoneNumber = useCallback(
     (phoneNumber: string, fullNamePrefill?: string, genderPrefill?: 'MALE' | 'FEMALE') => {
