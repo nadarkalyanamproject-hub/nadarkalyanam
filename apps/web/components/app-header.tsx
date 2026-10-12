@@ -138,7 +138,7 @@ export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { data, hydrated, clearAuth } = useRegistration();
-  const { profile } = useProfile();
+  const { profile, error: profileError, refetch: refetchProfile } = useProfile();
   const [menuOpen, setMenuOpen] = useState(false);
   // The account menu remembers the path it was opened on, and only counts as
   // open while still on that path — so any navigation closes it without a
@@ -397,13 +397,32 @@ export function AppHeader() {
 
                 {avatarMenuOpen && (
                   <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-nk-line bg-[#FFFFFF] p-2 shadow-lg animate-in fade-in zoom-in-95 duration-150">
+                    {/* Only the member's own saved details; never a placeholder
+                        that could read as someone else's account. */}
                     <div className="border-b border-nk-line-soft px-3 py-2">
-                      <p className="truncate text-sm font-semibold text-nk-ink">
-                        {profile?.fullName || 'My Account'}
-                      </p>
-                      <p className="truncate text-xs text-nk-muted">
-                        {profile?.details?.email || 'Nadar Kalyanam Member'}
-                      </p>
+                      {profile ? (
+                        <>
+                          <p className="truncate text-sm font-semibold text-nk-ink">{profile.fullName}</p>
+                          {profile.details?.email?.trim() && (
+                            <p className="truncate text-xs text-nk-muted">{profile.details.email}</p>
+                          )}
+                        </>
+                      ) : profileError ? (
+                        <p className="text-xs text-nk-muted">
+                          Couldn&apos;t load your profile.{' '}
+                          <button
+                            type="button"
+                            onClick={() => void refetchProfile()}
+                            className="font-semibold text-nk-maroon underline underline-offset-2 hover:text-nk-ink focus:outline-none focus:ring-2 focus:ring-nk-gold-light/30"
+                          >
+                            Retry
+                          </button>
+                        </p>
+                      ) : (
+                        <div className="h-5 w-32 animate-pulse rounded bg-nk-sand">
+                          <span className="sr-only">Loading your profile</span>
+                        </div>
+                      )}
                     </div>
 
                     <div id="account-menu" role="menu" aria-label="Account" onKeyDown={handleMenuKeyDown}>
