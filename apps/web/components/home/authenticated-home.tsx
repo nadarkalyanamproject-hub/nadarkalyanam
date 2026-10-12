@@ -1,19 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { MatchResult, MyMembershipResponse, ProfileCard } from '@nadar-kalyanam/schemas';
+import type { MatchResult, MyMembershipResponse, ProfileCard, SavedPartnerPreferences } from '@nadar-kalyanam/schemas';
 import { AppHeader } from '../app-header';
 import { SponsoredBanner } from './sponsored-banner';
 import { SubscriptionCard } from './subscription-card';
 import { VipPromo } from './vip-promo';
 import { useMembershipPlans } from '../../lib/use-membership-plans';
 import { HomeProfileSection } from './home-profile-card';
-import { ApiError, getMyMembership, listMatchCategory, listMatches } from '../../lib/api-client';
+import { ApiError, getMyMembership, getPartnerPreferences, listMatchCategory, listMatches } from '../../lib/api-client';
+import { PreferencesCard } from './preferences-card';
 import { splitHomeMatches } from '../../lib/home-matches';
 import { useProfile } from '../../lib/use-profile';
 import { useRequireAuth } from '../../lib/use-require-auth';
 import { useRegistration } from '../../app/providers/registration-provider';
-import { matchCategoryHref } from '../../lib/match-categories';
+import { searchCategoryHref } from '../../lib/search-categories';
 import { PlanGate } from '../plan/plan-gate';
 
 function AuthenticatedHomeContent() {
@@ -31,6 +32,9 @@ function AuthenticatedHomeContent() {
   const [newlyJoinedError, setNewlyJoinedError] = useState<string | null>(null);
   const [viewedMe, setViewedMe] = useState<ProfileCard[] | null>(null);
   const [viewedMeError, setViewedMeError] = useState<string | null>(null);
+  // undefined while loading, null when none are saved.
+  const [preferences, setPreferences] = useState<SavedPartnerPreferences | null | undefined>(undefined);
+  const [preferencesError, setPreferencesError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!data.accessToken || !profile) return;
@@ -52,6 +56,13 @@ function AuthenticatedHomeContent() {
       })
       .catch((err: unknown) => {
         if (!cancelled) setMembershipError(message(err, 'Could not load your membership.'));
+      });
+    getPartnerPreferences(token)
+      .then((result) => {
+        if (!cancelled) setPreferences(result.preferences);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setPreferencesError(message(err, 'Could not load your partner preferences.'));
       });
     listMatchCategory(token, 'newly-joined')
       .then((result) => {
@@ -90,6 +101,11 @@ function AuthenticatedHomeContent() {
             SPONSORED ADVERTISEMENT BANNER
             ========================================================================= */}
         <SponsoredBanner />
+
+        {/* =========================================================================
+            SET YOUR PREFERENCES (what Matches and Search rank and filter by)
+            ========================================================================= */}
+        <PreferencesCard preferences={preferences} error={preferencesError} />
 
         {/* =========================================================================
             2. SUBSCRIPTION SIDEBAR + RECOMMENDED MATCHES (4 PER ROW)
@@ -138,7 +154,7 @@ function AuthenticatedHomeContent() {
           testId="home-newly-joined"
           title="Newly Joined"
           subtitle="Members who joined in the last 30 days."
-          viewAllHref={matchCategoryHref('newly-joined')}
+          viewAllHref={searchCategoryHref('newly-joined')}
           profiles={newlyJoined}
           error={newlyJoinedError}
           emptyMessage="No new members in the last 30 days."
@@ -151,7 +167,7 @@ function AuthenticatedHomeContent() {
           testId="home-viewed-you"
           title="Profile Viewed You"
           subtitle="Members who recently opened your profile."
-          viewAllHref={matchCategoryHref('viewed-you')}
+          viewAllHref={searchCategoryHref('viewed-you')}
           profiles={viewedMe}
           error={viewedMeError}
           emptyMessage="No one has viewed your profile yet. A complete profile with a clear photo gets more views."

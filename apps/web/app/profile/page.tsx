@@ -142,6 +142,7 @@ function AccordionSection({
   return (
     <div
       id={`section-${id}`}
+      style={{ scrollMarginTop: 96 }}
       className={`rounded-2xl border transition-all duration-200 bg-[#FFFFFF] ${
         isEditing
           ? 'border-nk-maroon shadow-md ring-1 ring-nk-maroon/20'
@@ -268,6 +269,26 @@ export default function ProfilePage() {
     preferences: false,
     privacy: false,
   });
+
+  // A link to /profile#section-<id> (e.g. "Set your preferences" on Home,
+  // Matches or Search) opens that section and scrolls to it once the profile
+  // has rendered; the sections don't exist before that, so the browser's own
+  // anchor jump can't reach them.
+  const profileLoaded = Boolean(profile);
+  useEffect(() => {
+    if (!profileLoaded) return;
+    function openFromHash() {
+      const id = /^#section-([\w-]+)$/.exec(window.location.hash)?.[1];
+      if (!id || !(id in openSections)) return;
+      setOpenSections((prev) => ({ ...prev, [id]: true }));
+      requestAnimationFrame(() => document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    }
+    openFromHash();
+    window.addEventListener('hashchange', openFromHash);
+    return () => window.removeEventListener('hashchange', openFromHash);
+    // Only on load and on hash changes, not on every open/close.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileLoaded]);
 
   if (!ready) return null;
 
