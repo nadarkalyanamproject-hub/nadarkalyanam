@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import type { ConversationSummary } from '@nadar-kalyanam/schemas';
 import { Card } from '@nadar-kalyanam/ui';
 import { AppHeader, UserIcon } from '../../components/app-header';
@@ -12,13 +13,18 @@ import { PlanGate } from '../../components/plan/plan-gate';
 import { formatMessageTime } from '../../lib/message-time';
 import { useNow } from '../../lib/use-now';
 
+// Same size, border and shadow as a Notifications row, so the two lists
+// read as one family (see the notification rows in notifications/page.tsx).
+const CONVERSATION_CARD_CLASS =
+  'flex items-center gap-3.5 sm:gap-4 rounded-2xl border border-nk-line-soft bg-white p-4 shadow-2xs transition-all hover:border-nk-line-strong hover:shadow-xs';
+
 // The last message's time, WhatsApp-style ("10:45 AM", "Yesterday",
 // "8 Oct"), with the exact moment in the tooltip. Nothing for a bad date.
 function MessageTime({ iso, now }: { iso: string; now: Date }) {
   const time = formatMessageTime(iso, now);
   if (!time) return null;
   return (
-    <time dateTime={time.dateTime} title={time.title} className="shrink-0 text-xs text-muted-foreground">
+    <time dateTime={time.dateTime} title={time.title} className="shrink-0 text-[11px] text-nk-subtle sm:text-xs">
       {time.label}
     </time>
   );
@@ -54,7 +60,7 @@ function MessagesPageContent() {
     <>
       <AppHeader />
       <main className="min-h-screen bg-secondary px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
-        <div className="w-full flex flex-col gap-6">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Messages</h1>
@@ -110,9 +116,9 @@ function MessagesPageContent() {
           {conversations && conversations.length > 0 && (
             <div className="flex flex-col gap-3">
               {conversations.map((conversation) => (
-                <Link key={conversation.id} href={`/messages/${conversation.id}`} className="block transition-transform hover:-translate-y-0.5">
-                  <Card className="flex items-center gap-4 rounded-2xl p-4 sm:p-5 transition-colors hover:bg-muted/60">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-muted-foreground">
+                <Link key={conversation.id} href={`/messages/${conversation.id}`} className="block rounded-2xl transition-transform hover:-translate-y-0.5">
+                  <div className={CONVERSATION_CARD_CLASS}>
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-nk-line-gold bg-nk-paper text-nk-muted">
                       {conversation.otherParticipant.primaryPhotoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -121,12 +127,12 @@ function MessagesPageContent() {
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <UserIcon className="h-7 w-7" />
+                        <UserIcon className="h-5 w-5 text-[#A88C78]" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
-                        <p className="flex min-w-0 items-center gap-2 text-base font-bold text-foreground">
+                        <p className="flex min-w-0 items-center gap-2 text-sm font-bold text-nk-ink sm:text-base">
                           {/* Unread dot: messages from them you haven't opened yet. */}
                           {conversation.hasUnread && (
                             <span
@@ -140,11 +146,12 @@ function MessagesPageContent() {
                         </p>
                         {conversation.lastMessage ? <MessageTime iso={conversation.lastMessage.createdAt} now={now} /> : null}
                       </div>
-                      <p className="mt-1 truncate text-sm text-muted-foreground">
+                      <p className="mt-0.5 truncate text-xs text-nk-subtle sm:text-sm">
                         {conversation.lastMessage ? conversation.lastMessage.body : 'Say hello!'}
                       </p>
                     </div>
-                  </Card>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-nk-subtle" aria-hidden="true" />
+                  </div>
                 </Link>
               ))}
             </div>
