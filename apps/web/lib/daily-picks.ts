@@ -19,30 +19,30 @@ function hashSeed(seed: string): number {
   return hash >>> 0;
 }
 
-// mulberry32: a tiny seeded random number generator.
-function seededRandom(seed: number): () => number {
-  let state = seed;
-  return () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+// mulberry32 finaliser: spreads a 32-bit seed evenly over [0, 1).
+function seededRandom(seed: number): number {
+  let t = (seed + 0x6d2b79f5) | 0;
+  t = Math.imul(t ^ (t >>> 15), 1 | t);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
 /**
  * Today's picks for one member: only people they haven't interacted with
  * yet, skipping anyone in `exclude` (already shown elsewhere on the page),
- * shuffled with a seed of member + India date, first `count` kept.
+ * shuffled with a seed of member + India date, first `count` kept. Each
+ * profile's place in the shuffle depends only on that seed and its own id,
+ * so someone leaving the pool mid-day (e.g. after connecting) frees up one
+ * slot instead of reshuffling everyone else.
  */
 export function pickDailyRecommendations<T extends { profileId: string; relationshipStatus: string }>(
   pool: readonly T[],
   options: { userId: string; count: number; exclude?: ReadonlySet<string>; now?: Date },
 ): T[] {
-  const random = seededRandom(hashSeed(`${options.userId}:${istDateKey(options.now)}`));
+  const seed = `${options.userId}:${istDateKey(options.now)}`;
   return pool
     .filter((item) => item.relationshipStatus === 'NONE' && !options.exclude?.has(item.profileId))
-    .map((item) => ({ item, key: random() }))
+    .map((item) => ({ item, key: seededRandom(hashSeed(`${seed}:${item.profileId}`)) }))
     .sort((a, b) => a.key - b.key)
     .slice(0, options.count)
     .map(({ item }) => item);

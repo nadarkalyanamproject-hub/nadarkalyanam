@@ -21,11 +21,14 @@ export interface HomeProfile {
   conversationId: string | null;
 }
 
-// The one member card used by every row on the home page.
+// The one member card used by every row on the home page. The whole card
+// opens the profile: the name is the card's only link, and its ::after
+// stretches over the card. Controls that do something else (the interest
+// action) sit above that overlay, so clicking them never opens the profile.
 export function HomeProfileCard({ profile }: { profile: HomeProfile }) {
   const place = [profile.city, profile.religion].filter(Boolean).join(' · ');
   return (
-    <div className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-nk-line bg-white shadow-xs transition-all hover:shadow-md">
+    <div className="group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-nk-line bg-white shadow-xs transition-all hover:border-nk-gold-light hover:shadow-md has-[a[data-card-link]:focus-visible]:ring-2 has-[a[data-card-link]:focus-visible]:ring-nk-maroon has-[a[data-card-link]:focus-visible]:ring-offset-2">
       <div>
         <div className="relative aspect-[3/2] w-full overflow-hidden bg-[#F3EDE6]">
           {profile.primaryPhotoUrl ? (
@@ -43,8 +46,12 @@ export function HomeProfileCard({ profile }: { profile: HomeProfile }) {
         </div>
 
         <div className="p-3">
-          <Link href={`/browse/${profile.profileId}`} className="flex items-center gap-1.5">
-            <h3 className="flex min-w-0 text-sm font-bold text-nk-ink transition-colors hover:text-nk-maroon">
+          <Link
+            href={`/browse/${profile.profileId}`}
+            data-card-link
+            className="flex items-center gap-1.5 after:absolute after:inset-0 after:content-[''] focus:outline-none"
+          >
+            <h3 className="flex min-w-0 text-sm font-bold text-nk-ink transition-colors group-hover:text-nk-maroon">
               <span className="truncate">{profile.fullName}</span>
               <span className="shrink-0">, {profile.age}</span>
             </h3>
@@ -72,6 +79,7 @@ export function HomeProfileCard({ profile }: { profile: HomeProfile }) {
       {/* Interest action: Send / Sent / Respond / Message */}
       <div className="p-3 pt-0">
         <RelationshipAction
+          className="relative z-10 cursor-auto"
           appearance="home"
           profileId={profile.profileId}
           relationshipStatus={profile.relationshipStatus}

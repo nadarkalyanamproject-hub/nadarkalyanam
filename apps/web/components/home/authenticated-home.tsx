@@ -9,7 +9,7 @@ import { VipPromo } from './vip-promo';
 import { useMembershipPlans } from '../../lib/use-membership-plans';
 import { HomeProfileSection } from './home-profile-card';
 import { ApiError, getMyMembership, listMatchCategory, listMatches } from '../../lib/api-client';
-import { pickDailyRecommendations } from '../../lib/daily-picks';
+import { splitHomeMatches } from '../../lib/home-matches';
 import { useProfile } from '../../lib/use-profile';
 import { useRequireAuth } from '../../lib/use-require-auth';
 import { useRegistration } from '../../app/providers/registration-provider';
@@ -38,7 +38,7 @@ function AuthenticatedHomeContent() {
     let cancelled = false;
     const message = (err: unknown, fallback: string) => (err instanceof ApiError ? err.message : fallback);
 
-    // Up to 50 matches: the top 8 are "Recommended", the rest feed today's picks.
+    // Up to 50 matches: the top few are "Recommended", the rest feed today's picks.
     listMatches(token, 50)
       .then((result) => {
         if (!cancelled) setMatches(result.items);
@@ -74,15 +74,10 @@ function AuthenticatedHomeContent() {
   }, [data.accessToken, profile]);
 
   // One row (4 cards); the rest of the matches feed Daily Recommendations.
-  const recommended = matches ? matches.slice(0, 4) : null;
-  const dailyPicks =
-    matches && recommended
-      ? pickDailyRecommendations(matches, {
-          userId: data.userId ?? profile?.id ?? '',
-          count: 5,
-          exclude: new Set(recommended.map((match) => match.profileId)),
-        })
-      : null;
+  // Connected members are left out of both (see splitHomeMatches).
+  const { recommended, dailyPicks } = matches
+    ? splitHomeMatches(matches, { userId: data.userId ?? profile?.id ?? '', recommendedCount: 4, dailyCount: 5 })
+    : { recommended: null, dailyPicks: null };
 
   if (!ready) return null;
 
