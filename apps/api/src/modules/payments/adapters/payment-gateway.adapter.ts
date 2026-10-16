@@ -5,6 +5,15 @@ export interface ProviderOrder {
   checkoutParams: Record<string, unknown>;
 }
 
+export interface PaymentWebhookEvent {
+  providerEventId: string;
+  orderId: string;
+  status: 'PAID' | 'FAILED' | 'CANCELLED' | 'REFUNDED';
+  amountInPaise: number;
+  currency: string;
+  providerReference?: string | null;
+}
+
 // Behind an interface so the real provider (Razorpay/Cashfree/etc., per
 // SRS §2.6's "payment gateway supporting required Indian payment methods
 // with signed webhooks") can be swapped without touching PaymentsService —
@@ -13,6 +22,8 @@ export interface PaymentGatewayAdapter {
   createProviderOrder(orderId: string, amountInPaise: number): Promise<ProviderOrder>;
   // Over the exact bytes received — never a re-serialized body.
   verifyWebhookSignature(rawBody: Buffer, signature: string | undefined): boolean;
+  // Parse provider-specific payload into a normalized domain event
+  parseWebhookEvent?(rawBody: Buffer): PaymentWebhookEvent | null;
   // Set (to `true`) only by the stub implementation — see
   // common/not-yet-available.exception.ts.
   readonly isStub?: boolean;

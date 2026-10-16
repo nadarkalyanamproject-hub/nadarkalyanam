@@ -2,8 +2,6 @@ import { BadRequestException, Body, Controller, Get, Headers, HttpCode, Post, Re
 import {
   type CreateOrderRequest,
   createOrderRequestSchema,
-  type PaymentWebhookEventInput,
-  paymentWebhookEventSchema,
 } from '@nadar-kalyanam/schemas';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
@@ -44,11 +42,13 @@ export class PaymentsController {
   @Post('payments/webhook')
   @HttpCode(200)
   handleWebhook(
-    @Headers('x-webhook-signature') signature: string | undefined,
+    @Headers('x-webhook-signature') webhookSignature: string | undefined,
+    @Headers('x-razorpay-signature') razorpaySignature: string | undefined,
     @Req() request: { rawBody?: Buffer },
-    @Body(new ZodValidationPipe(paymentWebhookEventSchema)) body: PaymentWebhookEventInput,
+    @Body() body: unknown,
   ) {
     if (!request.rawBody) throw new BadRequestException('Missing request body');
+    const signature = razorpaySignature ?? webhookSignature;
     return this.paymentsService.handleWebhook(request.rawBody, signature, body);
   }
 }
