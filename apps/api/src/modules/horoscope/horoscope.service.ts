@@ -166,6 +166,7 @@ export class HoroscopeService {
     if (!objectKey.startsWith(`horoscopes/${profileId}/`)) {
       throw new BadRequestException('objectKey does not belong to this profile');
     }
+    await this.storage.validateUploadedImage(objectKey);
     const autoApprove = this.photos.moderationMode() === 'auto_approve';
     const previous = await this.findByProfileId(profileId);
     const chart = {

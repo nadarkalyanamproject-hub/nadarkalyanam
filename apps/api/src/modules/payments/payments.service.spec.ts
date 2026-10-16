@@ -2,6 +2,7 @@ import { createHmac } from 'node:crypto';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotYetAvailableException } from '../../common/not-yet-available.exception.js';
+import { RazorpayPaymentGatewayAdapter } from './adapters/razorpay-payment-gateway.adapter.js';
 import { StubPaymentGatewayAdapter } from './adapters/stub-payment-gateway.adapter.js';
 import { SubscriptionService } from '../membership/subscription.service.js';
 import { PaymentsService, type PaymentWebhookEvent } from './payments.service.js';
@@ -25,11 +26,18 @@ function buildService(overrides?: { nodeEnv?: string; gatewayIsStub?: boolean; f
         status: 'CREATED',
         createdAt: new Date(),
       }),
+      update: vi.fn().mockResolvedValue({
+        id: 'order-1',
+        providerOrderId: 'order_rzp_123',
+      }),
     },
   };
   const gateway = {
     isStub: overrides?.gatewayIsStub ?? true,
-    createProviderOrder: vi.fn(),
+    createProviderOrder: vi.fn().mockResolvedValue({
+      providerOrderId: 'order_rzp_123',
+      checkoutParams: { key: 'test_key', order_id: 'order_rzp_123' },
+    }),
     verifyWebhookSignature: vi.fn(),
   };
   const configService = {
@@ -68,13 +76,19 @@ describe('PaymentsService', () => {
     expect(prisma.order.create).toHaveBeenCalledTimes(1);
   });
 
-  it('createOrder proceeds in production once a real (non-stub) gateway is configured', async () => {
-    const { service, prisma } = buildService({ nodeEnv: 'production', gatewayIsStub: false });
+  it('createOrder proceeds in production once a real (non-stub) gateway is configured, saving providerOrderId and returning checkout params', async () => {
+    const { service, prisma, gateway } = buildService({ nodeEnv: 'production', gatewayIsStub: false });
 
     const result = await service.createOrder('user-1', 'plan-1');
 
     expect(result.id).toBe('order-1');
-    expect(prisma.order.create).toHaveBeenCalledTimes(1);
+    expect(result.providerOrderId).toBe('order_rzp_123');
+    expect(result.checkoutParams).toEqual({ key: 'test_key', order_id: 'order_rzp_123' });
+    expect(gateway.createProviderOrder).toHaveBeenCalledWith('order-1', 149900);
+    expect(prisma.order.update).toHaveBeenCalledWith({
+      where: { id: 'order-1' },
+      data: { providerOrderId: 'order_rzp_123' },
+    });
   });
 
   it('createOrder rejects an unknown or inactive plan before touching the gateway check outcome', async () => {
@@ -174,12 +188,17 @@ function webhookWorld() {
       findUnique: async ({ where }: any) => payments.find((p) => p.providerEventId === where.providerEventId) ?? null,
       create: async ({ data }: any) => {
         if (payments.some((p) => p.providerEventId === data.providerEventId)) throw unique('providerEventId');
-        payments.push({ id: `pay-${payments.length + 1}`, ...data });
+        payments.push({ id: `pay-${payments.length + 1}`, createdAt: new Date(), ...data });
       },
     },
     order: {
       findUnique: async ({ where }: any) => {
         const order = orders.find((o) => o.id === where.id);
+        return order ? { ...order, plan: plans[order.planId] } : null;
+      },
+      findFirst: async ({ where }: any) => {
+        const orList = where.OR || [{ id: where.id }];
+        const order = orders.find((o) => orList.some((cond: any) => (cond.id && o.id === cond.id) || (cond.providerOrderId && o.providerOrderId === cond.providerOrderId)));
         return order ? { ...order, plan: plans[order.planId] } : null;
       },
       updateMany: async ({ where, data }: any) => {
@@ -399,5 +418,246 @@ describe('PaymentsService.handleWebhook', () => {
   it('an unknown order is rejected with 400', async () => {
     const w = webhookWorld();
     await expect(w.send({ providerEventId: 'e1', orderId: 'nope', status: 'PAID', amountInPaise: 1 })).rejects.toThrow('Unknown order');
+  });
+});
+
+describe('PaymentsService with RazorpayPaymentGatewayAdapter', () => {
+  function razorpayWebhookWorld() {
+    const orders: any[] = [];
+    const payments: any[] = [];
+    const subscriptions: any[] = [];
+    const plans: Record<string, any> = {
+      gold: { id: 'gold', code: 'GOLD', name: 'Gold', priceInPaise: 149900, durationDays: 90 },
+    };
+    const profiles: Record<string, { searchBoost: number }> = { 'user-1': { searchBoost: 0 } };
+    const unique = (field: string) => Object.assign(new Error(`Unique constraint failed on ${field}`), { code: 'P2002' });
+    const prisma: any = {
+      payment: {
+        findUnique: async ({ where }: any) => payments.find((p) => p.providerEventId === where.providerEventId) ?? null,
+        create: async ({ data }: any) => {
+          if (payments.some((p) => p.providerEventId === data.providerEventId)) throw unique('providerEventId');
+          payments.push({ id: `pay-${payments.length + 1}`, createdAt: new Date(), ...data });
+        },
+      },
+      order: {
+        findUnique: async ({ where }: any) => {
+          const order = orders.find((o) => o.id === where.id || (where.providerOrderId && o.providerOrderId === where.providerOrderId));
+          return order ? { ...order, plan: plans[order.planId] } : null;
+        },
+        findFirst: async ({ where }: any) => {
+          const orList = where.OR || [{ id: where.id }];
+          const order = orders.find((o) => orList.some((cond: any) => (cond.id && o.id === cond.id) || (cond.providerOrderId && o.providerOrderId === cond.providerOrderId)));
+          return order ? { ...order, plan: plans[order.planId] } : null;
+        },
+        updateMany: async ({ where, data }: any) => {
+          const hits = orders.filter((o) => o.id === where.id && o.status === where.status);
+          hits.forEach((o) => Object.assign(o, data));
+          return { count: hits.length };
+        },
+        update: async ({ where, data }: any) => Object.assign(orders.find((o) => o.id === where.id), data),
+        findMany: async ({ where }: any) => {
+          return orders
+            .filter((o) => o.userId === where.userId)
+            .map((o) => ({ ...o, payments: payments.filter((p) => p.orderId === o.id) }));
+        },
+      },
+      membershipPlan: { findUnique: async ({ where }: any) => plans[where.id] ?? null },
+      $queryRaw: async () => [],
+      subscription: {
+        findUnique: async ({ where, include }: any) => {
+          const row = subscriptions.find((s) => (where.orderId ? s.orderId === where.orderId : s.id === where.id));
+          return row ? (include?.plan ? { ...row, plan: plans[row.planId] } : row) : null;
+        },
+        update: async ({ where, data, include }: any) => {
+          const row = Object.assign(subscriptions.find((s) => s.id === where.id), data);
+          return include?.plan ? { ...row, plan: plans[row.planId] } : row;
+        },
+        findFirst: async ({ where }: any) =>
+          subscriptions
+            .filter((s) => s.userId === where.userId && s.cancelledAt === null && s.expiresAt > where.expiresAt.gt)
+            .sort((a, b) => b.expiresAt - a.expiresAt)[0] ?? null,
+        findMany: async ({ where }: any) =>
+          subscriptions
+            .filter((s) => s.userId === where.userId && s.cancelledAt === null && s.expiresAt > where.expiresAt.gt)
+            .sort((a, b) => a.startedAt - b.startedAt)
+            .map((s) => ({ ...s, plan: plans[s.planId] })),
+        create: async ({ data }: any) => {
+          if (subscriptions.some((s) => s.orderId === data.orderId)) throw unique('orderId');
+          const row = { id: `sub-${subscriptions.length + 1}`, cancelledAt: null, createdAt: new Date(), ...data };
+          subscriptions.push(row);
+          return row;
+        },
+      },
+      profile: {
+        updateMany: async ({ where, data }: any) => {
+          const row = profiles[where.userId];
+          if (!row || row.searchBoost === data.searchBoost) return { count: 0 };
+          row.searchBoost = data.searchBoost;
+          return { count: 1 };
+        },
+      },
+      $transaction: async (fn: (tx: any) => Promise<unknown>) => {
+        const snapshot = JSON.stringify({ orders, payments, subscriptions });
+        try {
+          return await fn(prisma);
+        } catch (error) {
+          const restored = JSON.parse(snapshot, (key, value) => (['expiresAt', 'startedAt', 'paidAt', 'cancelledAt'].includes(key) && value ? new Date(value) : value));
+          orders.splice(0, orders.length, ...restored.orders);
+          payments.splice(0, payments.length, ...restored.payments);
+          subscriptions.splice(0, subscriptions.length, ...restored.subscriptions);
+          throw error;
+        }
+      },
+    };
+
+    const config = {
+      get: (key: string) =>
+        ({
+          PAYMENT_WEBHOOK_SECRET: SECRET,
+          RAZORPAY_WEBHOOK_SECRET: SECRET,
+          RAZORPAY_KEY_ID: 'rzp_test_sample',
+          RAZORPAY_KEY_SECRET: 'sample_secret',
+          NODE_ENV: 'test',
+        })[key],
+    };
+    const notifications = { notify: vi.fn() };
+    const adapter = new RazorpayPaymentGatewayAdapter(config as never);
+    const service = new PaymentsService(
+      prisma,
+      adapter,
+      config as never,
+      new SubscriptionService(prisma, notifications as never),
+    );
+
+    const order = (id: string, planId = 'gold', userId = 'user-1', providerOrderId = 'order_rzp_o1') => {
+      orders.push({ id, userId, planId, amountInPaise: plans[planId].priceInPaise, status: 'CREATED', paidAt: null, providerOrderId });
+    };
+
+    const sendRazorpayWebhook = (event: string, entityData: Record<string, any>, opts: { signature?: string; tamper?: (raw: string) => string } = {}) => {
+      const payload: Record<string, any> = {
+        id: entityData.eventId || 'evt_rzp_1',
+        event,
+        payload: {},
+      };
+      if (event === 'refund.processed') {
+        payload.payload.refund = { entity: entityData };
+      } else {
+        payload.payload.payment = { entity: entityData };
+      }
+      const raw = JSON.stringify(payload);
+      const signature = opts.signature ?? createHmac('sha256', SECRET).update(raw).digest('hex');
+      const delivered = opts.tamper ? opts.tamper(raw) : raw;
+      return service.handleWebhook(Buffer.from(delivered), signature);
+    };
+
+    return { orders, payments, subscriptions, notifications, order, sendRazorpayWebhook, service };
+  }
+
+  it('end-to-end Razorpay flow: payment.captured activates the subscription in the same transaction', async () => {
+    const w = razorpayWebhookWorld();
+    w.order('o1', 'gold', 'user-1', 'order_rzp_o1');
+
+    const result = await w.sendRazorpayWebhook('payment.captured', {
+      id: 'pay_rzp_1',
+      order_id: 'order_rzp_o1',
+      amount: 149900,
+      currency: 'INR',
+      status: 'captured',
+      notes: { orderId: 'o1' },
+    });
+
+    expect(result).toEqual({ outcome: 'processed' });
+    expect(w.orders[0].status).toBe('PAID');
+    expect(w.subscriptions).toHaveLength(1);
+    expect(w.subscriptions[0]).toMatchObject({ orderId: 'o1', userId: 'user-1', status: 'ACTIVE' });
+    expect(w.payments).toHaveLength(1);
+    expect(w.payments[0].providerReference).toBe('pay_rzp_1');
+    expect(w.notifications.notify).toHaveBeenCalledWith(expect.objectContaining({ recipientUserId: 'user-1', type: 'PLAN_ACTIVATED' }));
+  });
+
+  it('missing or wrong signature is rejected with 400 and writes nothing', async () => {
+    const w = razorpayWebhookWorld();
+    w.order('o1', 'gold');
+
+    await expect(
+      w.sendRazorpayWebhook(
+        'payment.captured',
+        { id: 'pay_rzp_1', order_id: 'order_rzp_o1', amount: 149900, currency: 'INR', notes: { orderId: 'o1' } },
+        { signature: 'wrong_signature' },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(w.orders[0].status).toBe('CREATED');
+    expect(w.payments).toHaveLength(0);
+    expect(w.subscriptions).toHaveLength(0);
+  });
+
+  it('the same Razorpay webhook sent 3 times creates one payment and one subscription', async () => {
+    const w = razorpayWebhookWorld();
+    w.order('o1', 'gold', 'user-1', 'order_rzp_o1');
+
+    const entity = {
+      eventId: 'evt_dup_1',
+      id: 'pay_rzp_dup',
+      order_id: 'order_rzp_o1',
+      amount: 149900,
+      currency: 'INR',
+      notes: { orderId: 'o1' },
+    };
+
+    const first = await w.sendRazorpayWebhook('payment.captured', entity);
+    expect(first).toEqual({ outcome: 'processed' });
+
+    const second = await w.sendRazorpayWebhook('payment.captured', entity);
+    expect(second).toEqual({ outcome: 'duplicate' });
+
+    const third = await w.sendRazorpayWebhook('payment.captured', entity);
+    expect(third).toEqual({ outcome: 'duplicate' });
+
+    expect(w.payments).toHaveLength(1);
+    expect(w.subscriptions).toHaveLength(1);
+  });
+
+  it('failed and refunded payments show the right status in GET /payments/history', async () => {
+    const w = razorpayWebhookWorld();
+    w.order('o1', 'gold', 'user-1', 'order_rzp_o1');
+
+    // 1. payment.failed
+    await w.sendRazorpayWebhook('payment.failed', {
+      eventId: 'evt_fail_1',
+      id: 'pay_rzp_fail',
+      order_id: 'order_rzp_o1',
+      amount: 149900,
+      currency: 'INR',
+      notes: { orderId: 'o1' },
+    });
+    expect(w.orders[0].status).toBe('FAILED');
+    let history = await w.service.listHistory('user-1');
+    expect(history.items).toEqual([expect.objectContaining({ orderId: 'o1', status: 'FAILED' })]);
+
+    // 2. new order that gets PAID then REFUNDED
+    w.order('o2', 'gold', 'user-1', 'order_rzp_o2');
+    await w.sendRazorpayWebhook('payment.captured', {
+      eventId: 'evt_paid_2',
+      id: 'pay_rzp_2',
+      order_id: 'order_rzp_o2',
+      amount: 149900,
+      currency: 'INR',
+      notes: { orderId: 'o2' },
+    });
+    expect(w.orders[1].status).toBe('PAID');
+
+    await w.sendRazorpayWebhook('refund.processed', {
+      eventId: 'evt_rfnd_2',
+      id: 'rfnd_rzp_2',
+      payment_id: 'pay_rzp_2',
+      amount: 149900,
+      notes: { orderId: 'o2' },
+    });
+    expect(w.orders[1].status).toBe('REFUNDED');
+    expect(w.subscriptions[0].status).toBe('CANCELLED');
+
+    history = await w.service.listHistory('user-1');
+    expect(history.items).toContainEqual(expect.objectContaining({ orderId: 'o2', status: 'REFUNDED' }));
   });
 });

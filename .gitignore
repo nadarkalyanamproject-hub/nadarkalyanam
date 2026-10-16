@@ -1,15 +1,42 @@
+# Dependencies & Package Managers
 node_modules/
 .pnpm-store/
+
+# Build & Cache
 dist/
+build/
 .next/
+out/
 .turbo/
 *.tsbuildinfo
+apps/api/src/generated/
+
+# Environment Variables (no secrets in git per docs)
 .env
 .env.*
 !.env.example
 !.env.local.example
+
+# Graphify Knowledge Graph & AI Tooling
+graphify-out/
+.graphify*
+*.graphify
+
+# Local Documentation & Agentic Tooling
+Nadarkalyanam_Documentations/
+.agents/
+
+# Logs & Coverage
+*.log
+pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 coverage/
+.nyc_output/
+
+# OS & Editor Files
 .DS_Store
 Thumbs.db
-*.log
-apps/api/src/generated/
+.vscode/
+.idea/

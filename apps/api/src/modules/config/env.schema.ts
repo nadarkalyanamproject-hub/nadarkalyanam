@@ -19,6 +19,13 @@ export const envSchema = z.object({
   MINIO_ACCESS_KEY: z.string().min(1, 'MINIO_ACCESS_KEY is required'),
   MINIO_SECRET_KEY: z.string().min(1, 'MINIO_SECRET_KEY is required'),
   MINIO_BUCKET_NAME: z.string().min(1, 'MINIO_BUCKET_NAME is required'),
+  // Active payment gateway provider: 'stub' for dev/tests, 'razorpay' for live/sandbox.
+  PAYMENT_PROVIDER: z.enum(['stub', 'razorpay']).default('stub'),
+  // Razorpay API keys (required when PAYMENT_PROVIDER is 'razorpay')
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
+  // Webhook secret specifically for Razorpay webhook signature verification (falls back to PAYMENT_WEBHOOK_SECRET)
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
   // Generic HMAC secret used to verify the payment webhook signature (FR-7.3).
   // Provider-agnostic until a real payment gateway is contracted — see
   // PaymentGatewayAdapter. No default (matches JWT_ACCESS_TOKEN_SECRET):
@@ -61,6 +68,9 @@ export const envSchema = z.object({
   // dev stub — photos are approved on upload. Unset: 'pending' in
   // production, 'auto_approve' elsewhere.
   PHOTO_MODERATION: z.enum(['pending', 'auto_approve']).optional(),
+  // Maximum allowed size for uploaded photos in bytes (NFR-4.5).
+  // Defaults to 5 MB (5 * 1024 * 1024 = 5,242,880 bytes).
+  MAX_PHOTO_SIZE_BYTES: z.coerce.number().int().positive().default(5242880),
   // Sweep that marks past-due subscriptions EXPIRED and sends PLAN_EXPIRED.
   // On by default; entitlement checks go by dates, so turning it off never
   // grants extra time. Same safe-boolean pattern as above.
@@ -123,5 +133,19 @@ export function validateEnv(config: Record<string, unknown>): Env {
       .join('; ');
     throw new Error(`Invalid environment configuration: ${issues}`);
   }
+
+  if (parsed.data.PAYMENT_PROVIDER === 'razorpay') {
+    const missing: string[] = [];
+    if (!parsed.data.RAZORPAY_KEY_ID) {
+      missing.push('RAZORPAY_KEY_ID: RAZORPAY_KEY_ID is required when PAYMENT_PROVIDER is razorpay');
+    }
+    if (!parsed.data.RAZORPAY_KEY_SECRET) {
+      missing.push('RAZORPAY_KEY_SECRET: RAZORPAY_KEY_SECRET is required when PAYMENT_PROVIDER is razorpay');
+    }
+    if (missing.length > 0) {
+      throw new Error(`Invalid environment configuration: ${missing.join('; ')}`);
+    }
+  }
+
   return parsed.data;
 }

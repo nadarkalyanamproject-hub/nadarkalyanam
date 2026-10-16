@@ -87,4 +87,29 @@ describe('validateEnv', () => {
     expect(validateEnv({ ...base, ENABLE_ANONYMIZATION_JOB: 'true' }).ENABLE_ANONYMIZATION_JOB).toBe(true);
     expect(() => validateEnv({ ...base, ENABLE_ANONYMIZATION_JOB: 'yes' })).toThrow(/ENABLE_ANONYMIZATION_JOB/);
   });
+
+  it('defaults PAYMENT_PROVIDER to stub, and requires keys when set to razorpay', () => {
+    const base = {
+      DATABASE_URL: 'postgresql://user:pass@localhost:5439/db',
+      REDIS_URL: 'redis://localhost:6380',
+      JWT_ACCESS_TOKEN_SECRET: 'test-secret',
+      ...validMinioEnv,
+    };
+
+    expect(validateEnv(base).PAYMENT_PROVIDER).toBe('stub');
+
+    expect(() => validateEnv({ ...base, PAYMENT_PROVIDER: 'razorpay' })).toThrow(/RAZORPAY_KEY_ID/);
+    expect(() =>
+      validateEnv({ ...base, PAYMENT_PROVIDER: 'razorpay', RAZORPAY_KEY_ID: 'rzp_key' }),
+    ).toThrow(/RAZORPAY_KEY_SECRET/);
+
+    const validRazorpay = validateEnv({
+      ...base,
+      PAYMENT_PROVIDER: 'razorpay',
+      RAZORPAY_KEY_ID: 'rzp_test_123',
+      RAZORPAY_KEY_SECRET: 'secret_123',
+    });
+    expect(validRazorpay.PAYMENT_PROVIDER).toBe('razorpay');
+    expect(validRazorpay.RAZORPAY_KEY_ID).toBe('rzp_test_123');
+  });
 });

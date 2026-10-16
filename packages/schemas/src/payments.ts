@@ -46,6 +46,8 @@ export const orderResponseSchema = z.object({
   amountInPaise: z.number(),
   status: orderStatusEnum,
   createdAt: z.string(),
+  providerOrderId: z.string().nullable().optional(),
+  checkoutParams: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 export type OrderResponse = z.infer<typeof orderResponseSchema>;
 

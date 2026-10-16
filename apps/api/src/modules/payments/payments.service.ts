@@ -7,7 +7,7 @@ import type { Env } from '../config/env.schema.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { SubscriptionService, type Activation } from '../membership/subscription.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { PAYMENT_GATEWAY_ADAPTER, type PaymentGatewayAdapter } from './adapters/payment-gateway.adapter.js';
+import { PAYMENT_GATEWAY_ADAPTER, type PaymentGatewayAdapter, type PaymentWebhookEvent } from './adapters/payment-gateway.adapter.js';
 
 function isUniqueConstraintViolation(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
@@ -27,16 +27,8 @@ export const ALLOWED_ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   REFUNDED: [],
 };
 
-// The raw provider webhook payload shape is provider-specific and unknown
-// until a gateway is contracted; this is the minimal envelope PaymentsService
-// needs regardless of provider.
-export interface PaymentWebhookEvent {
-  providerEventId: string;
-  orderId: string;
-  status: 'PAID' | 'FAILED' | 'CANCELLED' | 'REFUNDED';
-  amountInPaise: number;
-  currency: string;
-}
+// Re-exported from adapter
+export type { PaymentWebhookEvent } from './adapters/payment-gateway.adapter.js';
 
 export type WebhookOutcome = 'processed' | 'duplicate' | 'ignored';
 
@@ -89,12 +81,28 @@ export class PaymentsService {
     const order = await this.prisma.order.create({
       data: { userId, planId, amountInPaise: plan.priceInPaise, status: 'CREATED' },
     });
+
+    let providerOrderId: string | null = null;
+    let checkoutParams: Record<string, unknown> | null = null;
+
+    if (!this.gateway.isStub) {
+      const providerOrder = await this.gateway.createProviderOrder(order.id, order.amountInPaise);
+      providerOrderId = providerOrder.providerOrderId;
+      checkoutParams = providerOrder.checkoutParams;
+      await this.prisma.order.update({
+        where: { id: order.id },
+        data: { providerOrderId },
+      });
+    }
+
     return {
       id: order.id,
       planId: order.planId,
       amountInPaise: order.amountInPaise,
       status: order.status,
       createdAt: order.createdAt.toISOString(),
+      providerOrderId,
+      checkoutParams,
     };
   }
 
@@ -108,15 +116,34 @@ export class PaymentsService {
   //    order. A member who already has a plan gets the new period appended
   //    after it (renewal extends; periods never overlap);
   //  - REFUNDED cancels that order's subscription.
-  async handleWebhook(rawBody: Buffer, signature: string | undefined, event: PaymentWebhookEvent): Promise<{ outcome: WebhookOutcome }> {
+  async handleWebhook(rawBody: Buffer, signature: string | undefined, payload?: unknown): Promise<{ outcome: WebhookOutcome }> {
     if (!this.gateway.verifyWebhookSignature(rawBody, signature)) {
       throw new BadRequestException('Invalid webhook signature');
+    }
+
+    let event: PaymentWebhookEvent | null = null;
+    if (payload && typeof payload === 'object' && 'providerEventId' in payload && 'orderId' in payload && 'status' in payload) {
+      event = payload as PaymentWebhookEvent;
+    } else if (this.gateway.parseWebhookEvent) {
+      event = this.gateway.parseWebhookEvent(rawBody);
+    }
+
+    if (!event) {
+      return { outcome: 'ignored' };
     }
 
     const seen = await this.prisma.payment.findUnique({ where: { providerEventId: event.providerEventId } });
     if (seen) return { outcome: 'duplicate' };
 
-    const order = await this.prisma.order.findUnique({ where: { id: event.orderId }, include: { plan: true } });
+    let order = await this.prisma.order.findUnique({ where: { id: event.orderId }, include: { plan: true } });
+    if (!order && typeof this.prisma.order.findFirst === 'function') {
+      order = await this.prisma.order.findFirst({
+        where: {
+          OR: [{ id: event.orderId }, { providerOrderId: event.orderId }],
+        },
+        include: { plan: true },
+      });
+    }
     if (!order) {
       throw new BadRequestException('Unknown order');
     }
@@ -132,6 +159,7 @@ export class PaymentsService {
           data: {
             orderId: order.id,
             providerEventId: event.providerEventId,
+            providerReference: event.providerReference ?? null,
             status: event.status,
             rawPayload: JSON.parse(rawBody.toString('utf8')) as Prisma.InputJsonValue,
           },
