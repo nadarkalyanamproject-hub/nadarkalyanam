@@ -7,6 +7,7 @@ import { Briefcase, MapPin } from 'lucide-react';
 import { UserIcon } from '../app-header';
 import { ConnectedBadge, RelationshipAction } from '../relationship/relationship-action';
 import { VerifiedBadge } from '../ui/verified-badge';
+import { Reveal, StaggerGroup, StaggerItem } from '../motion/motion';
 
 export interface HomeProfile {
   profileId: string;
@@ -28,9 +29,9 @@ export interface HomeProfile {
 export function HomeProfileCard({ profile }: { profile: HomeProfile }) {
   const place = [profile.city, profile.religion].filter(Boolean).join(' · ');
   return (
-    <div className="group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-nk-line bg-white shadow-xs transition-all hover:border-nk-gold-light hover:shadow-md has-[a[data-card-link]:focus-visible]:ring-2 has-[a[data-card-link]:focus-visible]:ring-nk-maroon has-[a[data-card-link]:focus-visible]:ring-offset-2">
+    <div className="group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-xl border border-nk-line bg-white shadow-xs transition-all hover:border-nk-gold-light hover:-translate-y-0.5 hover:shadow-md has-[a[data-card-link]:focus-visible]:ring-2 has-[a[data-card-link]:focus-visible]:ring-nk-maroon has-[a[data-card-link]:focus-visible]:ring-offset-2">
       <div>
-        <div className="relative aspect-[3/2] w-full overflow-hidden bg-[#F3EDE6]">
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#F3EDE6]">
           {profile.primaryPhotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -40,36 +41,36 @@ export function HomeProfileCard({ profile }: { profile: HomeProfile }) {
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-[#A88C78]">
-              <UserIcon className="h-10 w-10" />
+              <UserIcon className="h-8 w-8" />
             </div>
           )}
         </div>
 
-        <div className="p-3">
+        <div className="px-2.5 pt-2 pb-2">
           <Link
             href={`/browse/${profile.profileId}`}
             data-card-link
             className="flex items-center gap-1.5 after:absolute after:inset-0 after:content-[''] focus:outline-none"
           >
-            <h3 className="flex min-w-0 text-sm font-bold text-nk-ink transition-colors group-hover:text-nk-maroon">
+            <h3 className="flex min-w-0 text-[13px] font-bold text-nk-ink transition-colors group-hover:text-nk-maroon">
               <span className="truncate">{profile.fullName}</span>
               <span className="shrink-0">, {profile.age}</span>
             </h3>
-            {profile.isVerified && <VerifiedBadge className="h-4 w-4 shrink-0" />}
+            {profile.isVerified && <VerifiedBadge className="h-3.5 w-3.5 shrink-0" />}
           </Link>
 
           {profile.relationshipStatus === 'CONNECTED' && <ConnectedBadge className="mt-1" />}
 
           {profile.profession && (
-            <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-[#4A3B33]">
-              <Briefcase className="h-3.5 w-3.5 shrink-0 text-nk-subtle" />
+            <p className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-[#4A3B33]">
+              <Briefcase className="h-3 w-3 shrink-0 text-nk-subtle" />
               <span className="truncate">{profile.profession}</span>
             </p>
           )}
 
           {place && (
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-nk-subtle">
-              <MapPin className="h-3.5 w-3.5 shrink-0" />
+            <p className="mt-0.5 flex items-center gap-1 text-[11px] text-nk-subtle">
+              <MapPin className="h-3 w-3 shrink-0" />
               <span className="truncate">{place}</span>
             </p>
           )}
@@ -77,7 +78,7 @@ export function HomeProfileCard({ profile }: { profile: HomeProfile }) {
       </div>
 
       {/* Interest action: Send / Sent / Respond / Message */}
-      <div className="p-3 pt-0">
+      <div className="px-2.5 pb-2.5">
         <RelationshipAction
           className="relative z-10 cursor-auto"
           appearance="home"
@@ -101,7 +102,7 @@ export function HomeProfileSection({
   profiles,
   error,
   emptyMessage,
-  columns = 5,
+  columns = 6,
   children,
   testId,
 }: {
@@ -112,13 +113,13 @@ export function HomeProfileSection({
   profiles: HomeProfile[] | null;
   error: string | null;
   emptyMessage: string;
-  columns?: 4 | 5;
+  columns?: 5 | 6;
   children?: ReactNode;
   testId?: string;
 }) {
-  const grid = columns === 5 ? 'xl:grid-cols-5' : 'xl:grid-cols-4';
+  const grid = columns === 6 ? 'lg:grid-cols-5 xl:grid-cols-6' : 'lg:grid-cols-4 xl:grid-cols-5';
   return (
-    <section className="space-y-4" data-testid={testId}>
+    <Reveal as="section" className="space-y-4" data-testid={testId}>
       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
         <div>
           <h2 className="font-[family-name:var(--font-heading,serif)] text-xl font-bold text-nk-ink sm:text-2xl">
@@ -144,9 +145,9 @@ export function HomeProfileSection({
           {error}
         </p>
       ) : profiles === null ? (
-        <div className={`grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 ${grid}`} aria-hidden="true">
+        <div className={`grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 ${grid}`} aria-hidden="true">
           {Array.from({ length: columns }).map((_, index) => (
-            <div key={index} className="h-60 rounded-2xl border border-[#F0E6D8] bg-[#FAF6EF]" />
+            <div key={index} className="h-52 rounded-xl border border-[#F0E6D8] bg-[#FAF6EF]" />
           ))}
         </div>
       ) : profiles.length === 0 ? (
@@ -154,12 +155,14 @@ export function HomeProfileSection({
           {emptyMessage}
         </p>
       ) : (
-        <div className={`grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 ${grid}`}>
+        <StaggerGroup className={`grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 ${grid}`}>
           {profiles.map((profile) => (
-            <HomeProfileCard key={profile.profileId} profile={profile} />
+            <StaggerItem key={profile.profileId} className="flex [&>*]:flex-1">
+              <HomeProfileCard profile={profile} />
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerGroup>
       )}
-    </section>
+    </Reveal>
   );
 }

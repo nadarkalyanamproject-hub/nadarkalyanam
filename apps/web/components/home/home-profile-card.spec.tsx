@@ -42,7 +42,8 @@ describe('HomeProfileCard', () => {
   });
 
   it.each([
-    ['NONE', null, /<button\b[^>]*>Send Interest/],
+    // The home Send button wraps its label with a shine and heart icon.
+    ['NONE', null, /<button\b[^>]*>(?:(?!<\/button>)[\s\S])*Send Interest/],
     ['INTEREST_RECEIVED', null, /<a\b[^>]*>Respond/],
     ['CONNECTED', 'conv1', /<a\b[^>]*>Message/],
   ] as const)('keeps the %s action outside the profile link and above its overlay', (status, conversationId, control) => {

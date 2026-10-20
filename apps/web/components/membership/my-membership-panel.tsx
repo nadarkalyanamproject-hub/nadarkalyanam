@@ -1,17 +1,23 @@
 'use client';
 
 import Link from 'next/link';
-import type { MyMembershipResponse } from '@nadar-kalyanam/schemas';
+import type { MembershipPlanResponse, MyMembershipResponse } from '@nadar-kalyanam/schemas';
 import { Card } from '@/components/ui/card';
 import { ComingSoonPill } from '@/components/ui/coming-soon-note';
-import { daysLeft, daysLeftLabel, formatPlanDate, membershipBanner } from '../../lib/membership';
+import { Lock } from 'lucide-react';
+import { daysLeft, daysLeftLabel, formatPlanDate, formatPlanLastDay, formatPrice, lockedFeatures, membershipBanner } from '../../lib/membership';
+import { LockedFeatureList } from './locked-features';
 
 const STATUS_LABEL = { ACTIVE: 'Active', QUEUED: 'Starts later', EXPIRED: 'Ended', CANCELLED: 'Ended early' } as const;
 
 // The signed-in member's own membership: everything here comes from
 // GET /me/membership and is only ever shown to the member themselves.
-export function MyMembershipPanel({ me }: { me: MyMembershipResponse }) {
+export function MyMembershipPanel({ me, plans }: { me: MyMembershipResponse; plans: MembershipPlanResponse[] | null }) {
   const banner = membershipBanner(me);
+  // What the member's plan doesn't include, and the next plan up that adds
+  // the first of it (the upgrade button's target).
+  const locked = me.plan && plans ? lockedFeatures(me.plan.code, plans) : [];
+  const next = locked.length > 0 ? plans?.find((p) => p.code === locked[0].planCode) : undefined;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-3" data-testid="my-membership">
@@ -130,13 +136,34 @@ export function MyMembershipPanel({ me }: { me: MyMembershipResponse }) {
         </p>
       </Card>
 
+      {locked.length > 0 && next && (
+        <Card className="rounded-2xl border border-nk-line bg-white p-5 text-sm" data-testid="my-locked">
+          <div className="flex items-center gap-2">
+            <Lock className="h-4 w-4 text-nk-gold" aria-hidden="true" />
+            <p className="font-semibold text-nk-ink">Not included in your {me.plan?.name} plan</p>
+          </div>
+          <LockedFeatureList features={locked} className="mt-3" />
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-nk-line-soft pt-4">
+            <a
+              href="#plans"
+              className="rounded-lg bg-gradient-to-r from-[#B8892A] via-[#E9C46A] to-[#B8892A] px-5 py-2 text-xs font-bold text-[#3A0E15] shadow-sm transition-[filter,box-shadow] hover:shadow-md hover:brightness-105"
+              data-testid="my-upgrade"
+            >
+              Upgrade to {next.name} · {formatPrice(next.priceInPaise)}
+            </a>
+            <span className="text-xs text-nk-muted">Compare plans below.</span>
+          </div>
+        </Card>
+      )}
+
       {me.queued.length > 0 && (
         <Card className="rounded-2xl border border-nk-line bg-white p-4 text-sm" data-testid="my-queued">
           <p className="font-semibold text-nk-ink">Coming up</p>
           <ul className="mt-1 space-y-1 text-xs text-nk-ink-soft">
             {me.queued.map((q) => (
               <li key={`${q.planCode}-${q.startedAt}`}>
-                {q.planName}: starts {formatPlanDate(q.startedAt)}, valid till {formatPlanDate(q.endsAt)}
+                {q.source === 'TRIAL' ? `${q.planName} (free launch trial)` : q.planName}: starts {formatPlanDate(q.startedAt)}, valid till{' '}
+                {formatPlanLastDay(q.endsAt)}
               </li>
             ))}
           </ul>
@@ -151,7 +178,7 @@ export function MyMembershipPanel({ me }: { me: MyMembershipResponse }) {
               <li key={`${h.planCode}-${h.startedAt}`} className="flex flex-wrap justify-between gap-2 py-1.5">
                 <span className="font-medium text-nk-ink">{h.planName}</span>
                 <span className="text-nk-muted">
-                  {formatPlanDate(h.startedAt)} – {formatPlanDate(h.endsAt)} · {h.source === 'GRANTED' ? 'Granted by our team' : 'Purchased'} ·{' '}
+                  {formatPlanDate(h.startedAt)} – {formatPlanLastDay(h.endsAt)} · {h.source === 'GRANTED' ? 'Granted by our team' : h.source === 'TRIAL' ? 'Free launch trial' : 'Purchased'} ·{' '}
                   {STATUS_LABEL[h.status]}
                 </span>
               </li>

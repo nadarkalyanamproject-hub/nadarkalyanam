@@ -5,7 +5,7 @@ import { preferenceSummary } from '../../lib/partner-preferences';
 import { PREFERENCES_EDITOR_HREF } from '../../lib/search-categories';
 
 const BUTTON =
-  'inline-flex shrink-0 items-center justify-center rounded-xl bg-nk-maroon px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-nk-maroon-deep sm:text-sm';
+  'inline-flex shrink-0 items-center justify-center rounded-xl border border-nk-line-gold bg-nk-cream px-4 py-2 text-xs font-semibold text-nk-maroon-deep transition-colors hover:border-nk-gold-light hover:bg-[#FBF1DC] sm:text-sm';
 
 // "Set Your Preferences" on Home: an invitation when none are saved, or a
 // short summary of what is saved (only real values) with a way to update.

@@ -1,3 +1,5 @@
+import type { MembershipPlanResponse } from '@nadar-kalyanam/schemas';
+
 // Pure display helpers for the Membership page (unit-tested in
 // membership.spec.ts). Everything shown comes from GET /membership-plans and
 // GET /me/membership; these only format it.
@@ -27,6 +29,18 @@ export function durationLabel(days: number): string {
 // "5 Oct 2026" — expiry dates, in India time.
 export function formatPlanDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+}
+
+// The last day a plan covers, in India time. A plan ending exactly at
+// 00:00 IST (the launch trial: 20 Feb 00:00 → 23 Mar 00:00) covers up to
+// the day before, so "20 Feb – 22 Mar" rather than "– 23 Mar".
+export function formatPlanLastDay(endsAtIso: string): string {
+  return formatPlanDate(new Date(new Date(endsAtIso).getTime() - 1).toISOString());
+}
+
+// Whole India-time days from now until `iso` (0 once it's today or past).
+export function daysUntil(iso: string, now: Date = new Date()): number {
+  return Math.max(0, Math.ceil((new Date(iso).getTime() - now.getTime()) / (24 * 60 * 60 * 1000)));
 }
 
 // The VIP enquiry link. NEXT_PUBLIC_WHATSAPP_NUMBER is digits with country
@@ -88,4 +102,45 @@ export function supportContactLinks(contact: { email: string | null; whatsappNum
   const wa = whatsappHref(contact?.whatsappNumber ?? undefined, 'Hi, I have a question about Nadar Kalyanam');
   if (wa && contact?.whatsappNumber) links.push({ kind: 'whatsapp', label: `+${contact.whatsappNumber}`, href: wa });
   return links;
+}
+
+export interface LockedFeature {
+  key: string;
+  label: string;
+  // The cheapest plan that adds it: what the "Upgrade" points at.
+  planCode: string;
+  planName: string;
+  // Not delivered yet even on that plan (shown with Coming Soon).
+  comingSoon: boolean;
+}
+
+type ComparablePlan = Pick<MembershipPlanResponse, 'code' | 'name' | 'isAssisted' | 'priceInPaise' | 'phoneUnlockLimit' | 'features'>;
+
+// What a self-serve plan (e.g. Gold) doesn't include but a pricier
+// self-serve plan does, each tagged with the cheapest plan that adds it.
+// Used to show those options locked, with an upgrade. Assisted plans and
+// unknown codes get nothing: there's nothing to upgrade to from them.
+export function lockedFeatures(planCode: string, plans: ComparablePlan[]): LockedFeature[] {
+  const current = plans.find((p) => p.code === planCode);
+  if (!current || current.isAssisted) return [];
+  const higher = plans
+    .filter((p) => !p.isAssisted && p.priceInPaise > current.priceInPaise)
+    .sort((a, b) => a.priceInPaise - b.priceInPaise);
+  const have = new Set(current.features.map((f) => f.key));
+  const locked: LockedFeature[] = [];
+
+  // Same feature key ("phoneNumbers") on every plan, so compare the limit.
+  const unlimited = current.phoneUnlockLimit !== null && higher.find((p) => p.phoneUnlockLimit === null);
+  if (unlimited) {
+    locked.push({ key: 'unlimitedPhoneNumbers', label: 'Unlimited phone number unlocks', planCode: unlimited.code, planName: unlimited.name, comingSoon: false });
+  }
+  for (const plan of higher) {
+    for (const f of plan.features) {
+      if (have.has(f.key)) continue;
+      have.add(f.key);
+      locked.push({ key: f.key, label: f.label, planCode: plan.code, planName: plan.name, comingSoon: !f.available });
+    }
+  }
+  // Things members can use today first.
+  return [...locked.filter((f) => !f.comingSoon), ...locked.filter((f) => f.comingSoon)];
 }

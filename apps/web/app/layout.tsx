@@ -3,6 +3,7 @@ import { Cinzel, Cormorant_Garamond, Plus_Jakarta_Sans, Source_Serif_4 } from 'n
 import { RegistrationProvider } from './providers/registration-provider';
 import { NavigationTracker } from '../lib/navigation-history';
 import { SiteFooter } from '../components/site-footer';
+import { MotionProvider } from '../components/motion/motion';
 import './globals.css';
 
 // Headings (--font-heading). --font-playfair is kept as an alias in
@@ -51,8 +52,10 @@ export default function RootLayout({
       <body>
         <NavigationTracker />
         <RegistrationProvider>
-          {children}
-          <SiteFooter />
+          <MotionProvider>
+            {children}
+            <SiteFooter />
+          </MotionProvider>
         </RegistrationProvider>
       </body>
     </html>

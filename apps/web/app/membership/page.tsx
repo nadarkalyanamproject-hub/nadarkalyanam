@@ -14,6 +14,9 @@ import { ApiError, createOrder, getMyMembership, listMembershipPlans } from '../
 import { discountPercent, durationLabel, formatPrice, whatsappHref } from '../../lib/membership';
 import { useRegistration } from '../providers/registration-provider';
 import { Check, Crown, EyeOff, Lock, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react';
+import { motion } from 'motion/react';
+import { BUTTON_MOTION, CARD_MOTION, Reveal, StaggerGroup, StaggerItem } from '@/components/motion/motion';
+import { CountDownPrice, SAVING_DELAY, StrikeIn } from '@/components/motion/price-animation';
 
 const VIP_WHATSAPP = whatsappHref(
   process.env.NEXT_PUBLIC_WHATSAPP_NUMBER,
@@ -35,60 +38,108 @@ type OrderState =
 // display name, which admins can edit.
 const POPULAR_PLAN_CODE = 'GOLD_PREMIUM';
 
+// Card colour schemes: 'light' plan cards (black text on white), the
+// 'black' Popular card (white on black) and the maroon 'vip' card.
+type Tone = 'light' | 'black' | 'vip';
+const TONE = {
+  light: {
+    text: 'text-[#1D1D1F]',
+    muted: 'text-[#6E6E73]',
+    strike: 'text-[#86868B]',
+    price: 'text-black',
+    check: 'text-black',
+    lock: 'bg-[#F2F2F2] text-[#86868B]',
+    unavailable: 'text-[#6E6E73]',
+  },
+  black: {
+    text: 'text-[#F5F5F7]',
+    muted: 'text-[#A1A1A6]',
+    strike: 'text-[#86868B]',
+    price: 'text-white',
+    check: 'text-white',
+    lock: 'bg-white/10 text-[#A1A1A6]',
+    unavailable: 'text-[#A1A1A6]',
+  },
+  vip: {
+    text: 'text-[#E2D2C8]',
+    muted: 'text-[#E2D2C8]/80',
+    strike: 'text-[#E2D2C8]/60',
+    price: 'text-[#FDE59C]',
+    check: 'bg-[#FAF5EC] text-nk-gold',
+    lock: 'bg-white/10 text-[#E2D2C8]/60',
+    unavailable: 'text-[#E2D2C8]/75',
+  },
+} as const;
+
 // One feature line. Features the product can't deliver yet are shown as
 // Coming Soon, never with a checkmark.
-function FeatureLine({ feature, plan, dark = false }: { feature: PlanFeature; plan: MembershipPlanResponse; dark?: boolean }) {
+function FeatureLine({ feature, plan, tone = 'light' }: { feature: PlanFeature; plan: MembershipPlanResponse; tone?: Tone }) {
+  const t = TONE[tone];
   return (
-    <li className={`flex items-start gap-2.5 text-xs sm:text-sm ${dark ? 'text-[#E2D2C8]' : 'text-[#443833]'}`} data-testid="plan-feature" data-available={feature.available}>
+    <li className={`flex items-start gap-2.5 text-sm ${t.text}`} data-testid="plan-feature" data-available={feature.available}>
       <span
-        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${
-          feature.available ? 'bg-[#FAF5EC] text-nk-gold' : dark ? 'bg-white/10 text-[#E2D2C8]/60' : 'bg-[#F4F0EA] text-nk-subtle'
-        }`}
+        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${feature.available ? t.check : t.lock}`}
       >
-        {feature.available ? <Check className="h-3 w-3 stroke-[2.5]" /> : <Lock className="h-2.5 w-2.5" />}
+        {feature.available ? <Check className="h-3.5 w-3.5 stroke-[2.5]" /> : <Lock className="h-2.5 w-2.5" />}
       </span>
       {/* Inline, so the info icon and Coming Soon tag follow the text
           instead of wrapping onto a line of their own. */}
       <span className="min-w-0">
-        <span className={feature.available ? '' : dark ? 'text-[#E2D2C8]/75' : 'text-nk-muted'}>{feature.label}</span>
+        <span className={feature.available ? '' : t.unavailable}>{feature.label}</span>
         {!feature.available && (
           <span className="ml-1.5 inline-block align-middle">
             <ComingSoonPill />
           </span>
         )}
         {feature.key === 'phoneNumbers' && (
-          <ContactInfoCard phoneUnlockLimit={plan.phoneUnlockLimit} position="top" align="left" className="ml-1 align-middle" />
+          <ContactInfoCard phoneUnlockLimit={plan.phoneUnlockLimit} position="top" align="center" className="ml-1 align-middle" />
         )}
       </span>
     </li>
   );
 }
 
-// The price, with the struck-out original price and % off only when the
-// plan has a real original price (set in admin). Members are always charged
-// the price.
-function PriceBlock({ plan, dark = false }: { plan: MembershipPlanResponse; dark?: boolean }) {
+// The price, with the struck-out original price and the saving only when
+// the plan has a real original price (set in admin). Members are always
+// charged the price. The saving is a quiet line that fades in once the
+// count-down ends.
+function PriceBlock({ plan, tone = 'light' }: { plan: MembershipPlanResponse; tone?: Tone }) {
+  const t = TONE[tone];
   const percent = discountPercent(plan.priceInPaise, plan.originalPriceInPaise);
   return (
     <div className="text-center">
-      {percent !== null && (
-        <p className={`text-xs font-bold ${dark ? 'text-[#8EE0B4]' : 'text-[#2E7D5B]'}`} data-testid="plan-discount">
-          {percent}% OFF
-        </p>
-      )}
       <div className="flex items-baseline justify-center gap-2.5">
         {percent !== null && plan.originalPriceInPaise !== null && (
-          <span className={`text-base sm:text-lg font-medium line-through ${dark ? 'text-[#E2D2C8]/60' : 'text-nk-subtle'}`} data-testid="plan-original-price">
+          <StrikeIn className={`text-base sm:text-lg font-medium ${t.strike}`} testId="plan-original-price">
             {formatPrice(plan.originalPriceInPaise)}
-          </span>
+          </StrikeIn>
         )}
-        <span className={`text-3xl sm:text-4xl font-extrabold tracking-tight ${dark ? 'text-[#FDE59C]' : 'text-nk-ink'}`} data-testid="plan-price">
-          {formatPrice(plan.priceInPaise)}
-        </span>
+        <CountDownPrice
+          from={percent !== null && plan.originalPriceInPaise !== null ? plan.originalPriceInPaise : plan.priceInPaise}
+          to={plan.priceInPaise}
+          className={`text-3xl sm:text-4xl font-bold tabular-nums tracking-tight ${t.price}`}
+          testId="plan-price"
+        />
       </div>
+      {percent !== null && plan.originalPriceInPaise !== null && (
+        <motion.p
+          initial={{ opacity: 0, y: 4 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1], delay: SAVING_DELAY }}
+          className={`mt-1.5 text-[13px] font-medium tracking-[-0.01em] ${t.muted}`}
+          data-testid="plan-discount"
+        >
+          Save {formatPrice(plan.originalPriceInPaise - plan.priceInPaise)} · {percent}% off
+        </motion.p>
+      )}
     </div>
   );
 }
+
+// A plan card shows at most this many lines: only what the plan includes
+// today (Coming Soon items are listed in Membership Benefits instead).
+const CARD_FEATURE_LIMIT = 6;
 
 function SelfServeCard({
   plan,
@@ -101,56 +152,67 @@ function SelfServeCard({
   disabled: boolean;
   onChoose: () => void;
 }) {
+  // The Popular plan is the one black card, so it stands out without colour.
   const popular = plan.code === POPULAR_PLAN_CODE;
+  const tone: Tone = popular ? 'black' : 'light';
+  const t = TONE[tone];
+  const rule = popular ? 'border-white/12' : 'border-black/8';
   return (
-    <div
+    <motion.div
+      {...CARD_MOTION}
       data-testid="plan-card"
       data-plan-code={plan.code}
       data-popular={popular || undefined}
-      className={`relative flex flex-col rounded-2xl bg-white shadow-sm transition-shadow duration-200 hover:shadow-md ${
-        popular ? 'border-2 border-nk-gold' : 'border border-nk-line'
+      className={`relative flex h-full flex-col rounded-3xl transition-shadow duration-300 ${
+        popular
+          ? 'bg-[#0B0B0C] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.55)] hover:shadow-[0_28px_60px_-20px_rgba(0,0,0,0.6)]'
+          : 'border border-black/8 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.18)]'
       }`}
     >
       {popular && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-md bg-nk-gold-text px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white" data-testid="plan-popular">
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-nk-gold-light px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black" data-testid="plan-popular">
           Popular
         </span>
       )}
-      <div className="flex flex-1 flex-col p-5 sm:p-6">
-        <div className="border-b border-nk-line-soft pb-3 text-center">
-          <h2 className="text-lg sm:text-xl font-bold uppercase tracking-wide text-nk-ink">{plan.name}</h2>
-          <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wider text-nk-subtle">{durationLabel(plan.durationDays)}</p>
+      <div className="flex flex-1 flex-col p-6 sm:p-7">
+        <div className={`border-b pb-4 text-center ${rule}`}>
+          <h2 className={`text-xl sm:text-2xl font-semibold tracking-tight ${popular ? 'text-white' : 'text-black'}`}>{plan.name}</h2>
+          <p className={`mt-1 text-xs font-medium uppercase tracking-wider ${t.muted}`}>{durationLabel(plan.durationDays)}</p>
           {plan.description && (
-            <p className="mt-1.5 text-xs text-nk-muted" data-testid="plan-description">
+            <p className={`mt-1.5 text-xs ${t.muted}`} data-testid="plan-description">
               {plan.description}
             </p>
           )}
         </div>
-        <div className="py-4">
-          <PriceBlock plan={plan} />
+        <div className="py-5">
+          <PriceBlock plan={plan} tone={tone} />
         </div>
-        <ul className="flex-1 space-y-2.5 pb-4">
-          {plan.features.map((feature) => (
-            <FeatureLine key={feature.key} feature={feature} plan={plan} />
-          ))}
-        </ul>
-        <div className="border-t border-nk-line-soft pt-3">
-          <button
+        <div className="flex-1 pb-5">
+          <ul className="space-y-3">
+            {plan.features
+              .filter((feature) => feature.available)
+              .slice(0, CARD_FEATURE_LIMIT)
+              .map((feature) => (
+                <FeatureLine key={feature.key} feature={feature} plan={plan} tone={tone} />
+              ))}
+          </ul>
+        </div>
+        <div>
+          <motion.button
+            {...BUTTON_MOTION}
             type="button"
             data-testid="choose-plan"
             disabled={disabled}
             onClick={onChoose}
-            className={`w-full cursor-pointer rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold shadow-xs transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${
-              popular
-                ? 'bg-nk-maroon-deep text-white hover:bg-[#550809]'
-                : 'border border-[#DFC392] bg-[#FDF9F3] text-nk-maroon-deep hover:bg-[#F7EBDC]'
+            className={`w-full cursor-pointer rounded-full px-4 py-3 text-sm font-semibold transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${
+              popular ? 'bg-white text-black hover:bg-[#E8E8ED]' : 'bg-black text-white hover:bg-[#2C2C2E]'
             }`}
           >
             {buttonLabel}
-          </button>
+          </motion.button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -267,7 +329,7 @@ export default function MembershipPage() {
         </div>
 
         {/* The member's own plan, from GET /me/membership. */}
-        {accessToken && membership && <MyMembershipPanel me={membership} />}
+        {accessToken && membership && <MyMembershipPanel me={membership} plans={plansState.kind === 'loaded' ? plansState.plans : null} />}
 
         {plansState.kind === 'loading' && <p className="text-center text-sm text-nk-muted">Loading plans…</p>}
         {plansState.kind === 'error' && (
@@ -304,21 +366,25 @@ export default function MembershipPage() {
         )}
 
         {selfServe.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 items-stretch">
+          <StaggerGroup id="plans" className="grid scroll-mt-24 grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 items-stretch">
             {selfServe.map((plan) => (
-              <SelfServeCard
-                key={plan.id}
-                plan={plan}
-                buttonLabel={chooseLabel(plan, 'Choose Plan')}
-                disabled={paymentsUnavailable || orderState.kind === 'creating'}
-                onChoose={() => void handleChoose(plan)}
-              />
+              // Each animated card is its own stacking context, so a card with
+              // its phone-info popup open is lifted above the cards beside it.
+              <StaggerItem key={plan.id} className="relative has-[[role=dialog]]:z-20">
+                <SelfServeCard
+                  plan={plan}
+                  buttonLabel={chooseLabel(plan, 'Choose Plan')}
+                  disabled={paymentsUnavailable || orderState.kind === 'creating'}
+                  onChoose={() => void handleChoose(plan)}
+                />
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerGroup>
         )}
 
         {assisted.map((plan) => (
-          <section
+          <Reveal
+            as="section"
             key={plan.id}
             data-testid="plan-card"
             data-plan-code={plan.code}
@@ -341,7 +407,7 @@ export default function MembershipPage() {
                 </p>
                 <ul className="space-y-2.5 pt-1">
                   {plan.features.map((feature) => (
-                    <FeatureLine key={feature.key} feature={feature} plan={plan} dark />
+                    <FeatureLine key={feature.key} feature={feature} plan={plan} tone="vip" />
                   ))}
                 </ul>
               </div>
@@ -350,19 +416,20 @@ export default function MembershipPage() {
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-[#E2D2C8]/80">{durationLabel(plan.durationDays)}</p>
                   <div className="my-3 border-y border-white/15 py-4">
-                    <PriceBlock plan={plan} dark />
+                    <PriceBlock plan={plan} tone="vip" />
                   </div>
                 </div>
                 <div className="space-y-2.5">
-                  <button
+                  <motion.button
+                    {...BUTTON_MOTION}
                     type="button"
                     data-testid="choose-plan"
                     disabled={paymentsUnavailable || orderState.kind === 'creating'}
                     onClick={() => void handleChoose(plan)}
-                    className="w-full cursor-pointer rounded-xl bg-gradient-to-r from-nk-gold-light to-[#F1D278] px-4 py-2.5 text-xs sm:text-sm font-bold text-[#2D0D12] shadow-md transition-all hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="w-full cursor-pointer rounded-xl bg-gradient-to-r from-nk-gold-light to-[#F1D278] px-4 py-2.5 text-xs sm:text-sm font-bold text-[#2D0D12] shadow-md transition-[opacity,box-shadow] hover:shadow-lg hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {chooseLabel(plan, `Choose ${plan.name}`)}
-                  </button>
+                  </motion.button>
                   <VipEnquiry />
                   <Link href="/contact" className="block text-[11px] font-semibold text-white/80 underline-offset-2 hover:text-white hover:underline" data-testid="vip-contact-link">
                     Questions? Contact us
@@ -382,7 +449,7 @@ export default function MembershipPage() {
                 </div>
               </div>
             </div>
-          </section>
+          </Reveal>
         ))}
 
         <div className="pt-2" data-testid="membership-benefits">
@@ -390,9 +457,9 @@ export default function MembershipPage() {
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-nk-ink">Membership Benefits</h2>
             <p className="text-xs text-nk-muted">Designed to help Nadar families find compatible matches safely and comfortably</p>
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StaggerGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {BENEFITS.map(({ icon: Icon, title, text, comingSoon }) => (
-              <div key={title} className="flex items-start gap-3 rounded-xl border border-nk-line bg-white p-4 shadow-xs">
+              <StaggerItem key={title} className="flex items-start gap-3 rounded-xl border border-nk-line bg-white p-4 shadow-xs transition-shadow hover:shadow-md">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#EEDFCD] bg-[#FAF5EC] text-nk-gold">
                   <Icon className="h-5 w-5" />
                 </div>
@@ -403,9 +470,9 @@ export default function MembershipPage() {
                   </h3>
                   <p className="mt-0.5 text-xs leading-relaxed text-nk-muted">{text}</p>
                 </div>
-              </div>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerGroup>
         </div>
       </main>
     </div>

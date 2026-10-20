@@ -1,100 +1,104 @@
 'use client';
 
-import Link from 'next/link';
 import type { MembershipPlanResponse } from '@nadar-kalyanam/schemas';
-import { PhoneCall, UserCheck, Users } from 'lucide-react';
-import { VipEnquiry } from '../membership/vip-enquiry';
-import { durationLabel, formatPrice } from '../../lib/membership';
+import { ArrowRight, Crown, HeartHandshake, PhoneCall, UserCheck } from 'lucide-react';
+import { discountPercent, durationLabel, formatPrice } from '../../lib/membership';
+import { motion } from 'motion/react';
+import { CountDownPrice, SAVING_DELAY, StrikeIn } from '../motion/price-animation';
+import { BUTTON_MOTION, MotionLink, Reveal } from '../motion/motion';
 
 // The assisted services the promo describes. They aren't running yet, so the
-// promo says "starting soon" and its button asks the team to call back
-// (a real VIP enquiry), never claims a manager is already assigned.
+// promo says "starting soon" rather than claiming a manager is assigned.
 const SERVICES = [
-  { icon: Users, text: 'Handpicked, pre-screened matches' },
-  { icon: UserCheck, text: 'Regular follow-ups with interested families' },
-  { icon: PhoneCall, text: 'Help arranging family calls and meetings' },
+  { icon: UserCheck, text: 'Handpicked, pre-screened matches' },
+  { icon: HeartHandshake, text: 'Follow-ups with interested families' },
+  { icon: PhoneCall, text: 'Help arranging family meetings' },
 ];
 
-function GoldBadge() {
-  return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#F1D278] to-[#B8892A] shadow-md">
-      <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#3E1118]" fill="currentColor" aria-hidden="true">
-        <path d="M12 2.5l2.4 2 3.1-.3.7 3 2.6 1.8-1.2 2.9 1.2 2.9-2.6 1.8-.7 3-3.1-.3-2.4 2-2.4-2-3.1.3-.7-3-2.6-1.8L4.4 12 3.2 9.1l2.6-1.8.7-3 3.1.3L12 2.5Zm0 5.2-1.3 2.7-3 .4 2.2 2.1-.5 3L12 14.5l2.6 1.4-.5-3 2.2-2.1-3-.4L12 7.7Z" />
-      </svg>
-    </span>
-  );
-}
+// A compact VIP strip: plain deep maroon, one serif line, the services as
+// text, and the price with a single gold button. No photo or decoration.
+export function VipPromo({ plan }: { plan: MembershipPlanResponse }) {
+  const percentOff = discountPercent(plan.priceInPaise, plan.originalPriceInPaise);
+  const hasDiscount = percentOff !== null && plan.originalPriceInPaise !== null;
 
-// Stock photo of a matchmaker (Avinash Narnaware on Unsplash, Unsplash
-// License): illustrative only. Swap for a real team photo via `imageUrl`
-// when the client provides one.
-const DEFAULT_IMAGE = '/assets/vip-matchmaker.jpg';
-
-export function VipPromo({ plan, imageUrl = DEFAULT_IMAGE }: { plan: MembershipPlanResponse; imageUrl?: string }) {
   return (
-    <section
-      className="relative overflow-hidden rounded-3xl border border-nk-gold-light/40 bg-gradient-to-br from-[#3A0E15] via-[#4A121B] to-[#2A0A0F] text-white shadow-xl"
+    <Reveal
+      as="section"
+      className="relative overflow-hidden rounded-2xl border border-[#5A1A24] bg-[#3A0E15]"
       data-testid="home-vip-promo"
     >
-      {/* Soft mandala corner, like the reference's leaf motif */}
-      <svg viewBox="0 0 100 100" className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 text-nk-gold-light/15" aria-hidden="true">
-        <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" />
-        <circle cx="50" cy="50" r="32" fill="none" stroke="currentColor" />
-        <circle cx="50" cy="50" r="18" fill="none" stroke="currentColor" />
-      </svg>
-
-      {/* Matchmaker photo: fills the right side on wider screens, fading into
-          the maroon on its left edge. */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[40%] md:block" aria-hidden="true">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={imageUrl}
-          alt=""
-          className="h-full w-full object-cover object-[50%_18%] opacity-95 [mask-image:linear-gradient(to_right,transparent_0%,black_45%)]"
-        />
-      </div>
-
-      <div className="relative flex flex-col gap-6 p-6 sm:p-8 md:flex-row md:items-center lg:p-10">
-        <div className="min-w-0 flex-1 md:max-w-[62%]">
-          <div className="flex items-center gap-3">
-            <GoldBadge />
-            <h2 className="text-xl font-bold text-[#F6DE94] sm:text-2xl">VIP Gold Plus Service</h2>
-          </div>
-          <p className="mt-2 text-base font-semibold text-white sm:text-lg">
-            Find your match with a <span className="text-[#F6DE94]">dedicated Relationship Manager</span>
+      <Crown
+        className="pointer-events-none absolute -right-6 -bottom-8 hidden h-48 w-48 text-nk-gold-light/[0.06] lg:block"
+        strokeWidth={1}
+        aria-hidden="true"
+      />
+      <div className="h-px bg-gradient-to-r from-transparent via-nk-gold-light/60 to-transparent" aria-hidden="true" />
+      <div className="relative flex flex-col gap-8 px-6 py-10 sm:px-12 sm:py-14 md:flex-row md:items-center md:justify-between md:gap-10">
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-nk-gold-light">
+            <Crown className="h-4 w-4" aria-hidden="true" />
+            VIP Gold Plus · Assisted service
           </p>
+          <h2 className="mt-3 font-serif text-2xl font-semibold leading-snug text-[#F0D58C] sm:text-3xl">
+            Find your match with a dedicated Relationship Manager
+          </h2>
+          <ul className="mt-4 space-y-2 text-base text-[#CDB3A6]">
+            {SERVICES.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-center gap-3">
+                <Icon className="h-4 w-4 shrink-0 text-nk-gold-light" strokeWidth={1.75} aria-hidden="true" />
+                {text}
+              </li>
+            ))}
+          </ul>
+        </div>
 
-          <div className="mt-5 max-w-xl rounded-2xl border border-nk-gold-light/45 bg-black/15 p-5">
-            <ul className="space-y-3.5">
-              {SERVICES.map(({ icon: Icon, text }) => (
-                <li key={text} className="flex items-center gap-3 text-sm text-[#F3E6DC] sm:text-[15px]">
-                  <Icon className="h-5 w-5 shrink-0 text-[#E9C46A]" />
-                  {text}
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
-              <div className="w-full sm:w-auto">
-                <VipEnquiry
-                  label="Request a Relationship Manager"
-                  returnTo="/"
-                  buttonClassName="w-full cursor-pointer rounded-xl bg-gradient-to-r from-[#B8892A] via-[#E9C46A] to-[#B8892A] px-6 py-3 text-sm font-bold text-[#3A0E15] shadow-lg transition-opacity hover:opacity-95 sm:w-auto"
-                />
-              </div>
-              <Link href="/membership" className="text-xs font-semibold text-[#F6DE94] underline-offset-2 hover:underline">
-                VIP plan: {formatPrice(plan.priceInPaise)} for {durationLabel(plan.durationDays)}
-              </Link>
-            </div>
-            <p className="mt-3 text-[11px] text-[#E2D2C8]/75" data-testid="vip-promo-note">
-              Assisted services are starting soon. Send a request and our team will call you on your registered number.
+        <div className="flex shrink-0 items-center gap-10 border-t border-white/10 pt-6 md:border-l md:border-t-0 md:pl-12 md:pt-0">
+          <div>
+            <p className="flex items-center gap-1.5 text-sm uppercase tracking-wider text-[#B99A8C]">
+              <Crown className="h-3.5 w-3.5 text-nk-gold-light" aria-hidden="true" />
+              {durationLabel(plan.durationDays)} VIP plan
+            </p>
+            <p className="mt-0.5 flex items-baseline gap-2">
+              <CountDownPrice
+                from={hasDiscount ? plan.originalPriceInPaise! : plan.priceInPaise}
+                to={plan.priceInPaise}
+                className="text-4xl font-bold tabular-nums text-[#F0D58C]"
+                testId="vip-promo-price"
+              />
+              {hasDiscount && (
+                <StrikeIn className="text-lg text-[#9C7F73]">{formatPrice(plan.originalPriceInPaise!)}</StrikeIn>
+              )}
+            </p>
+            {hasDiscount && (
+              <motion.p
+                className="text-sm font-semibold text-nk-gold-light"
+                data-testid="vip-promo-discount"
+                initial={{ opacity: 0, y: 6 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ type: 'spring', stiffness: 380, damping: 18, delay: SAVING_DELAY }}
+              >
+                Save {percentOff}%
+              </motion.p>
+            )}
+          </div>
+          <div className="flex flex-col items-start gap-2">
+            <MotionLink
+              {...BUTTON_MOTION}
+              href="/membership"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#D9B45A] px-7 py-3.5 text-base font-semibold text-[#2A0A0F] transition-colors hover:bg-[#E6C36B]"
+              data-testid="vip-promo-cta"
+            >
+              <Crown className="h-4 w-4" aria-hidden="true" />
+              Get VIP Gold Plus
+              <ArrowRight className="h-4 w-4" />
+            </MotionLink>
+            <p className="text-sm text-[#B99A8C]" data-testid="vip-promo-note">
+              Assisted services are starting soon.
             </p>
           </div>
         </div>
-
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imageUrl} alt="" className="mx-auto h-56 w-full max-w-xs rounded-2xl object-cover object-[50%_18%] md:hidden" />
       </div>
-    </section>
+    </Reveal>
   );
 }

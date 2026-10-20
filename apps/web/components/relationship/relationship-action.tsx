@@ -9,6 +9,8 @@ import { relationshipActionView } from '../../lib/relationship-action';
 import { useRegistration } from '../../app/providers/registration-provider';
 
 import { ArrowRight, Check, Heart, HeartHandshake, MessageCircle } from 'lucide-react';
+import { motion } from 'motion/react';
+import { BUTTON_MOTION } from '../motion/motion';
 
 // Visual variants only — each surface keeps its existing button look. The
 // state -> action decision is relationshipActionView's, shared by all.
@@ -22,9 +24,9 @@ const SEND_CLASSES: Record<Exclude<Appearance, 'ui' | 'profile-hero'>, string> =
     'w-full text-xs font-semibold py-1.5 px-3 rounded-lg text-center whitespace-nowrap transition-all cursor-pointer bg-nk-maroon hover:bg-[#620D13] active:scale-[0.98] text-white shadow-xs disabled:cursor-not-allowed disabled:opacity-60',
 };
 const SENT_CLASSES: Record<Exclude<Appearance, 'ui' | 'profile-hero'>, string> = {
-  discovery: 'w-full rounded-lg bg-[#15803D] py-2 text-xs font-semibold text-white cursor-default',
-  home: 'w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 bg-[#15803D] text-white cursor-default',
-  matches: 'w-full text-xs font-semibold py-1.5 px-3 rounded-lg text-center whitespace-nowrap bg-[#15803D] text-white cursor-default',
+  discovery: 'w-full rounded-lg bg-nk-green py-2 text-xs font-semibold text-white cursor-default',
+  home: 'w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 bg-nk-green text-white cursor-default',
+  matches: 'w-full text-xs font-semibold py-1.5 px-3 rounded-lg text-center whitespace-nowrap bg-nk-green text-white cursor-default',
 };
 const LINK_CLASSES: Record<Exclude<Appearance, 'ui' | 'profile-hero'>, string> = {
   discovery:
@@ -107,7 +109,7 @@ export function RelationshipAction({
         <button
           type="button"
           disabled
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#15803D] px-6 py-2.5 text-sm font-semibold text-white cursor-default"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-nk-green px-6 py-2.5 text-sm font-semibold text-white cursor-default"
         >
           <Check className="h-4 w-4" strokeWidth={2.75} />
           <span>Interest Sent</span>
@@ -136,17 +138,44 @@ export function RelationshipAction({
         </Link>
       );
     }
+  } else if (appearance === 'home' && view.kind === 'send') {
+    // Light outlined button (it repeats on every card, so it stays quiet);
+    // fills maroon on hover, the heart beats, and it lifts on hover and
+    // presses in on tap (Framer Motion).
+    control = (
+      <motion.button
+        {...BUTTON_MOTION}
+        type="button"
+        disabled={sending}
+        onClick={() => void handleSend()}
+        className="group/send relative flex w-full cursor-pointer items-center justify-center gap-1.5 overflow-hidden rounded-xl border border-nk-maroon/35 bg-white px-3 py-2 text-xs font-bold text-nk-maroon transition-[background-color,color,border-color,box-shadow] duration-200 hover:border-nk-maroon hover:bg-nk-maroon hover:text-white hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        <span
+          className="pointer-events-none absolute inset-y-0 left-0 w-1/3 -translate-x-[120%] bg-gradient-to-r from-transparent via-white/20 to-transparent motion-safe:group-hover/send:animate-nk-shine"
+          aria-hidden="true"
+        />
+        <Heart
+          className={`h-3.5 w-3.5 fill-current ${sending ? 'motion-safe:animate-nk-heartbeat' : 'motion-safe:group-hover/send:animate-nk-heartbeat'}`}
+        />
+        <span>{sending ? 'Sending…' : view.label}</span>
+      </motion.button>
+    );
   } else if (appearance === 'home' && view.kind === 'sent') {
-    // Solid green "sent" state, same shape as the Send button it replaces.
+    // Solid muted green "sent" state, same shape as the Send button.
     // A short settle-in when this card's own send just landed.
     control = (
-      <div
+      <motion.div
         role="status"
-        className={`flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#15803D] px-3 py-2 text-xs font-semibold text-white ${justSent ? 'motion-safe:animate-nk-pop' : ''}`}
+        initial={justSent ? { scale: 0.9, opacity: 0.4 } : false}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-nk-green-deep bg-nk-green px-3 py-2 text-xs font-semibold text-white shadow-xs"
       >
-        <Check className="h-3.5 w-3.5" strokeWidth={2.75} />
+        <motion.span initial={justSent ? { scale: 0, rotate: -45 } : false} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 600, damping: 18, delay: 0.08 }}>
+          <Check className="h-3.5 w-3.5" strokeWidth={2.75} />
+        </motion.span>
         <span>{view.label}</span>
-      </div>
+      </motion.div>
     );
   } else if (view.kind === 'send' || view.kind === 'sent') {
     const disabled = view.kind === 'sent' || sending;

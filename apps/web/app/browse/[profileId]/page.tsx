@@ -5,26 +5,13 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import type { PublicProfileDetail } from '@nadar-kalyanam/schemas';
 import {
-  Activity,
   AlertTriangle,
   ArrowLeft,
-  Briefcase,
-  Building2,
-  Camera,
   Check,
-  Coins,
-  GraduationCap,
   Heart,
-  Home,
-  Info,
-  Languages,
   MapPin,
   Maximize2,
-  Quote,
   ShieldAlert,
-  ShieldCheck,
-  Sparkles,
-  Users,
 } from 'lucide-react';
 import { Card } from '@nadar-kalyanam/ui';
 import { AppHeader, UserIcon } from '../../../components/app-header';
@@ -64,35 +51,13 @@ function label(map: Record<string, string>, value: string | undefined): string {
   return map[value] ?? value;
 }
 
-function DataTile({
-  icon,
-  label: itemLabel,
-  value,
-  subvalue,
-  highlight = false,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-  subvalue?: string;
-  highlight?: boolean;
-}) {
+// One detail: a small grey label over the value, divided by a hairline.
+function DataTile({ label: itemLabel, value, subvalue }: { label: string; value: React.ReactNode; subvalue?: string }) {
   return (
-    <div
-      className={`group flex items-start gap-3.5 rounded-xl border p-3.5 transition-all duration-200 ${
-        highlight
-          ? 'border-[#F1DFBA] bg-gradient-to-br from-nk-ivory to-[#FFF8EE] shadow-2xs'
-          : 'border-[#F0EAE1] bg-[#FCFAF6]/60 hover:border-[#E5DDD0] hover:bg-white hover:shadow-2xs'
-      }`}
-    >
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-[#EBE3D5] text-nk-maroon shadow-2xs transition-colors group-hover:border-nk-line-strong">
-        {icon}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-nk-muted">{itemLabel}</p>
-        <div className="mt-0.5 text-sm font-semibold text-nk-ink break-words">{value || '—'}</div>
-        {subvalue ? <p className="mt-0.5 text-xs text-[#8A796E]">{subvalue}</p> : null}
-      </div>
+    <div className="border-b border-nk-line-soft py-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-nk-subtle">{itemLabel}</p>
+      <div className="mt-0.5 text-sm font-semibold text-nk-ink break-words">{value || '—'}</div>
+      {subvalue ? <p className="mt-0.5 text-xs text-nk-muted">{subvalue}</p> : null}
     </div>
   );
 }
@@ -242,6 +207,27 @@ function ViewProfilePageContent() {
                       <MapPin className="h-4 w-4 text-[#A86B76] shrink-0 stroke-[1.75]" />
                       <span>{[profile.location?.city, profile.location?.state].filter(Boolean).join(', ') || '—'}</span>
                     </div>
+                    {/* The essentials at a glance, as one line of text (name, age
+                        and place are already above). Only values the member
+                        actually entered. */}
+                    <p className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm font-medium text-nk-ink" data-testid="profile-key-facts">
+                      {[
+                        profile.height,
+                        profile.education?.profession,
+                        profile.education?.educationLevel,
+                        [profile.casteCommunity, profile.religion].filter(Boolean).join(', '),
+                        profile.maritalStatus ? (MARITAL_STATUS_LABELS[profile.maritalStatus] ?? profile.maritalStatus) : null,
+                        profile.motherTongue,
+                        profile.dosham === 'NO' ? 'No dosham' : null,
+                      ]
+                        .filter((fact): fact is string => Boolean(fact))
+                        .map((fact, i) => (
+                          <span key={fact} className="inline-flex items-center gap-2.5">
+                            {i > 0 && <span className="h-1 w-1 rounded-full bg-nk-subtle" aria-hidden="true" />}
+                            {fact}
+                          </span>
+                        ))}
+                    </p>
                     {profile.relationshipStatus === 'CONNECTED' && (
                       <div className="mt-2">
                         <ConnectedBadge />
@@ -326,50 +312,6 @@ function ViewProfilePageContent() {
                 <PhoneUnlockCard profileId={profile.id} memberName={profile.fullName} />
               </div>
 
-              {/* QUICK SNAPSHOT CHIPS BAR */}
-              <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#EDE6DB] bg-white/80 p-3.5 shadow-2xs backdrop-blur-xs">
-                {/* Chips show only values the member actually entered — no fallbacks. */}
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-nk-paper border border-nk-line-gold px-3 py-1 text-xs font-semibold text-nk-ink-soft">
-                  <span>🎂</span> {profile.age} yrs{profile.height ? ` • ${profile.height}` : ''}
-                </span>
-                {profile.education?.profession && (
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-nk-paper border border-nk-line-gold px-3 py-1 text-xs font-semibold text-nk-ink-soft">
-                    <Briefcase className="h-3 w-3 text-nk-maroon" /> {profile.education.profession}
-                  </span>
-                )}
-                {profile.education?.educationLevel && (
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-nk-paper border border-nk-line-gold px-3 py-1 text-xs font-semibold text-nk-ink-soft">
-                    <GraduationCap className="h-3 w-3 text-nk-maroon" /> {profile.education.educationLevel}
-                  </span>
-                )}
-                {profile.location?.city && (
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-nk-paper border border-nk-line-gold px-3 py-1 text-xs font-semibold text-nk-ink-soft">
-                    <MapPin className="h-3 w-3 text-nk-maroon" /> {profile.location.city}
-                  </span>
-                )}
-                {(profile.casteCommunity || profile.religion) && (
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-nk-paper border border-nk-line-gold px-3 py-1 text-xs font-semibold text-nk-ink-soft">
-                    <Sparkles className="h-3 w-3 text-nk-gold" />{' '}
-                    {[profile.casteCommunity, profile.religion].filter(Boolean).join(', ')}
-                  </span>
-                )}
-                {profile.maritalStatus && (
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-nk-paper border border-nk-line-gold px-3 py-1 text-xs font-semibold text-nk-ink-soft">
-                    <span>💍</span> {MARITAL_STATUS_LABELS[profile.maritalStatus] ?? profile.maritalStatus}
-                  </span>
-                )}
-                {profile.motherTongue && (
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-nk-paper border border-nk-line-gold px-3 py-1 text-xs font-semibold text-nk-ink-soft">
-                    <Languages className="h-3 w-3 text-nk-maroon" /> {profile.motherTongue}
-                  </span>
-                )}
-                {profile.dosham === 'NO' && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800">
-                    <Check className="h-3 w-3 text-emerald-600" /> No Dosham
-                  </span>
-                )}
-              </div>
-
               <PreferenceFitNote fit={profile.preferenceFit} />
 
               {/* MAIN CONTENT 2-COLUMN GRID */}
@@ -380,12 +322,9 @@ function ViewProfilePageContent() {
                   {profile.photos.length > 0 && (
                     <div className="overflow-hidden rounded-3xl border border-nk-line-soft bg-white p-5 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
                       <div className="mb-4 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Camera className="h-4 w-4 text-nk-maroon" />
-                          <h2 className="text-sm font-bold text-nk-ink">Photos</h2>
-                        </div>
-                        <span className="rounded-md bg-nk-paper border border-nk-line-gold px-2.5 py-0.5 text-[11px] font-bold text-nk-muted">
-                          {profile.photos.length} {profile.photos.length === 1 ? 'Photo' : 'Photos'}
+                        <h2 className="text-sm font-bold text-nk-ink">Photos</h2>
+                        <span className="text-xs text-nk-muted">
+                          {profile.photos.length} {profile.photos.length === 1 ? 'photo' : 'photos'}
                         </span>
                       </div>
 
@@ -437,9 +376,6 @@ function ViewProfilePageContent() {
                   {/* Verification & Trust Badge Card */}
                   <div className="rounded-3xl border border-nk-line-soft bg-white p-5 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
                     <div className="flex items-center gap-2.5 pb-3 border-b border-nk-line-soft">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FEF3C7] text-[#92400E]">
-                        <ShieldCheck className="h-4 w-4" />
-                      </div>
                       <div>
                         <h3 className="text-sm font-bold text-nk-ink">Trust & Verification</h3>
                         <p className="text-[11px] text-nk-muted">Platform member safety</p>
@@ -448,23 +384,20 @@ function ViewProfilePageContent() {
 
                     {/* Only facts that are true for this member. There is no photo or
                         profile screening yet, and community isn't verified. */}
-                    <ul className="mt-4 space-y-2.5 text-xs text-nk-ink-soft">
-                      <li className="flex items-center gap-2">
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 text-[10px]">✓</span>
+                    <ul className="mt-4 space-y-2.5 text-xs text-nk-ink">
+                      <li className="flex items-start gap-2">
+                        <Check className="h-3.5 w-3.5 shrink-0 text-nk-ink" aria-hidden="true" />
                         <span>Mobile number confirmed with OTP</span>
                       </li>
-                      <li className="flex items-center gap-2">
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 text-[10px]">✓</span>
+                      <li className="flex items-start gap-2">
+                        <Check className="h-3.5 w-3.5 shrink-0 text-nk-ink" aria-hidden="true" />
                         <span>Email is never shown; a phone number only if its owner allows connected members with a paid plan to unlock it</span>
                       </li>
                     </ul>
 
-                    <div className="mt-4 rounded-xl bg-nk-paper p-3 text-[11px] leading-relaxed text-nk-muted border border-nk-line-gold/70">
-                      <div className="flex items-center gap-1 font-semibold text-nk-ink-soft">
-                        <Info className="h-3.5 w-3.5 text-nk-maroon" />
-                        <span>Safety Tip</span>
-                      </div>
-                      <p className="mt-1">
+                    <div className="mt-4 border-t border-nk-line-soft pt-3 text-[11px] leading-relaxed text-nk-muted">
+                      <p className="font-semibold text-nk-ink">Safety tip</p>
+                      <p className="mt-0.5">
                         Always converse politely and verify mutual horoscope and family details with elder guidance.
                       </p>
                     </div>
@@ -477,18 +410,10 @@ function ViewProfilePageContent() {
                   <div className="overflow-hidden rounded-3xl border border-nk-line-soft bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
                     <div className="flex items-center justify-between gap-3 border-b border-nk-line-soft pb-4">
                       <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FAF5F6] text-nk-maroon border border-[#F2D6DC]">
-                          <Quote className="h-4 w-4" />
-                        </div>
-                        <h2 className="font-[family-name:var(--font-playfair)] font-serif text-lg sm:text-xl font-bold text-[#1E293B]">
+                        <h2 className="font-[family-name:var(--font-playfair)] font-serif text-lg sm:text-xl font-bold text-nk-ink">
                           About {profile.fullName.split(' ')[0]}
                         </h2>
                       </div>
-                      {profile.additional?.familyType && (
-                        <span className="rounded-md bg-nk-paper border border-nk-line-gold px-3 py-1 text-xs font-semibold text-nk-maroon">
-                          {profile.additional.familyType}
-                        </span>
-                      )}
                     </div>
 
                     <div className="mt-4">
@@ -505,66 +430,43 @@ function ViewProfilePageContent() {
                   {/* Personal & Cultural Details */}
                   <div className="rounded-3xl border border-nk-line-soft bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
                     <div className="flex items-center gap-2.5 border-b border-nk-line-soft pb-4">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-nk-cream text-nk-gold border border-[#F1DFBA]">
-                        <Sparkles className="h-4 w-4" />
-                      </div>
                       <div>
-                        <h2 className="font-[family-name:var(--font-playfair)] font-serif text-lg sm:text-xl font-bold text-[#1E293B]">
+                        <h2 className="font-[family-name:var(--font-playfair)] font-serif text-lg sm:text-xl font-bold text-nk-ink">
                           Personal & Cultural Details
                         </h2>
                         <p className="text-xs text-nk-muted">Community, traditions, and physical attributes</p>
                       </div>
                     </div>
 
-                    <div className="mt-5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                    <div className="mt-2 grid grid-cols-1 gap-x-10 sm:grid-cols-2">
                       <DataTile
-                        icon={<span className="text-sm">📏</span>}
                         label="Height"
                         value={profile.height}
                       />
                       <DataTile
-                        icon={<Activity className="h-4 w-4" />}
                         label="Physical Status"
                         value={label(PHYSICAL_STATUS_LABELS, profile.physicalStatus)}
                       />
                       <DataTile
-                        icon={<span className="text-sm">💍</span>}
                         label="Marital Status"
                         value={label(MARITAL_STATUS_LABELS, profile.maritalStatus)}
                       />
                       <DataTile
-                        icon={<Languages className="h-4 w-4" />}
                         label="Mother Tongue"
                         value={profile.motherTongue}
                       />
                       <DataTile
-                        icon={<span className="text-sm">🕉️</span>}
                         label="Religion"
                         value={profile.religion}
                       />
                       <DataTile
-                        icon={<Users className="h-4 w-4" />}
                         label="Caste / Community"
                         value={profile.casteCommunity}
                       />
                       <div className="sm:col-span-2">
                         <DataTile
-                          icon={<Sparkles className="h-4 w-4 text-nk-gold" />}
                           label="Dosham"
-                          value={
-                            profile.dosham === 'NO' ? (
-                              <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
-                                <Check className="h-4 w-4" /> No Dosham
-                              </span>
-                            ) : profile.dosham === 'YES' ? (
-                              <span className="inline-flex items-center gap-1 text-amber-800 font-bold">
-                                ⚠️ Yes
-                              </span>
-                            ) : (
-                              label(DOSHAM_LABELS, profile.dosham)
-                            )
-                          }
-                          highlight={profile.dosham === 'NO'}
+                          value={label(DOSHAM_LABELS, profile.dosham)}
                         />
                       </div>
                     </div>
@@ -576,11 +478,8 @@ function ViewProfilePageContent() {
                   {/* Education & Career Details */}
                   <div className="rounded-3xl border border-nk-line-soft bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
                     <div className="flex items-center gap-2.5 border-b border-nk-line-soft pb-4">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FAF5F6] text-nk-maroon border border-[#F2D6DC]">
-                        <GraduationCap className="h-4 w-4" />
-                      </div>
                       <div>
-                        <h2 className="font-[family-name:var(--font-playfair)] font-serif text-lg sm:text-xl font-bold text-[#1E293B]">
+                        <h2 className="font-[family-name:var(--font-playfair)] font-serif text-lg sm:text-xl font-bold text-nk-ink">
                           Education & Career
                         </h2>
                         <p className="text-xs text-nk-muted">Professional background and qualifications</p>
@@ -588,11 +487,8 @@ function ViewProfilePageContent() {
                     </div>
 
                     {/* Prominent Profession Banner */}
-                    <div className="mt-5 rounded-2xl bg-gradient-to-r from-nk-ivory via-nk-paper to-nk-cream border border-nk-line-gold p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-3.5">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white border border-nk-line-gold text-nk-maroon shadow-xs">
-                          <Briefcase className="h-6 w-6" />
-                        </div>
+                    <div className="mt-5 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                      <div>
                         <div>
                           <p className="text-xs font-bold uppercase tracking-wider text-[#8A796E]">Designation</p>
                           <h3 className="text-base sm:text-lg font-bold text-nk-ink">
@@ -606,33 +502,29 @@ function ViewProfilePageContent() {
 
                       {/* Annual Income Badge */}
                       {profile.education.annualIncomeRange && (
-                        <div className="rounded-xl bg-white/90 border border-nk-line-gold px-4 py-2.5 sm:text-right shadow-2xs">
-                          <p className="text-[11px] font-bold uppercase tracking-wider text-nk-muted">Annual Income</p>
-                          <p className="text-sm font-bold text-nk-maroon">
+                        <div className="sm:text-right">
+                          <p className="text-xs font-bold uppercase tracking-wider text-[#8A796E]">Annual Income</p>
+                          <p className="text-base font-bold text-nk-ink">
                             {profile.education.annualIncomeCurrency || 'INR'} {profile.education.annualIncomeRange}
                           </p>
                         </div>
                       )}
                     </div>
 
-                    <div className="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                    <div className="mt-2 grid grid-cols-1 gap-x-10 sm:grid-cols-2">
                       <DataTile
-                        icon={<GraduationCap className="h-4 w-4" />}
                         label="Highest Education"
                         value={profile.education.educationLevel}
                       />
                       <DataTile
-                        icon={<span className="text-sm">🎓</span>}
                         label="Education Detail"
                         value={profile.education.educationDetail}
                       />
                       <DataTile
-                        icon={<Building2 className="h-4 w-4" />}
                         label="Employed In"
                         value={profile.education.employedIn}
                       />
                       <DataTile
-                        icon={<Coins className="h-4 w-4" />}
                         label="Income Range"
                         value={
                           profile.education?.annualIncomeRange?.trim()
@@ -646,30 +538,24 @@ function ViewProfilePageContent() {
                   {/* Location & Family Details */}
                   <div className="rounded-3xl border border-nk-line-soft bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
                     <div className="flex items-center gap-2.5 border-b border-nk-line-soft pb-4">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FAF5F6] text-nk-maroon border border-[#F2D6DC]">
-                        <Home className="h-4 w-4" />
-                      </div>
                       <div>
-                        <h2 className="font-[family-name:var(--font-playfair)] font-serif text-lg sm:text-xl font-bold text-[#1E293B]">
+                        <h2 className="font-[family-name:var(--font-playfair)] font-serif text-lg sm:text-xl font-bold text-nk-ink">
                           Location & Family Background
                         </h2>
                         <p className="text-xs text-nk-muted">Current residence and family background</p>
                       </div>
                     </div>
 
-                    <div className="mt-5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                    <div className="mt-2 grid grid-cols-1 gap-x-10 sm:grid-cols-2">
                       <DataTile
-                        icon={<MapPin className="h-4 w-4" />}
                         label="Current City"
                         value={profile.location.city}
                       />
                       <DataTile
-                        icon={<span className="text-sm">📍</span>}
                         label="State"
                         value={profile.location.state}
                       />
                       <DataTile
-                        icon={<Home className="h-4 w-4" />}
                         label="Family Status / Type"
                         value={profile.additional?.familyType}
                       />

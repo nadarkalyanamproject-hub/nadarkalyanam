@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import type { MembershipPlanResponse, MyMembershipResponse } from '@nadar-kalyanam/schemas';
 import { Check, Crown } from 'lucide-react';
-import { daysLeft, daysLeftLabel, discountPercent, durationLabel, formatPlanDate, formatPrice } from '../../lib/membership';
+import { daysLeft, daysLeftLabel, discountPercent, durationLabel, formatPlanDate, formatPrice, lockedFeatures } from '../../lib/membership';
+import { LockedFeatureList } from '../membership/locked-features';
 import { useMembershipPlans } from '../../lib/use-membership-plans';
 
 // Home page sidebar: the member's own plan at a glance, from
@@ -38,6 +39,12 @@ export function SubscriptionCard({ me, error }: { me: MyMembershipResponse | nul
 
 function ActivePlan({ me, plan }: { me: MyMembershipResponse; plan: NonNullable<MyMembershipResponse['plan']> }) {
   const left = me.expiresAt ? daysLeft(me.expiresAt) : null;
+  const plans = useMembershipPlans();
+  // Options the plan doesn't include (shown locked), and the plan that adds
+  // the first of them.
+  const locked = plans ? lockedFeatures(plan.code, plans) : [];
+  const next = locked.length > 0 ? plans?.find((p) => p.code === locked[0].planCode) : undefined;
+  const shown = locked.slice(0, 3);
   return (
     <>
       <h3 className="mt-2 text-lg font-bold text-nk-ink">{plan.name}</h3>
@@ -61,12 +68,32 @@ function ActivePlan({ me, plan }: { me: MyMembershipResponse; plan: NonNullable<
         </div>
       </dl>
 
-      <Link
-        href="/membership"
-        className="mt-5 block w-full rounded-lg border border-[#E7CDAF] py-2 text-center text-xs font-semibold text-nk-maroon transition-colors hover:bg-[#FFF8F0]"
-      >
-        Manage membership
-      </Link>
+      {next ? (
+        <>
+          <p className="mt-4 border-t border-nk-line-soft pt-4 text-[11px] font-semibold uppercase tracking-wider text-nk-subtle">Locked on {plan.name}</p>
+          <LockedFeatureList features={shown} dense className="mt-2" />
+          {locked.length > shown.length && (
+            <p className="mt-1.5 text-[11px] text-nk-subtle">+{locked.length - shown.length} more on higher plans</p>
+          )}
+          <Link
+            href="/membership#plans"
+            className="mt-4 block w-full rounded-lg bg-gradient-to-r from-[#B8892A] via-[#E9C46A] to-[#B8892A] py-2.5 text-center text-xs font-bold text-[#3A0E15] shadow-sm transition-[filter,box-shadow] hover:shadow-md hover:brightness-105"
+            data-testid="home-upgrade-cta"
+          >
+            Upgrade to {next.name}
+          </Link>
+          <Link href="/membership" className="mt-2 block text-center text-[11px] font-semibold text-nk-maroon underline-offset-2 hover:underline">
+            Manage membership
+          </Link>
+        </>
+      ) : (
+        <Link
+          href="/membership"
+          className="mt-5 block w-full rounded-lg border border-[#E7CDAF] py-2 text-center text-xs font-semibold text-nk-maroon transition-colors hover:bg-[#FFF8F0]"
+        >
+          Manage membership
+        </Link>
+      )}
     </>
   );
 }
@@ -127,7 +154,7 @@ function FreePlan({ me }: { me: MyMembershipResponse }) {
             aria-label="Interests used this month"
           >
             <div
-              className={`h-full rounded-sm ${used >= limit ? 'bg-[#B91C1C]' : 'bg-[#15803D]'}`}
+              className="h-full rounded-sm bg-nk-green"
               style={{ width: `${percent}%` }}
             />
           </div>
@@ -147,7 +174,7 @@ function FreePlan({ me }: { me: MyMembershipResponse }) {
 
       <Link
         href="/membership"
-        className="mt-5 block w-full rounded-lg bg-nk-maroon py-2.5 text-center text-xs font-semibold text-white transition-colors hover:bg-nk-maroon-deep"
+        className="mt-5 block w-full rounded-lg bg-gradient-to-r from-[#B8892A] via-[#E9C46A] to-[#B8892A] py-2.5 text-center text-xs font-bold text-[#3A0E15] shadow-sm transition-[filter,box-shadow] hover:shadow-md hover:brightness-105"
         data-testid="home-upgrade-cta"
       >
         {plan ? `Upgrade to ${plan.name}` : 'Choose a plan'}

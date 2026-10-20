@@ -35,6 +35,8 @@ function AuthenticatedHomeContent() {
   // undefined while loading, null when none are saved.
   const [preferences, setPreferences] = useState<SavedPartnerPreferences | null | undefined>(undefined);
   const [preferencesError, setPreferencesError] = useState<string | null>(null);
+  const [viewedByMe, setViewedByMe] = useState<ProfileCard[] | null>(null);
+  const [viewedByMeError, setViewedByMeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!data.accessToken || !profile) return;
@@ -66,17 +68,24 @@ function AuthenticatedHomeContent() {
       });
     listMatchCategory(token, 'newly-joined')
       .then((result) => {
-        if (!cancelled) setNewlyJoined(result.items.slice(0, 5));
+        if (!cancelled) setNewlyJoined(result.items.slice(0, 6));
       })
       .catch((err: unknown) => {
         if (!cancelled) setNewlyJoinedError(message(err, 'Could not load new members.'));
       });
     listMatchCategory(token, 'viewed-me')
       .then((result) => {
-        if (!cancelled) setViewedMe(result.items.slice(0, 5));
+        if (!cancelled) setViewedMe(result.items.slice(0, 6));
       })
       .catch((err: unknown) => {
         if (!cancelled) setViewedMeError(message(err, 'Could not load who viewed you.'));
+      });
+    listMatchCategory(token, 'viewed-by-me')
+      .then((result) => {
+        if (!cancelled) setViewedByMe(result.items.slice(0, 6));
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setViewedByMeError(message(err, 'Could not load profiles you viewed.'));
       });
 
     return () => {
@@ -84,10 +93,10 @@ function AuthenticatedHomeContent() {
     };
   }, [data.accessToken, profile]);
 
-  // One row (4 cards); the rest of the matches feed Daily Recommendations.
+  // One row (5 cards); the rest of the matches feed Daily Recommendations.
   // Connected members are left out of both (see splitHomeMatches).
   const { recommended, dailyPicks } = matches
-    ? splitHomeMatches(matches, { userId: data.userId ?? profile?.id ?? '', recommendedCount: 4, dailyCount: 5 })
+    ? splitHomeMatches(matches, { userId: data.userId ?? profile?.id ?? '', recommendedCount: 5, dailyCount: 6 })
     : { recommended: null, dailyPicks: null };
 
   if (!ready) return null;
@@ -121,7 +130,7 @@ function AuthenticatedHomeContent() {
               subtitle="Curated based on your preferences, location, and lifestyle."
               viewAllHref="/matches"
               viewAllLabel="View All Matches"
-              columns={4}
+              columns={5}
               profiles={recommended}
               error={matchesError}
               emptyMessage="No recommendations yet. New ones appear here as more members join."
@@ -171,6 +180,19 @@ function AuthenticatedHomeContent() {
           profiles={viewedMe}
           error={viewedMeError}
           emptyMessage="No one has viewed your profile yet. A complete profile with a clear photo gets more views."
+        />
+
+        {/* =========================================================================
+            7. PROFILES VIEWED BY YOU
+            ========================================================================= */}
+        <HomeProfileSection
+          testId="home-viewed-by-you"
+          title="Profiles Viewed by You"
+          subtitle="Members whose profiles you opened recently."
+          viewAllHref={searchCategoryHref('viewed-by-you')}
+          profiles={viewedByMe}
+          error={viewedByMeError}
+          emptyMessage="You haven't viewed any profiles yet. Open a member's profile and it will show up here."
         />
       </main>
     </>

@@ -5,6 +5,7 @@ import {
   discountPercent,
   durationLabel,
   formatPrice,
+  lockedFeatures,
   membershipBanner,
   supportContactLinks,
   whatsappHref,
@@ -88,5 +89,34 @@ describe('support contact links', () => {
   it('returns nothing when nothing is configured', () => {
     expect(supportContactLinks({ email: null, whatsappNumber: null })).toEqual([]);
     expect(supportContactLinks(null)).toEqual([]);
+  });
+});
+
+describe('lockedFeatures', () => {
+  const f = (key: string, available = true) => ({ key, label: key, available });
+  const plans = [
+    { code: 'GOLD', name: 'Gold', isAssisted: false, priceInPaise: 149900, phoneUnlockLimit: 50, features: [f('phoneNumbers'), f('messages')] },
+    { code: 'GOLD_PLUS', name: 'Gold Plus', isAssisted: false, priceInPaise: 229900, phoneUnlockLimit: null, features: [f('phoneNumbers'), f('messages'), f('searchPriority'), f('whatsapp', false)] },
+    { code: 'GOLD_PREMIUM', name: 'Gold Premium', isAssisted: false, priceInPaise: 599900, phoneUnlockLimit: null, features: [f('phoneNumbers'), f('searchPriority'), f('spotlight')] },
+    { code: 'VIP_ASSISTED', name: 'VIP', isAssisted: true, priceInPaise: 1299900, phoneUnlockLimit: 75, features: [f('matchmaker')] },
+  ];
+
+  it('locks what pricier self-serve plans add, tagged with the cheapest plan that adds it', () => {
+    expect(lockedFeatures('GOLD', plans).map((l) => [l.key, l.planCode, l.comingSoon])).toEqual([
+      ['unlimitedPhoneNumbers', 'GOLD_PLUS', false],
+      ['searchPriority', 'GOLD_PLUS', false],
+      ['spotlight', 'GOLD_PREMIUM', false],
+      ['whatsapp', 'GOLD_PLUS', true],
+    ]);
+  });
+
+  it('skips the phone line when the plan already has unlimited unlocks', () => {
+    expect(lockedFeatures('GOLD_PLUS', plans).map((l) => l.key)).toEqual(['spotlight']);
+  });
+
+  it('locks nothing on the top self-serve plan, assisted plans or unknown codes', () => {
+    expect(lockedFeatures('GOLD_PREMIUM', plans)).toEqual([]);
+    expect(lockedFeatures('VIP_ASSISTED', plans)).toEqual([]);
+    expect(lockedFeatures('NOPE', plans)).toEqual([]);
   });
 });
