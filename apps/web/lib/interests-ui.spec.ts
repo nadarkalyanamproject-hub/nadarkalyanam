@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { InterestResponse } from '@nadar-kalyanam/schemas';
-import { ageAndCity, formatInterestDate, mapApiInterestToDisplay, placeLine } from '../app/interests/page';
+import { ageAndCity, formatInterestDate, mapApiInterestToDisplay, placeLine } from './interests-ui';
 
 const interest: InterestResponse = {
   id: 'int_123',
