@@ -3,7 +3,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import type { MyMembershipResponse } from '@nadar-kalyanam/schemas';
-import { CalendarHeart, CheckCircle2, Circle, Crown } from 'lucide-react';
+import { CheckCircle2, Circle, Crown, Lock } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useRegistration } from '../../app/providers/registration-provider';
 import { getMyMembership } from '../../lib/api-client';
 import { daysUntil, formatPlanDate, formatPlanLastDay } from '../../lib/membership';
@@ -68,9 +69,20 @@ function PreLaunchScreen({ me, opensAt }: { me: MyMembershipResponse; opensAt: s
   return (
     <>
       <AppHeader />
-      <main className="min-h-[70vh] bg-nk-ivory px-4 py-16 sm:px-6" data-testid="pre-launch">
-        <div className="mx-auto max-w-lg rounded-2xl border border-nk-line bg-white p-8 text-center shadow-xs">
-          <CalendarHeart className="mx-auto h-8 w-8 text-nk-gold" />
+      <main className="relative min-h-[70vh] overflow-hidden bg-nk-ivory px-4 py-16 sm:px-6" data-testid="pre-launch">
+        <LockedProfilesBackdrop />
+        <div className="relative mx-auto max-w-lg rounded-2xl border border-nk-line bg-white/95 p-8 text-center shadow-[0_24px_60px_-24px_rgba(74,13,18,0.35)] backdrop-blur-sm">
+          <div className="relative mx-auto flex h-14 w-14 items-center justify-center">
+            <motion.span
+              aria-hidden="true"
+              className="absolute inset-0 rounded-full bg-nk-maroon/10"
+              animate={{ scale: [1, 1.35, 1], opacity: [0.7, 0, 0.7] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-nk-maroon-deep text-[#F6E3A8] shadow-md">
+              <Lock className="h-6 w-6" />
+            </span>
+          </div>
           <h1 className="mt-4 font-[family-name:var(--font-heading,serif)] text-2xl font-bold text-nk-ink">
             Matching opens on {formatPlanDate(opensAt)}
           </h1>
@@ -117,6 +129,38 @@ function PreLaunchScreen({ me, opensAt }: { me: MyMembershipResponse; opensAt: s
         </div>
       </main>
     </>
+  );
+}
+
+// Blurred stand-ins for the profile grid that opens on launch day. Purely
+// decorative placeholders: no member data is loaded before launch.
+const BACKDROP_TINTS = ['#C99A86', '#B88C7A', '#D2A98F', '#A97F72', '#C4977F', '#B3897B', '#CFA58C', '#B98F80', '#C79C88', '#AD8476', '#D0A68E', '#BC9180'];
+
+function LockedProfilesBackdrop() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 select-none">
+      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-4 px-4 pt-4 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
+        {BACKDROP_TINTS.map((tint, i) => (
+          <div key={i} className="relative">
+            <div className="overflow-hidden rounded-2xl border border-nk-line bg-white shadow-sm blur-[5px]">
+              <div className="h-36 sm:h-44" style={{ background: `linear-gradient(165deg, ${tint}, #EBDCD0)` }}>
+                <div className="mx-auto mt-8 h-16 w-16 rounded-full bg-white/60 sm:h-20 sm:w-20" />
+              </div>
+              <div className="space-y-2 p-4">
+                <div className="h-3 w-2/3 rounded bg-[#D8C6B8]" />
+                <div className="h-2.5 w-1/2 rounded bg-[#E4D6CA]" />
+                <div className="h-2.5 w-3/4 rounded bg-[#E4D6CA]" />
+              </div>
+            </div>
+            <span className="absolute left-1/2 top-1/3 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-nk-maroon-deep shadow-sm">
+              <Lock className="h-4 w-4" />
+            </span>
+          </div>
+        ))}
+      </div>
+      {/* Fades the grid out towards the footer. */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-nk-ivory/10 to-nk-ivory" />
+    </div>
   );
 }
 

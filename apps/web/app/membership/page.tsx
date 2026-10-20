@@ -38,27 +38,42 @@ type OrderState =
 // display name, which admins can edit.
 const POPULAR_PLAN_CODE = 'GOLD_PREMIUM';
 
-// Card colour schemes: 'light' plan cards (black text on white), the
-// 'black' Popular card (white on black) and the maroon 'vip' card.
-type Tone = 'light' | 'black' | 'vip';
+// Card colour schemes: 'light' plan cards (dark text on white), the
+// maroon Popular card ('dark', white text), the champagne-gold VIP card
+// ('gold', its feature list) and the VIP card's bronze price panel ('vip').
+// `save` is the green of the offer line and the lighter green its shine
+// sweeps through.
+type Tone = 'light' | 'dark' | 'gold' | 'vip';
 const TONE = {
   light: {
     text: 'text-[#1D1D1F]',
     muted: 'text-[#6E6E73]',
     strike: 'text-[#86868B]',
-    price: 'text-black',
-    check: 'text-black',
+    price: 'text-[#1D1D1F]',
+    check: 'text-[#1D1D1F]',
     lock: 'bg-[#F2F2F2] text-[#86868B]',
     unavailable: 'text-[#6E6E73]',
+    save: ['#1E7B4F', '#5FD39A'],
   },
-  black: {
-    text: 'text-[#F5F5F7]',
-    muted: 'text-[#A1A1A6]',
-    strike: 'text-[#86868B]',
+  dark: {
+    text: 'text-[#FBF4EF]',
+    muted: 'text-[#E2CFC6]',
+    strike: 'text-[#D4B9AE]',
     price: 'text-white',
     check: 'text-white',
-    lock: 'bg-white/10 text-[#A1A1A6]',
-    unavailable: 'text-[#A1A1A6]',
+    lock: 'bg-white/10 text-[#E2CFC6]',
+    unavailable: 'text-[#E2CFC6]',
+    save: ['#8FE3B6', '#E4FBEE'],
+  },
+  gold: {
+    text: 'text-[#2B1D0A]',
+    muted: 'text-[#6B5226]',
+    strike: 'text-[#8A7350]',
+    price: 'text-[#2B1D0A]',
+    check: 'bg-[#2B1D0A] text-[#F6E3A8]',
+    lock: 'bg-white/60 text-[#8A7350]',
+    unavailable: 'text-[#6B5226]',
+    save: ['#1E7B4F', '#5FD39A'],
   },
   vip: {
     text: 'text-[#E2D2C8]',
@@ -68,6 +83,7 @@ const TONE = {
     check: 'bg-[#FAF5EC] text-nk-gold',
     lock: 'bg-white/10 text-[#E2D2C8]/60',
     unavailable: 'text-[#E2D2C8]/75',
+    save: ['#8FE3B6', '#E4FBEE'],
   },
 } as const;
 
@@ -127,10 +143,23 @@ function PriceBlock({ plan, tone = 'light' }: { plan: MembershipPlanResponse; to
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1], delay: SAVING_DELAY }}
-          className={`mt-1.5 text-[13px] font-medium tracking-[-0.01em] ${t.muted}`}
+          className="mt-1.5 text-sm font-semibold tracking-[-0.01em]"
           data-testid="plan-discount"
         >
-          Save {formatPrice(plan.originalPriceInPaise - plan.priceInPaise)} · {percent}% off
+          {/* Green text with one shine passing through it once it appears. */}
+          <motion.span
+            className="bg-clip-text text-transparent"
+            style={{
+              backgroundImage: `linear-gradient(100deg, ${t.save[0]} 0%, ${t.save[0]} 40%, ${t.save[1]} 50%, ${t.save[0]} 60%, ${t.save[0]} 100%)`,
+              backgroundSize: '300% 100%',
+            }}
+            initial={{ backgroundPosition: '100% 0%' }}
+            whileInView={{ backgroundPosition: '0% 0%' }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.4, ease: 'easeInOut', delay: SAVING_DELAY + 0.4 }}
+          >
+            Save {formatPrice(plan.originalPriceInPaise - plan.priceInPaise)} · {percent}% off
+          </motion.span>
         </motion.p>
       )}
     </div>
@@ -152,11 +181,11 @@ function SelfServeCard({
   disabled: boolean;
   onChoose: () => void;
 }) {
-  // The Popular plan is the one black card, so it stands out without colour.
+  // The Popular plan is the one deep-maroon card, so it stands out.
   const popular = plan.code === POPULAR_PLAN_CODE;
-  const tone: Tone = popular ? 'black' : 'light';
+  const tone: Tone = popular ? 'dark' : 'light';
   const t = TONE[tone];
-  const rule = popular ? 'border-white/12' : 'border-black/8';
+  const rule = popular ? 'border-white/15' : 'border-black/8';
   return (
     <motion.div
       {...CARD_MOTION}
@@ -165,18 +194,18 @@ function SelfServeCard({
       data-popular={popular || undefined}
       className={`relative flex h-full flex-col rounded-3xl transition-shadow duration-300 ${
         popular
-          ? 'bg-[#0B0B0C] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.55)] hover:shadow-[0_28px_60px_-20px_rgba(0,0,0,0.6)]'
+          ? 'bg-gradient-to-b from-[#6B1420] to-[#3E0B12] shadow-[0_20px_50px_-20px_rgba(62,11,18,0.6)] hover:shadow-[0_28px_60px_-20px_rgba(62,11,18,0.65)]'
           : 'border border-black/8 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.18)]'
       }`}
     >
       {popular && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-nk-gold-light px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black" data-testid="plan-popular">
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-nk-gold-light px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#3E0B12]" data-testid="plan-popular">
           Popular
         </span>
       )}
       <div className="flex flex-1 flex-col p-6 sm:p-7">
         <div className={`border-b pb-4 text-center ${rule}`}>
-          <h2 className={`text-xl sm:text-2xl font-semibold tracking-tight ${popular ? 'text-white' : 'text-black'}`}>{plan.name}</h2>
+          <h2 className={`text-xl sm:text-2xl font-semibold tracking-tight ${popular ? 'text-white' : 'text-[#1D1D1F]'}`}>{plan.name}</h2>
           <p className={`mt-1 text-xs font-medium uppercase tracking-wider ${t.muted}`}>{durationLabel(plan.durationDays)}</p>
           {plan.description && (
             <p className={`mt-1.5 text-xs ${t.muted}`} data-testid="plan-description">
@@ -205,7 +234,7 @@ function SelfServeCard({
             disabled={disabled}
             onClick={onChoose}
             className={`w-full cursor-pointer rounded-full px-4 py-3 text-sm font-semibold transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${
-              popular ? 'bg-white text-black hover:bg-[#E8E8ED]' : 'bg-black text-white hover:bg-[#2C2C2E]'
+              popular ? 'bg-white text-nk-maroon-deep hover:bg-[#F7EBDC]' : 'bg-nk-maroon-deep text-white hover:bg-[#550809]'
             }`}
           >
             {buttonLabel}
@@ -388,31 +417,40 @@ export default function MembershipPage() {
             key={plan.id}
             data-testid="plan-card"
             data-plan-code={plan.code}
-            className="relative overflow-hidden rounded-3xl border-2 border-nk-gold-light/50 bg-gradient-to-br from-[#2D0D12] via-[#3E1118] to-[#24080C] p-6 sm:p-8 lg:p-10 text-white shadow-xl"
+            className="relative overflow-hidden rounded-3xl border border-[#D9B865] bg-gradient-to-br from-[#FBF3DC] via-[#F3E0AE] to-[#E6C77F] p-6 sm:p-8 lg:p-10 text-[#2B1D0A] shadow-[0_24px_60px_-24px_rgba(140,100,20,0.55)]"
           >
+            {/* The top tier: champagne gold, with a slow sheen passing over it. */}
+            <motion.div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/45 to-transparent"
+              initial={{ x: '0%' }}
+              whileInView={{ x: '450%' }}
+              viewport={{ once: true }}
+              transition={{ duration: 2.2, ease: 'easeInOut', delay: 0.4, repeat: Infinity, repeatDelay: 6 }}
+            />
             <div className="relative z-10 flex flex-col items-stretch justify-between gap-8 lg:flex-row">
               <div className="max-w-2xl flex-1 space-y-4">
-                <div className="inline-flex items-center gap-2 rounded-md border border-nk-gold-light/40 bg-nk-gold-light/20 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-[#FDE59C]">
-                  <Crown className="h-4 w-4 text-nk-gold-light" />
+                <div className="inline-flex items-center gap-2 rounded-full bg-[#2B1D0A] px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-[#F6E3A8]">
+                  <Crown className="h-4 w-4 text-[#F1D278]" />
                   <span>Assisted service</span>
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-[family-name:var(--font-heading,serif)]">{plan.name}</h2>
                 {plan.description && (
-                  <p className="text-sm font-semibold text-[#FDE59C]" data-testid="plan-description">
+                  <p className="text-sm font-semibold text-[#6B4E12]" data-testid="plan-description">
                     {plan.description}
                   </p>
                 )}
-                <p className="text-xs sm:text-sm leading-relaxed text-[#E2D2C8]">
+                <p className="text-xs sm:text-sm leading-relaxed text-[#5A4520]">
                   A staff-assisted plan. The assisted services below aren&apos;t running yet, so they&apos;re marked Coming Soon.
                 </p>
                 <ul className="space-y-2.5 pt-1">
                   {plan.features.map((feature) => (
-                    <FeatureLine key={feature.key} feature={feature} plan={plan} tone="vip" />
+                    <FeatureLine key={feature.key} feature={feature} plan={plan} tone="gold" />
                   ))}
                 </ul>
               </div>
 
-              <div className="flex w-full shrink-0 flex-col justify-between space-y-4 rounded-2xl border border-nk-gold-light/40 bg-white/10 p-6 text-center backdrop-blur-md lg:w-80">
+              <div className="flex w-full shrink-0 flex-col justify-between space-y-4 rounded-2xl bg-gradient-to-b from-[#4A3418] to-[#2B1D0A] p-6 text-center text-white shadow-lg lg:w-80">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-[#E2D2C8]/80">{durationLabel(plan.durationDays)}</p>
                   <div className="my-3 border-y border-white/15 py-4">
