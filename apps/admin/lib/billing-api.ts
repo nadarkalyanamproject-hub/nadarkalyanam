@@ -92,6 +92,7 @@ export interface FinanceDashboard {
   expiringNext7Days: number;
   adminGrantsCount: number;
   adminGrantsWithPaymentReference: number;
+  activeTrialsCount: number;
   revenuePerDay: { date: string; grossInPaise: number }[];
 }
 

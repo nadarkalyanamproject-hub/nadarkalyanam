@@ -75,6 +75,7 @@ export default function SubscriptionsPage() {
             <option value="">Any source</option>
             <option value="PAYMENT">Payment</option>
             <option value="ADMIN_GRANT">Admin grant</option>
+            <option value="TRIAL">Launch free trial</option>
           </Select>
         </Card>
         {message && <Card className="rounded-2xl p-4 text-sm text-muted-foreground" role="status">{message}</Card>}
@@ -106,7 +107,7 @@ export default function SubscriptionsPage() {
                     <td className="px-3 py-2">{s.plan.name}</td>
                     <td className="px-3 py-2"><StateBadge state={s.state} /></td>
                     <td className="px-3 py-2 text-xs">{formatDate(s.startedAt)} – {formatDate(s.expiresAt)}</td>
-                    <td className="px-3 py-2 text-xs">{s.source === 'ADMIN_GRANT' ? 'Grant' : 'Payment'}</td>
+                    <td className="px-3 py-2 text-xs">{s.source === 'ADMIN_GRANT' ? 'Grant' : s.source === 'TRIAL' ? 'Free trial' : 'Payment'}</td>
                     <td className="px-3 py-2 text-right">
                       <Button type="button" size="sm" variant="outline" onClick={() => setDetail(s)}>
                         Details
@@ -130,7 +131,7 @@ export default function SubscriptionsPage() {
           <dl className="grid grid-cols-2 gap-2 text-sm">
             <dt className="text-muted-foreground">State</dt><dd><StateBadge state={detail.state} /></dd>
             <dt className="text-muted-foreground">Period</dt><dd>{formatDate(detail.startedAt)} – {formatDate(detail.expiresAt)}</dd>
-            <dt className="text-muted-foreground">Source</dt><dd>{detail.source === 'ADMIN_GRANT' ? `Granted by ${detail.grantedByEmail ?? 'admin'}` : `Order ${detail.orderId ?? '—'}`}</dd>
+            <dt className="text-muted-foreground">Source</dt><dd>{detail.source === 'ADMIN_GRANT' ? `Granted by ${detail.grantedByEmail ?? 'admin'}` : detail.source === 'TRIAL' ? 'Launch offer (free trial)' : `Order ${detail.orderId ?? '—'}`}</dd>
             {detail.grantReason && (<><dt className="text-muted-foreground">Grant reason</dt><dd>{detail.grantReason}</dd></>)}
             {detail.paymentReference && (<><dt className="text-muted-foreground">Offline payment ref</dt><dd>{detail.paymentReference}</dd></>)}
             <dt className="text-muted-foreground">Phone unlocks used</dt><dd>{detail.phoneUnlocksUsed}</dd>

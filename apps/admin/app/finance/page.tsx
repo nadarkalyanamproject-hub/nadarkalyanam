@@ -107,6 +107,11 @@ export default function FinancePage() {
                     ))}
                   </ul>
                 )}
+                {dash.activeTrialsCount > 0 && (
+                  <p className="mt-2 text-xs text-muted-foreground" data-testid="fin-trials">
+                    Plus {dash.activeTrialsCount} launch-offer free {dash.activeTrialsCount === 1 ? 'trial' : 'trials'} (not counted above).
+                  </p>
+                )}
               </Card>
               <Card className="rounded-2xl p-4" data-testid="fin-grants">
                 <h2 className="text-sm font-bold">Admin grants</h2>

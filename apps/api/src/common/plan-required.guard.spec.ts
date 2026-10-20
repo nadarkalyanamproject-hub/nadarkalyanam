@@ -8,7 +8,7 @@ const day = 24 * 60 * 60 * 1000;
 function guardWith(requirePaidPlan: boolean, subscriptions: { startedAt: Date; expiresAt: Date }[]) {
   const findMany = vi.fn().mockResolvedValue(subscriptions.map((s, i) => ({ id: `s${i}`, plan: {}, ...s })));
   const prisma = { subscription: { findMany } };
-  const config = { get: vi.fn().mockReturnValue(requirePaidPlan) };
+  const config = { get: vi.fn((key: string) => (key === 'REQUIRE_PAID_PLAN' ? requirePaidPlan : undefined)) };
   return { guard: new PlanRequiredGuard(prisma as never, config as never), findMany };
 }
 

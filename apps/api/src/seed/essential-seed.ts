@@ -37,7 +37,7 @@ export async function seedEssential(prisma: PrismaClient, log: (message: string)
   const UNLIMITED_INTERESTS = feature('unlimitedInterests', 'Unlimited interests (no monthly limit)', true);
   const HOROSCOPE = feature('horoscopeViews', 'Unlimited horoscope views');
   const phones = (allowance: string) =>
-    feature('phoneNumbers', `Unlock ${allowance} OTP-verified phone numbers of connected members who allow it`, true);
+    feature('phoneNumbers', `Unlock ${allowance} phone numbers`, true);
   const SPOTLIGHT = feature('spotlight', 'Top-spot spotlight in search and browse', true);
 
   const MEMBERSHIP_PLANS = [
@@ -46,6 +46,7 @@ export async function seedEssential(prisma: PrismaClient, log: (message: string)
       code: 'GOLD',
       name: 'Gold',
       priceInPaise: 149900,
+      originalPriceInPaise: 249900,
       durationDays: 90,
       sortOrder: 1,
       phoneUnlockLimit: 50,
@@ -57,6 +58,7 @@ export async function seedEssential(prisma: PrismaClient, log: (message: string)
       code: 'GOLD_PLUS',
       name: 'Gold Plus',
       priceInPaise: 229900,
+      originalPriceInPaise: 349900,
       durationDays: 90,
       sortOrder: 2,
       phoneUnlockLimit: null,
@@ -75,6 +77,7 @@ export async function seedEssential(prisma: PrismaClient, log: (message: string)
       code: 'GOLD_PREMIUM',
       name: 'Gold Premium',
       priceInPaise: 599900,
+      originalPriceInPaise: 999900,
       durationDays: 365,
       sortOrder: 3,
       phoneUnlockLimit: null,
@@ -95,6 +98,7 @@ export async function seedEssential(prisma: PrismaClient, log: (message: string)
       code: 'VIP_ASSISTED',
       name: 'VIP Gold Plus',
       priceInPaise: 1299900,
+      originalPriceInPaise: 1999900,
       durationDays: 90,
       sortOrder: 4,
       phoneUnlockLimit: 75,

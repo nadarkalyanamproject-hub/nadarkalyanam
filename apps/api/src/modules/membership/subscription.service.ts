@@ -1,6 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { launchAt } from '../../common/launch.js';
 import { recomputeSearchBoost } from '../../common/search-boost.js';
 import { Prisma, type MembershipPlan, type Subscription } from '../../generated/prisma/client.js';
+import type { Env } from '../config/env.schema.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -11,7 +14,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export interface ActivateInput {
   userId: string;
   planId: string;
-  source: 'PAYMENT' | 'ADMIN_GRANT';
+  source: 'PAYMENT' | 'ADMIN_GRANT' | 'TRIAL';
   // A payment-backed activation: at most one subscription per order.
   orderId?: string;
   grantedByAdminId?: string;
@@ -37,7 +40,9 @@ function isUniqueViolation(error: unknown): boolean {
 //
 // Chaining rule: a member's subscriptions never overlap. A new one starts
 // when the member's latest live (not cancelled, not yet expired) one ends,
-// or now if there is none.
+// or now if there is none. Before LAUNCH_DATE nothing starts earlier than
+// launch day, so a plan bought or granted during pre-launch (when matching
+// is closed) loses no days.
 //
 // Every write takes a lock on the member's users row first, so a webhook
 // activation, an admin grant and a cancel/refund for the same member run
@@ -47,7 +52,14 @@ export class SubscriptionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    @Optional() private readonly config?: ConfigService<Env, true>,
   ) {}
+
+  // A new or re-sequenced plan never starts before this.
+  private earliestStart(now: Date): Date {
+    const opensAt = this.config ? launchAt(this.config) : null;
+    return opensAt && opensAt > now ? opensAt : now;
+  }
 
   // Serializes every subscription change for one member (see class note).
   async lockMember(tx: Tx, userId: string): Promise<void> {
@@ -74,7 +86,8 @@ export class SubscriptionService {
       where: { userId: input.userId, cancelledAt: null, expiresAt: { gt: now } },
       orderBy: { expiresAt: 'desc' },
     });
-    const startedAt = latest ? latest.expiresAt : now;
+    const earliest = this.earliestStart(now);
+    const startedAt = latest && latest.expiresAt > earliest ? latest.expiresAt : earliest;
     const subscription = await tx.subscription.create({
       data: {
         userId: input.userId,
@@ -135,7 +148,7 @@ export class SubscriptionService {
     });
     const running = live.filter((s) => s.startedAt <= now);
     const queued = live.filter((s) => s.startedAt > now);
-    let cursor = running.reduce((latest, s) => (s.expiresAt > latest ? s.expiresAt : latest), now);
+    let cursor = running.reduce((latest, s) => (s.expiresAt > latest ? s.expiresAt : latest), this.earliestStart(now));
     for (const subscription of queued) {
       const length = subscription.expiresAt.getTime() - subscription.startedAt.getTime();
       const startedAt = cursor;

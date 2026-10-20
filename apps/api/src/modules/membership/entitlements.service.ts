@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import type { MembershipHistoryItem, MyMembershipResponse } from '@nadar-kalyanam/schemas';
 import { findActiveSubscription } from '../../common/active-subscription.js';
 import { istMonthWindow } from '../../common/ist-calendar.js';
+import { launchAt } from '../../common/launch.js';
 import { planFeatures } from '../../common/plan-features.js';
 import { searchBoostForPlanCode } from '../../common/search-boost.js';
 import type { Env } from '../config/env.schema.js';
@@ -87,9 +88,12 @@ export class EntitlementsService {
       planName: s.plan.name,
       startedAt: s.startedAt.toISOString(),
       endsAt: (s.cancelledAt ?? s.expiresAt).toISOString(),
-      source: s.source === 'ADMIN_GRANT' ? 'GRANTED' : 'PURCHASED',
+      source: s.source === 'ADMIN_GRANT' ? 'GRANTED' : s.source === 'TRIAL' ? 'TRIAL' : 'PURCHASED',
       status: statusOf(s),
     });
+    const opensAt = launchAt(this.configService);
+    // launchOffer is filled in by MembershipController (LaunchTrialService).
+    const launch = { preLaunch: opensAt && now < opensAt ? { opensAt: opensAt.toISOString() } : null, launchOffer: null };
     const history = rows.slice(0, 20).map(toItem);
     const queued = rows
       .filter((s) => statusOf(s) === 'QUEUED')
@@ -119,6 +123,7 @@ export class EntitlementsService {
         interestsUsedThisMonth: interests.used,
         interestsLimit: interests.limit,
         resetsAt: interests.resetsAt.toISOString(),
+        ...launch,
       };
     }
     const { current } = active;
@@ -145,6 +150,7 @@ export class EntitlementsService {
       interestsUsedThisMonth: null,
       interestsLimit: null,
       resetsAt: null,
+      ...launch,
     };
   }
 }

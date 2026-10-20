@@ -88,6 +88,8 @@ describe('EntitlementsService.getActivePlan', () => {
       interestsUsedThisMonth: 0,
       interestsLimit: 5,
       resetsAt: expect.any(String),
+      preLaunch: null,
+      launchOffer: null,
     });
   });
 

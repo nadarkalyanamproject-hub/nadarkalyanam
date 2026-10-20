@@ -15,7 +15,7 @@ const VERIFIED_PROFILES = feature('verifiedProfiles', 'View verified profiles wi
 const UNLIMITED_INTERESTS = feature('unlimitedInterests', 'Unlimited interests (no monthly limit)', true);
 const HOROSCOPE = feature('horoscopeViews', 'Unlimited horoscope views');
 const phones = (allowance: string) =>
-  feature('phoneNumbers', `Unlock ${allowance} OTP-verified phone numbers of connected members who allow it`, true);
+  feature('phoneNumbers', `Unlock ${allowance} phone numbers`, true);
 const SPOTLIGHT = feature('spotlight', 'Top-spot spotlight in search and browse', true);
 
 const UPDATES = [

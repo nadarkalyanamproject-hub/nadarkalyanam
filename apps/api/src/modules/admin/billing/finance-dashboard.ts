@@ -19,6 +19,8 @@ export interface FinanceDashboard {
   expiringNext7Days: number;
   adminGrantsCount: number;
   adminGrantsWithPaymentReference: number;
+  // Launch-offer free trials running now (not in the two counts above).
+  activeTrialsCount: number;
   revenuePerDay: { date: string; grossInPaise: number }[];
 }
 
@@ -30,13 +32,16 @@ const istDate = (d: Date) => new Date(d.getTime() + IST_OFFSET_MS).toISOString()
 //  - refunded: orders refunded in the range; net = gross - refunded;
 //  - admin grants are counted separately and never added to revenue (an
 //    offline payment reference on a grant is not summed either);
-//  - "active" plans use dates (running now, not cancelled).
+//  - "active" plans use dates (running now, not cancelled);
+//  - launch-offer trials are left out of active/expiring plans and counted
+//    on their own.
 export async function buildFinanceDashboard(prisma: PrismaService, days: number, now: Date = new Date()): Promise<FinanceDashboard> {
   const from = new Date(istDayStart(now).getTime() - (days - 1) * DAY_MS);
   const in7Days = new Date(now.getTime() + 7 * DAY_MS);
-  const activeWhere = { cancelledAt: null, startedAt: { lte: now }, expiresAt: { gt: now } };
+  const runningWhere = { cancelledAt: null, startedAt: { lte: now }, expiresAt: { gt: now } };
+  const activeWhere = { ...runningWhere, source: { in: ['PAYMENT' as const, 'ADMIN_GRANT' as const] } };
 
-  const [paid, refunded, statusGroups, activeGroups, expiring, grants, grantsWithRef, plans] = await Promise.all([
+  const [paid, refunded, statusGroups, activeGroups, expiring, grants, grantsWithRef, plans, trials] = await Promise.all([
     prisma.order.findMany({
       where: { paidAt: { gte: from }, status: { in: ['PAID', 'REFUNDED'] } },
       select: { amountInPaise: true, paidAt: true },
@@ -48,6 +53,7 @@ export async function buildFinanceDashboard(prisma: PrismaService, days: number,
     prisma.subscription.count({ where: { source: 'ADMIN_GRANT', createdAt: { gte: from } } }),
     prisma.subscription.count({ where: { source: 'ADMIN_GRANT', createdAt: { gte: from }, paymentReference: { not: null } } }),
     prisma.membershipPlan.findMany({ select: { id: true, code: true, name: true, sortOrder: true } }),
+    prisma.subscription.count({ where: { ...runningWhere, source: 'TRIAL' } }),
   ]);
 
   const gross = paid.reduce((sum, order) => sum + order.amountInPaise, 0);
@@ -78,6 +84,7 @@ export async function buildFinanceDashboard(prisma: PrismaService, days: number,
     expiringNext7Days: expiring,
     adminGrantsCount: grants,
     adminGrantsWithPaymentReference: grantsWithRef,
+    activeTrialsCount: trials,
     revenuePerDay: [...perDay.entries()].map(([date, grossInPaise]) => ({ date, grossInPaise })),
   };
 }

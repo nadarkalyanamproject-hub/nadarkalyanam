@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import {
   type ConfirmPhotoRequest,
   type PhotoResponse,
@@ -10,12 +11,27 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard.js';
+import { LaunchTrialService } from '../membership/launch-trial.service.js';
 import { PhotosService } from './photos.service.js';
 
 @Controller('profiles/me/photos')
 @UseGuards(JwtAuthGuard)
 export class PhotosController {
-  constructor(private readonly photosService: PhotosService) {}
+  constructor(
+    private readonly photosService: PhotosService,
+    private readonly moduleRef: ModuleRef,
+  ) {}
+
+  // Looked up at request time rather than injected: MembershipModule
+  // (through NotificationsModule) already imports PhotosModule, so
+  // importing it back here would be a module cycle.
+  private launchTrial(): LaunchTrialService | null {
+    try {
+      return this.moduleRef.get(LaunchTrialService, { strict: false });
+    } catch {
+      return null;
+    }
+  }
 
   @Post('upload-url')
   async requestUploadUrl(
@@ -30,7 +46,10 @@ export class PhotosController {
     @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodValidationPipe(confirmPhotoSchema)) body: ConfirmPhotoRequest,
   ): Promise<PhotoResponse> {
-    return this.photosService.confirmPhoto(user.userId, body.objectKey);
+    const photo = await this.photosService.confirmPhoto(user.userId, body.objectKey);
+    // A photo is usually the last thing the launch offer is waiting for.
+    await this.launchTrial()?.tryGrant(user.userId);
+    return photo;
   }
 
   @Patch(':id/primary')

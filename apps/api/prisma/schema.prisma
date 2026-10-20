@@ -389,10 +389,12 @@ model MembershipPlan {
 }
 
 // How a subscription came about: a payment (webhook, or an admin activating
-// a paid order) or a complimentary admin grant (never counted as revenue).
+// a paid order), a complimentary admin grant, or the launch offer's free
+// trial (LaunchTrialService). Only PAYMENT is ever counted as revenue.
 enum SubscriptionSource {
   PAYMENT
   ADMIN_GRANT
+  TRIAL
 }
 
 enum SubscriptionStatus {

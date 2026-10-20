@@ -81,10 +81,27 @@ export const membershipHistoryItemSchema = z.object({
   // When it ended or will end (cancelledAt for a cancelled plan).
   endsAt: z.string(),
   // How the member got it. Admin identity, reasons and notes are never sent.
-  source: z.enum(['PURCHASED', 'GRANTED']),
+  // TRIAL: the launch offer's free plan.
+  source: z.enum(['PURCHASED', 'GRANTED', 'TRIAL']),
   status: memberPlanStatusEnum,
 });
 export type MembershipHistoryItem = z.infer<typeof membershipHistoryItemSchema>;
+
+// The launch offer as one member sees it: a free plan from launch day for
+// finishing their profile with a photo before then.
+export const launchOfferSchema = z.object({
+  planName: z.string(),
+  // Qualify before this instant (00:00 India time on launch day).
+  qualifyBy: z.string(),
+  startsAt: z.string(),
+  // Exclusive: the trial's last day is the day before.
+  endsAt: z.string(),
+  // The trial has been given (it shows in queued until it starts).
+  earned: z.boolean(),
+  // What's still missing to qualify (both false once earned).
+  needs: z.object({ profile: z.boolean(), photo: z.boolean() }),
+});
+export type LaunchOffer = z.infer<typeof launchOfferSchema>;
 
 export const myMembershipResponseSchema = z.object({
   plan: z
@@ -125,6 +142,12 @@ export const myMembershipResponseSchema = z.object({
   interestsUsedThisMonth: z.number().nullable(),
   interestsLimit: z.number().nullable(),
   resetsAt: z.string().nullable(),
+  // Before launch day (LAUNCH_DATE) matching is closed to everyone, plan or
+  // not: opensAt is when it opens. null when there's no pre-launch period
+  // or launch has passed.
+  preLaunch: z.object({ opensAt: z.string() }).nullable(),
+  // null when the offer doesn't apply to this member.
+  launchOffer: launchOfferSchema.nullable(),
 });
 export type MyMembershipResponse = z.infer<typeof myMembershipResponseSchema>;
 

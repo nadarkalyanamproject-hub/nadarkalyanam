@@ -112,7 +112,8 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     await this.messagesService.markRead(userId, payload.conversationId);
   }
 
-  // Chat needs a plan when REQUIRE_PAID_PLAN is on, same as the REST routes.
+  // Chat needs a plan when REQUIRE_PAID_PLAN is on (and is closed before
+  // launch), same as the REST routes.
   private async requirePlan(userId: string): Promise<void> {
     if (!(await hasPlanAccess(this.prisma, this.config, userId))) {
       throw new Error(PLAN_REQUIRED_MESSAGE);

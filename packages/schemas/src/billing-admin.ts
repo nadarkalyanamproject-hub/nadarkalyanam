@@ -40,7 +40,8 @@ export type UpdatePlanRequest = z.infer<typeof updatePlanRequestSchema>;
 // (paid/granted, starts later), ACTIVE (running now).
 export const subscriptionStateEnum = z.enum(['ACTIVE', 'QUEUED', 'EXPIRED', 'CANCELLED']);
 export type SubscriptionState = z.infer<typeof subscriptionStateEnum>;
-export const subscriptionSourceEnum = z.enum(['PAYMENT', 'ADMIN_GRANT']);
+// TRIAL: the launch offer's free plan (never revenue).
+export const subscriptionSourceEnum = z.enum(['PAYMENT', 'ADMIN_GRANT', 'TRIAL']);
 export type SubscriptionSource = z.infer<typeof subscriptionSourceEnum>;
 
 export const adminSubscriptionsQuerySchema = z.object({

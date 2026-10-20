@@ -67,7 +67,7 @@ export function MemberMembership({ userId, memberLabel, disabled }: { userId: st
                   <StateBadge state={s.state} />
                   <span>{s.plan.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {formatDate(s.startedAt)} – {formatDate(s.expiresAt)} · {s.source === 'ADMIN_GRANT' ? `granted: ${s.grantReason ?? ''}` : 'payment'}
+                    {formatDate(s.startedAt)} – {formatDate(s.expiresAt)} · {s.source === 'ADMIN_GRANT' ? `granted: ${s.grantReason ?? ''}` : s.source === 'TRIAL' ? 'launch free trial' : 'payment'}
                     {s.cancelReason ? ` · cancelled: ${s.cancelReason}` : ''}
                   </span>
                 </li>

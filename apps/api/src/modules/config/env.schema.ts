@@ -1,5 +1,12 @@
 import { z } from 'zod';
 
+// A calendar day, YYYY-MM-DD (read as India time by common/launch.ts).
+const istDateSchema = (name: string) =>
+  z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, `${name} must be a date like 2027-02-20`)
+    .refine((v) => new Date(`${v}T00:00:00Z`).toISOString().startsWith(v), `${name} is not a real date`);
+
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
@@ -86,6 +93,20 @@ export const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
+  // Launch day (YYYY-MM-DD, India time). Before 00:00 IST that day the
+  // matching side (everything behind PlanRequiredGuard) is closed to every
+  // member, whatever their plan: they can only sign up and build their
+  // profile. Plans bought or granted before then start on launch day.
+  // Unset: no pre-launch period.
+  LAUNCH_DATE: z.preprocess((v) => (v === '' ? undefined : v), istDateSchema('LAUNCH_DATE').optional()),
+  // Launch offer: an account created on/after this day (YYYY-MM-DD, India
+  // time) that has a profile and a photo before LAUNCH_DATE gets a free
+  // LAUNCH_TRIAL_PLAN_CODE plan for LAUNCH_TRIAL_DAYS from launch day. Needs
+  // LAUNCH_DATE; unset: no offer.
+  LAUNCH_TRIAL_SIGNUP_FROM: z.preprocess((v) => (v === '' ? undefined : v), istDateSchema('LAUNCH_TRIAL_SIGNUP_FROM').optional()),
+  // 31 days from 20 Feb runs through 22 Mar.
+  LAUNCH_TRIAL_DAYS: z.coerce.number().int().min(1).max(366).default(31),
+  LAUNCH_TRIAL_PLAN_CODE: z.string().trim().min(1).default('GOLD'),
   // Free members may send this many interests per calendar month (India
   // time). Paid plans have no limit.
   FREE_INTERESTS_PER_MONTH: z.coerce.number().int().min(0).default(5),
@@ -132,6 +153,15 @@ export function validateEnv(config: Record<string, unknown>): Env {
       .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
       .join('; ');
     throw new Error(`Invalid environment configuration: ${issues}`);
+  }
+
+  if (parsed.data.LAUNCH_TRIAL_SIGNUP_FROM) {
+    if (!parsed.data.LAUNCH_DATE) {
+      throw new Error('Invalid environment configuration: LAUNCH_TRIAL_SIGNUP_FROM: LAUNCH_DATE is required for the launch offer');
+    }
+    if (parsed.data.LAUNCH_TRIAL_SIGNUP_FROM >= parsed.data.LAUNCH_DATE) {
+      throw new Error('Invalid environment configuration: LAUNCH_TRIAL_SIGNUP_FROM: must be before LAUNCH_DATE');
+    }
   }
 
   if (parsed.data.PAYMENT_PROVIDER === 'razorpay') {
