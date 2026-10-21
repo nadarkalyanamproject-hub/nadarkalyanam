@@ -16,6 +16,7 @@
     "prisma:seed": "prisma db seed",
     "prisma:seed:demo": "tsx --env-file-if-exists=.env prisma/seed-demo.ts",
     "profiles:backfill-completion": "tsx --env-file-if-exists=.env prisma/backfill-completion-scores.ts",
+    "dev:trial": "tsx --env-file-if-exists=.env prisma/dev-trial.ts",
     "prisma:migrate:deploy": "prisma migrate deploy"
   },
   "dependencies": {
