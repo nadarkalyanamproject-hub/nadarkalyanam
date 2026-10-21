@@ -59,6 +59,7 @@ export const STEP_FIELD_IDS: Record<FormStep, Record<string, string>> = {
   personal: {
     height: 'height',
     physicalStatus: 'physicalStatus',
+    complexion: 'complexion',
     maritalStatus: 'maritalStatus',
     dosham: 'dosham',
     previousMarriageDetails: 'previousMarriageDetails',

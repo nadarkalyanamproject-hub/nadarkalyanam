@@ -13,7 +13,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 
 function buildProfileData(input: CreateProfileRequest) {
   const { fullName, gender, dateOfBirth, religion, casteCommunity, email, personal, location, additional } = input;
-  const { height, physicalStatus, maritalStatus, dosham } = personal;
+  const { height, physicalStatus, complexion, maritalStatus, dosham } = personal;
   // The detail fields only mean something while their parent says so; drop
   // them otherwise so no client can leave a stale, hidden value behind.
   const previousMarriageDetails = PRIOR_MARRIAGE_STATUSES.includes(maritalStatus)
@@ -32,6 +32,7 @@ function buildProfileData(input: CreateProfileRequest) {
       email,
       height,
       physicalStatus,
+      complexion,
       maritalStatus,
       religion,
       casteCommunity,

@@ -1,6 +1,6 @@
 'use client';
 
-import { DOSHAM_TYPES, PRIOR_MARRIAGE_STATUSES, type PersonalReligious } from '@nadar-kalyanam/schemas';
+import { COMPLEXIONS, DOSHAM_TYPES, PRIOR_MARRIAGE_STATUSES, type PersonalReligious } from '@nadar-kalyanam/schemas';
 import { Field, Input, Select } from '@nadar-kalyanam/ui';
 import { isRequired } from '../../lib/required-fields';
 
@@ -111,6 +111,17 @@ export function PersonalReligiousFields({
             </Field>
           )}
         </div>
+
+        <Field label="Complexion (optional)" htmlFor="complexion" required={isRequired('personal', 'complexion')} error={errors.complexion}>
+          <Select id="complexion" invalid={Boolean(errors.complexion)} value={form.complexion} onChange={(e) => onChange('complexion', e.target.value)}>
+            <option value="">Select</option>
+            {COMPLEXIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </Select>
+        </Field>
       </div>
 
       <div className="grid grid-cols-2 items-start gap-4">

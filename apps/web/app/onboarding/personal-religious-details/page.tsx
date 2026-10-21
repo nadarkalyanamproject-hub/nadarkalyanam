@@ -19,6 +19,7 @@ type FormState = PersonalReligiousFormState;
 const EMPTY_FORM: FormState = {
   height: '',
   physicalStatus: 'NORMAL',
+  complexion: '',
   maritalStatus: '',
   dosham: '',
   previousMarriageDetails: '',

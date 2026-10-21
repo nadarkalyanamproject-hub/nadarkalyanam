@@ -53,6 +53,7 @@ export function toPublicProfileDetail(
     motherTongue: details.motherTongue ?? '',
     height: details.height,
     physicalStatus: details.physicalStatus,
+    complexion: details.complexion ?? null,
     casteCommunity: details.casteCommunity,
     dosham: details.dosham,
     education: details.education,

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { photoResponseSchema } from './photo.js';
 import { phoneVisibilityEnum } from './phone.js';
-import { NADAR_SUBCATEGORIES, NET_WORTH_RANGES, RELIGIONS } from './reference-data.js';
+import { COMPLEXIONS, NADAR_SUBCATEGORIES, NET_WORTH_RANGES, RELIGIONS } from './reference-data.js';
 
 export const genderEnum = z.enum(['MALE', 'FEMALE', 'OTHER']);
 export type Gender = z.infer<typeof genderEnum>;
@@ -57,6 +57,8 @@ export type BasicDetails = z.infer<typeof basicDetailsSchema>;
 export const personalReligiousSchema = z.object({
   height: z.string().trim().min(1, 'Height is required'),
   physicalStatus: physicalStatusEnum,
+  // Optional; an empty dropdown means not given.
+  complexion: z.preprocess((value) => (value === '' ? undefined : value), z.enum(COMPLEXIONS).optional()),
   maritalStatus: maritalStatusEnum,
   dosham: z.preprocess((value) => (value === '' ? undefined : value), doshamEnum.optional()),
   // Only shown when maritalStatus is in PRIOR_MARRIAGE_STATUSES / dosham is YES.
@@ -113,6 +115,7 @@ export const profileDetailsSchema = z.object({
   email: z.string(),
   height: z.string(),
   physicalStatus: physicalStatusEnum,
+  complexion: z.string().optional(),
   maritalStatus: maritalStatusEnum,
   religion: z.string(),
   casteCommunity: z.string(),

@@ -472,6 +472,7 @@ export default function ProfilePage() {
                     label="Physical Status"
                     value={labelFor(PHYSICAL_STATUS_LABELS, profile.details?.physicalStatus)}
                   />
+                  <DetailItem label="Complexion" value={profile.details?.complexion} />
                   <DetailItem
                     label="Marital Status"
                     value={labelFor(MARITAL_STATUS_LABELS, profile.details?.maritalStatus)}

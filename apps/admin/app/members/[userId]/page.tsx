@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { NADAR_SUBCATEGORIES, RELIGIONS, type CreateProfileRequest } from '@nadar-kalyanam/schemas';
+import { COMPLEXIONS, NADAR_SUBCATEGORIES, RELIGIONS, type CreateProfileRequest } from '@nadar-kalyanam/schemas';
 import { Button, Card, Field, Input, Select, Textarea } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../../../components/admin-shell';
 import { StatusBadge } from '../../../components/status-badge';
@@ -32,6 +32,7 @@ type FormState = {
   email: string;
   height: string;
   physicalStatus: string;
+  complexion: string;
   maritalStatus: string;
   religion: string;
   casteCommunity: string;
@@ -63,6 +64,7 @@ function toFormState(details: Record<string, unknown>, member: MemberDetail): Fo
     email: (details.email as string) ?? '',
     height: (details.height as string) ?? '',
     physicalStatus: (details.physicalStatus as string) ?? 'NORMAL',
+    complexion: (details.complexion as string) ?? '',
     maritalStatus: (details.maritalStatus as string) ?? '',
     religion: (details.religion as string) ?? '',
     casteCommunity: (details.casteCommunity as string) ?? '',
@@ -94,6 +96,7 @@ function toCreateProfileRequest(form: FormState): CreateProfileRequest {
     personal: {
       height: form.height,
       physicalStatus: form.physicalStatus as CreateProfileRequest['personal']['physicalStatus'],
+      complexion: (form.complexion || undefined) as CreateProfileRequest['personal']['complexion'],
       maritalStatus: form.maritalStatus as CreateProfileRequest['personal']['maritalStatus'],
       dosham: (form.dosham || undefined) as CreateProfileRequest['personal']['dosham'],
       previousMarriageDetails: form.previousMarriageDetails,
@@ -577,6 +580,7 @@ export default function MemberDetailPage() {
                       ['email', 'Email', 'email'],
                       ['height', 'Height', 'text'],
                       ['physicalStatus', 'Physical status', 'select-physical'],
+                      ['complexion', 'Complexion', 'select-complexion'],
                       ['maritalStatus', 'Marital status', 'select-marital'],
                       ['religion', 'Religion', 'select-religion'],
                       ['casteCommunity', 'Nadar subcategory', 'select-subcategory'],
@@ -619,10 +623,10 @@ export default function MemberDetailPage() {
                           <option value="YES">Yes</option>
                           <option value="DONT_KNOW">Don&apos;t know</option>
                         </Select>
-                      ) : kind === 'select-religion' || kind === 'select-subcategory' ? (
+                      ) : kind === 'select-religion' || kind === 'select-subcategory' || kind === 'select-complexion' ? (
                         <Select id={key} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })}>
                           <option value="">Select</option>
-                          {(kind === 'select-religion' ? RELIGIONS : NADAR_SUBCATEGORIES).map((option) => (
+                          {(kind === 'select-religion' ? RELIGIONS : kind === 'select-complexion' ? COMPLEXIONS : NADAR_SUBCATEGORIES).map((option) => (
                             <option key={option} value={option}>
                               {option}
                             </option>

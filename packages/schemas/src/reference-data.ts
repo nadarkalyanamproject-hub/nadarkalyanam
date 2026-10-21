@@ -63,6 +63,10 @@ export const NADAR_SUBCATEGORIES = [
 ] as const;
 export type NadarSubcategory = (typeof NADAR_SUBCATEGORIES)[number];
 
+// Complexion (optional, step 2), saved as the label itself.
+export const COMPLEXIONS = ['Fair', 'Wheatish', 'Wheatish Brown', 'Dusky'] as const;
+export type Complexion = (typeof COMPLEXIONS)[number];
+
 // Family net worth (optional, step 4).
 export const NET_WORTH_RANGES = [
   'Below ₹50 Lakh',

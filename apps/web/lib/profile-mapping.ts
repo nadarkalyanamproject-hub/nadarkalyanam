@@ -31,6 +31,7 @@ export function toCreateProfileRequest(profile: ProfileResponse): CreateProfileR
     personal: {
       height: profile.details?.height ?? '',
       physicalStatus: profile.details?.physicalStatus as CreateProfileRequest['personal']['physicalStatus'],
+      complexion: profile.details?.complexion as CreateProfileRequest['personal']['complexion'],
       maritalStatus: profile.details?.maritalStatus as CreateProfileRequest['personal']['maritalStatus'],
       dosham: profile.details?.dosham,
       previousMarriageDetails: profile.details?.previousMarriageDetails ?? '',
@@ -69,6 +70,7 @@ export function profileToPersonalReligiousForm(profile: ProfileResponse): Person
   return {
     height: profile.details?.height ?? '',
     physicalStatus: profile.details?.physicalStatus ?? '',
+    complexion: profile.details?.complexion ?? '',
     maritalStatus: profile.details?.maritalStatus ?? '',
     dosham: profile.details?.dosham ?? '',
     previousMarriageDetails: profile.details?.previousMarriageDetails ?? '',

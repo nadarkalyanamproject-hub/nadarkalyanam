@@ -36,6 +36,8 @@ export const publicProfileDetailSchema = publicProfileSummarySchema.extend({
   motherTongue: z.string(),
   height: z.string(),
   physicalStatus: physicalStatusEnum,
+  // null when not given.
+  complexion: z.string().nullable(),
   casteCommunity: z.string(),
   dosham: doshamEnum.optional(),
   education: z.object({

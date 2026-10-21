@@ -447,6 +447,7 @@ function ViewProfilePageContent() {
                         label="Physical Status"
                         value={label(PHYSICAL_STATUS_LABELS, profile.physicalStatus)}
                       />
+                      <DataTile label="Complexion" value={profile.complexion} />
                       <DataTile
                         label="Marital Status"
                         value={label(MARITAL_STATUS_LABELS, profile.maritalStatus)}
