@@ -39,51 +39,51 @@ type OrderState =
 const POPULAR_PLAN_CODE = 'GOLD_PREMIUM';
 
 // Card colour schemes: 'light' plan cards (dark text on white), the
-// maroon Popular card ('dark', white text), the champagne-gold VIP card
-// ('gold', its feature list) and the VIP card's bronze price panel ('vip').
+// maroon Popular card ('dark', white text), the emerald VIP card ('gold',
+// its feature list) and the VIP card's price panel ('vip').
 // `save` is the green of the offer line and the lighter green its shine
 // sweeps through.
 type Tone = 'light' | 'dark' | 'gold' | 'vip';
 const TONE = {
   light: {
-    text: 'text-[#1D1D1F]',
+    text: 'text-black font-medium',
     muted: 'text-[#6E6E73]',
     strike: 'text-[#86868B]',
     price: 'text-[#1D1D1F]',
     check: 'text-[#1D1D1F]',
     lock: 'bg-[#F2F2F2] text-[#86868B]',
     unavailable: 'text-[#6E6E73]',
-    save: ['#1E7B4F', '#5FD39A'],
+    save: ['#1E7B4F', '#ffffff'],
   },
   dark: {
-    text: 'text-[#FBF4EF]',
+    text: 'text-white font-medium',
     muted: 'text-[#E2CFC6]',
     strike: 'text-[#D4B9AE]',
     price: 'text-white',
     check: 'text-white',
     lock: 'bg-white/10 text-[#E2CFC6]',
     unavailable: 'text-[#E2CFC6]',
-    save: ['#8FE3B6', '#E4FBEE'],
+    save: ['#8FE3B6', '#ffffff'],
   },
   gold: {
-    text: 'text-[#2B1D0A]',
-    muted: 'text-[#6B5226]',
-    strike: 'text-[#8A7350]',
-    price: 'text-[#2B1D0A]',
-    check: 'bg-[#2B1D0A] text-[#F6E3A8]',
-    lock: 'bg-white/60 text-[#8A7350]',
-    unavailable: 'text-[#6B5226]',
-    save: ['#1E7B4F', '#5FD39A'],
+    text: 'text-[#F4ECD8]',
+    muted: 'text-[#C9D8CF]',
+    strike: 'text-[#9FB5A9]',
+    price: 'text-[#F1D278]',
+    check: 'bg-[#E3C26B] text-[#062A20]',
+    lock: 'bg-white/10 text-[#9FB5A9]',
+    unavailable: 'text-[#B7C8BE]',
+    save: ['#1E7B4F', '#ffffff'],
   },
   vip: {
     text: 'text-[#E2D2C8]',
-    muted: 'text-[#E2D2C8]/80',
-    strike: 'text-[#E2D2C8]/60',
+    muted: 'text-[#C9D8CF]',
+    strike: 'text-[#9FB5A9]',
     price: 'text-[#FDE59C]',
     check: 'bg-[#FAF5EC] text-nk-gold',
     lock: 'bg-white/10 text-[#E2D2C8]/60',
     unavailable: 'text-[#E2D2C8]/75',
-    save: ['#8FE3B6', '#E4FBEE'],
+    save: ['#8FE3B6', '#ffffff'],
   },
 } as const;
 
@@ -146,19 +146,18 @@ function PriceBlock({ plan, tone = 'light' }: { plan: MembershipPlanResponse; to
           className="mt-1.5 text-sm font-semibold tracking-[-0.01em]"
           data-testid="plan-discount"
         >
-          {/* Green text with one shine passing through it once it appears. */}
+          {/* Text with white shine passing through it. */}
           <motion.span
-            className="bg-clip-text text-transparent"
+            className="inline-block bg-clip-text text-transparent"
             style={{
-              backgroundImage: `linear-gradient(100deg, ${t.save[0]} 0%, ${t.save[0]} 40%, ${t.save[1]} 50%, ${t.save[0]} 60%, ${t.save[0]} 100%)`,
+              backgroundImage: `linear-gradient(100deg, ${t.save[0]} 0%, ${t.save[0]} 38%, ${t.save[1]} 50%, ${t.save[0]} 62%, ${t.save[0]} 100%)`,
               backgroundSize: '300% 100%',
             }}
             initial={{ backgroundPosition: '100% 0%' }}
-            whileInView={{ backgroundPosition: '0% 0%' }}
-            viewport={{ once: true }}
-            transition={{ duration: 1.4, ease: 'easeInOut', delay: SAVING_DELAY + 0.4 }}
+            animate={{ backgroundPosition: ['100% 0%', '0% 0%'] }}
+            transition={{ duration: 1.5, ease: 'easeInOut', delay: SAVING_DELAY + 0.4, repeat: Infinity, repeatDelay: 3 }}
           >
-            Save {formatPrice(plan.originalPriceInPaise - plan.priceInPaise)} · {percent}% off
+            Save {percent}%
           </motion.span>
         </motion.p>
       )}
@@ -192,10 +191,12 @@ function SelfServeCard({
       data-testid="plan-card"
       data-plan-code={plan.code}
       data-popular={popular || undefined}
-      className={`relative flex h-full flex-col rounded-3xl transition-shadow duration-300 ${
+      // Gold is the highlight: a gold border and glow around the Popular card,
+      // and a soft gold border on the others when hovered.
+      className={`relative flex h-full flex-col rounded-3xl transition-[box-shadow,border-color] duration-300 ${
         popular
-          ? 'bg-gradient-to-b from-[#6B1420] to-[#3E0B12] shadow-[0_20px_50px_-20px_rgba(62,11,18,0.6)] hover:shadow-[0_28px_60px_-20px_rgba(62,11,18,0.65)]'
-          : 'border border-black/8 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.18)]'
+          ? 'border-2 border-[#E3C26B] bg-gradient-to-b from-[#6B1420] to-[#3E0B12] shadow-[0_0_0_4px_rgba(227,194,107,0.18),0_20px_50px_-20px_rgba(62,11,18,0.6)] hover:shadow-[0_0_0_6px_rgba(227,194,107,0.28),0_28px_60px_-20px_rgba(62,11,18,0.65)]'
+          : 'border border-black/8 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:border-[#E3C26B] hover:shadow-[0_0_0_3px_rgba(227,194,107,0.2),0_12px_32px_-12px_rgba(0,0,0,0.18)]'
       }`}
     >
       {popular && (
@@ -205,8 +206,12 @@ function SelfServeCard({
       )}
       <div className="flex flex-1 flex-col p-6 sm:p-7">
         <div className={`border-b pb-4 text-center ${rule}`}>
-          <h2 className={`text-xl sm:text-2xl font-semibold tracking-tight ${popular ? 'text-white' : 'text-[#1D1D1F]'}`}>{plan.name}</h2>
-          <p className={`mt-1 text-xs font-medium uppercase tracking-wider ${t.muted}`}>{durationLabel(plan.durationDays)}</p>
+          <h2 className={`text-2xl sm:text-[1.7rem] font-bold tracking-tight ${popular ? 'text-white' : 'text-black'}`}>{plan.name}</h2>
+          {/* Plan name and duration stand out: a short gold rule, then the period in bold. */}
+          <span aria-hidden="true" className="mx-auto mt-2 block h-[3px] w-10 rounded-full bg-[#E3C26B]" />
+          <p className={`mt-2 text-sm font-bold uppercase tracking-[0.14em] ${popular ? 'text-[#F1D278]' : 'text-nk-maroon'}`} data-testid="plan-duration">
+            {durationLabel(plan.durationDays)}
+          </p>
           {plan.description && (
             <p className={`mt-1.5 text-xs ${t.muted}`} data-testid="plan-description">
               {plan.description}
@@ -417,12 +422,12 @@ export default function MembershipPage() {
             key={plan.id}
             data-testid="plan-card"
             data-plan-code={plan.code}
-            className="relative overflow-hidden rounded-3xl border border-[#D9B865] bg-gradient-to-br from-[#FBF3DC] via-[#F3E0AE] to-[#E6C77F] p-6 sm:p-8 lg:p-10 text-[#2B1D0A] shadow-[0_24px_60px_-24px_rgba(140,100,20,0.55)]"
+            className="relative overflow-hidden rounded-3xl border border-[#C9A24A]/70 bg-gradient-to-br from-[#0F4535] via-[#0A3528] to-[#062419] p-6 sm:p-8 lg:p-10 text-[#F4ECD8] shadow-[0_24px_60px_-24px_rgba(6,36,25,0.7)]"
           >
             {/* The top tier: champagne gold, with a slow sheen passing over it. */}
             <motion.div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/45 to-transparent"
+              className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-[#F1D278]/15 to-transparent"
               initial={{ x: '0%' }}
               whileInView={{ x: '450%' }}
               viewport={{ once: true }}
@@ -430,17 +435,17 @@ export default function MembershipPage() {
             />
             <div className="relative z-10 flex flex-col items-stretch justify-between gap-8 lg:flex-row">
               <div className="max-w-2xl flex-1 space-y-4">
-                <div className="inline-flex items-center gap-2 rounded-full bg-[#2B1D0A] px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-[#F6E3A8]">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[#E3C26B]/60 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-[#F1D278]">
                   <Crown className="h-4 w-4 text-[#F1D278]" />
                   <span>Assisted service</span>
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-[family-name:var(--font-heading,serif)]">{plan.name}</h2>
                 {plan.description && (
-                  <p className="text-sm font-semibold text-[#6B4E12]" data-testid="plan-description">
+                  <p className="text-sm font-semibold text-[#F1D278]" data-testid="plan-description">
                     {plan.description}
                   </p>
                 )}
-                <p className="text-xs sm:text-sm leading-relaxed text-[#5A4520]">
+                <p className="text-xs sm:text-sm leading-relaxed text-[#C9D8CF]">
                   A staff-assisted plan. The assisted services below aren&apos;t running yet, so they&apos;re marked Coming Soon.
                 </p>
                 <ul className="space-y-2.5 pt-1">
@@ -450,7 +455,7 @@ export default function MembershipPage() {
                 </ul>
               </div>
 
-              <div className="flex w-full shrink-0 flex-col justify-between space-y-4 rounded-2xl bg-gradient-to-b from-[#4A3418] to-[#2B1D0A] p-6 text-center text-white shadow-lg lg:w-80">
+              <div className="flex w-full shrink-0 flex-col justify-between space-y-4 rounded-2xl border border-[#E3C26B]/35 bg-white/[0.06] p-6 text-center text-white shadow-lg backdrop-blur-sm lg:w-80">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-[#E2D2C8]/80">{durationLabel(plan.durationDays)}</p>
                   <div className="my-3 border-y border-white/15 py-4">

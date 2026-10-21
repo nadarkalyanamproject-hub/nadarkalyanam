@@ -275,7 +275,7 @@ export function AppHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b-2 border-nk-turmeric bg-nk-butter transition-shadow">
+    <header className="sticky top-0 z-40 border-b border-nk-line bg-white/95 backdrop-blur-sm transition-shadow">
       <div className="mx-auto flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
         {/* Brand Logo */}
         <Link href="/" className="flex shrink-0 items-center gap-2.5 transition-transform hover:scale-[1.01]">
@@ -306,7 +306,7 @@ export function AppHeader() {
                       className={`group relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                         isActive
                           ? 'text-nk-maroon font-semibold'
-                          : 'text-nk-ink hover:bg-nk-butter-deep hover:text-nk-maroon'
+                          : 'text-nk-ink hover:bg-nk-ivory hover:text-nk-maroon'
                       }`}
                     >
                       <Icon
@@ -366,7 +366,7 @@ export function AppHeader() {
                 }}
                 aria-label={menuOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={menuOpen}
-                className="relative flex h-9 w-9 items-center justify-center rounded-lg text-nk-ink transition-colors hover:bg-nk-butter-deep md:hidden"
+                className="relative flex h-9 w-9 items-center justify-center rounded-lg text-nk-ink transition-colors hover:bg-nk-ivory md:hidden"
               >
                 {menuOpen ? <CloseIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
                 {!menuOpen && anyBadge && (
@@ -431,7 +431,7 @@ export function AppHeader() {
                           href="/profile"
                           role="menuitem"
                           onClick={closeAvatarMenu}
-                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-nk-ink hover:bg-nk-butter-deep hover:text-nk-maroon focus:bg-nk-sand`}
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-nk-ink hover:bg-nk-ivory hover:text-nk-maroon focus:bg-nk-sand`}
                         >
                           <UserIcon className="h-4 w-4 text-nk-maroon" />
                           My Profile
@@ -440,7 +440,7 @@ export function AppHeader() {
                           href="/membership"
                           role="menuitem"
                           onClick={closeAvatarMenu}
-                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-nk-ink hover:bg-nk-butter-deep hover:text-nk-maroon focus:bg-nk-sand`}
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-nk-ink hover:bg-nk-ivory hover:text-nk-maroon focus:bg-nk-sand`}
                         >
                           <CrownIcon className="h-4 w-4 text-nk-maroon" />
                           Membership
@@ -449,7 +449,7 @@ export function AppHeader() {
                           href="/membership/contacts"
                           role="menuitem"
                           onClick={closeAvatarMenu}
-                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-nk-ink hover:bg-nk-butter-deep hover:text-nk-maroon focus:bg-nk-sand`}
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-nk-ink hover:bg-nk-ivory hover:text-nk-maroon focus:bg-nk-sand`}
                         >
                           <UserIcon className="h-4 w-4 text-nk-muted" />
                           My Unlocked Contacts
@@ -458,7 +458,7 @@ export function AppHeader() {
                           href="/contact"
                           role="menuitem"
                           onClick={closeAvatarMenu}
-                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-nk-ink hover:bg-nk-butter-deep hover:text-nk-maroon focus:bg-nk-sand`}
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-nk-ink hover:bg-nk-ivory hover:text-nk-maroon focus:bg-nk-sand`}
                         >
                           <ChatIcon className="h-4 w-4 text-nk-muted" />
                           Contact Us
@@ -467,7 +467,7 @@ export function AppHeader() {
                           href="/"
                           role="menuitem"
                           onClick={closeAvatarMenu}
-                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-nk-ink hover:bg-nk-butter-deep hover:text-nk-maroon focus:bg-nk-sand`}
+                          className={`${ACCOUNT_MENU_ITEM_CLASS} text-nk-ink hover:bg-nk-ivory hover:text-nk-maroon focus:bg-nk-sand`}
                         >
                           <HomeIcon className="h-4 w-4 text-nk-muted" />
                           Home Page
@@ -551,7 +551,7 @@ export function AppHeader() {
                     className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                       isActive
                         ? 'bg-nk-sand text-nk-maroon font-semibold border-l-4 border-nk-maroon'
-                        : 'text-nk-ink hover:bg-nk-butter-deep'
+                        : 'text-nk-ink hover:bg-nk-ivory'
                     }`}
                   >
                     <div className="flex items-center gap-3">

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { SupportContactResponse } from '@nadar-kalyanam/schemas';
+import { useRegistration } from '../app/providers/registration-provider';
 import { getSupportContact } from '../lib/api-client';
 import { supportContactLinks } from '../lib/membership';
 import { MandalaEmblem } from './app-header';
@@ -46,8 +47,12 @@ const SOCIAL = [
 const linkClass = 'text-[13px] text-nk-muted transition-colors hover:text-nk-maroon';
 const headingClass = 'text-[15px] font-bold tracking-wide text-nk-ink';
 
+// The full footer (About Nadar Kalyanam, links, contact) is for visitors who
+// aren't signed in. Signed-in members get one slim line on every page.
 export function SiteFooter() {
   const pathname = usePathname() ?? '/';
+  const { data, hydrated } = useRegistration();
+  const signedIn = hydrated && Boolean(data.accessToken);
   const [contact, setContact] = useState<SupportContactResponse | null>(null);
   const hidden = HIDDEN_ON.some((re) => re.test(pathname));
 
@@ -67,6 +72,7 @@ export function SiteFooter() {
   }, [hidden]);
 
   if (hidden) return null;
+  if (signedIn) return <SlimFooter />;
   const contactLinks = supportContactLinks(contact);
 
   return (
@@ -150,6 +156,20 @@ export function SiteFooter() {
             </div>
           )}
         </div>
+      </div>
+    </footer>
+  );
+}
+
+function SlimFooter() {
+  return (
+    <footer className="border-t border-nk-line bg-white" data-testid="site-footer-slim">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-4 text-[12px] text-nk-subtle sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+        <p>&copy; {new Date().getFullYear()} Nadar Kalyanam · Strictly for matrimonial purposes</p>
+        <nav aria-label="Footer" className="flex gap-4">
+          <Link href="/contact" className="hover:text-nk-maroon">Contact us</Link>
+          <Link href="/membership" className="hover:text-nk-maroon">Membership</Link>
+        </nav>
       </div>
     </footer>
   );

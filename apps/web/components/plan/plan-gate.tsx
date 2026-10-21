@@ -86,7 +86,7 @@ function PreLaunchScreen({ me, opensAt }: { me: MyMembershipResponse; opensAt: s
           <h1 className="mt-4 font-[family-name:var(--font-heading,serif)] text-2xl font-bold text-nk-ink">
             Matching opens on {formatPlanDate(opensAt)}
           </h1>
-          <p className="mt-1 text-sm font-semibold text-nk-maroon">
+          <p className="mx-auto mt-2 inline-block rounded-md bg-nk-saffron-soft px-3 py-1 text-sm font-semibold text-nk-saffron-text" data-testid="launch-countdown">
             {days === 1 ? '1 day to go' : `${days} days to go`}
           </p>
           <p className="mt-3 text-sm leading-relaxed text-nk-ink-soft">
@@ -95,7 +95,7 @@ function PreLaunchScreen({ me, opensAt }: { me: MyMembershipResponse; opensAt: s
           </p>
 
           {offer && (
-            <div className="mt-6 rounded-xl border border-nk-line-gold bg-nk-paper p-5 text-left" data-testid="launch-offer">
+            <div className="mt-6 rounded-xl border border-nk-line-gold border-l-4 border-l-nk-saffron bg-nk-paper p-5 text-left" data-testid="launch-offer">
               <p className="text-sm font-bold text-nk-ink">
                 Launch offer: {offer.planName} free, {formatPlanDate(offer.startsAt)} – {formatPlanLastDay(offer.endsAt)}
               </p>

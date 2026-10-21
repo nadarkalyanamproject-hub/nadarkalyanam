@@ -20,7 +20,15 @@
   --color-nk-gold-text: #8a6420; /* gold-coloured text (e.g. Coming soon) */
   --color-nk-green: #2e8a5f; /* success: Interest Sent, usage bars (lighter, still solid) */
   --color-nk-green-deep: #287a53; /* green borders / pressed */
-  --color-nk-turmeric: #e9b53f; /* header / footer rule */
+  /* One job each. Saffron: urgency and new things (offer deadline, launch
+     countdown, "new today"). Sky: information and help (tips, how it works). */
+  --color-nk-saffron: #e8890c; /* saffron fills, borders, icons */
+  --color-nk-saffron-text: #a85a00; /* saffron words (passes AA on light surfaces) */
+  --color-nk-saffron-soft: #fff4e5; /* saffron panel background */
+  --color-nk-sky: #2f7bb5; /* info icons, borders */
+  --color-nk-sky-text: #1f5f8b; /* info words */
+  --color-nk-sky-soft: #edf5fb; /* info panel background */
+  --color-nk-turmeric: #e9b53f; /* landing accents */
   --color-nk-butter: #fcefc7; /* header background */
   --color-nk-butter-deep: #f7e3ae; /* header hover */
   --color-nk-ivory: #fffdf9; /* page background */

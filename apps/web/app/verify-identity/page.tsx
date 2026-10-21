@@ -71,8 +71,8 @@ export default function VerifyIdentityPage() {
         ))}
       </ol>
 
-      <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-nk-line bg-nk-paper p-3.5 text-left text-xs leading-relaxed text-nk-ink-soft">
-        <Lock className="mt-0.5 h-4 w-4 shrink-0 text-nk-maroon" />
+      <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-nk-sky/25 bg-nk-sky-soft p-3.5 text-left text-xs leading-relaxed text-nk-sky-text">
+        <Lock className="mt-0.5 h-4 w-4 shrink-0 text-nk-sky" />
         <span>
           We keep only your name and date of birth. We never see or store your Aadhaar number or documents, and other
           members only see a &ldquo;Verified&rdquo; badge.
