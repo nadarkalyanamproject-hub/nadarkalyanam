@@ -43,7 +43,56 @@ export const INDIA_STATES_AND_UTS = [
 ] as const;
 export type IndiaState = (typeof INDIA_STATES_AND_UTS)[number];
 
-// The onboarding Mother tongue picker.
+// Religions offered at registration (step 1).
+export const RELIGIONS = ['Hindu', 'Christian'] as const;
+export type Religion = (typeof RELIGIONS)[number];
+
+// The Nadar sub-community picker at registration (step 1), stored as the
+// profile's casteCommunity. To be confirmed with the client.
+export const NADAR_SUBCATEGORIES = [
+  'Gramani',
+  'Jaishwal',
+  'Muppar',
+  'Nattathi',
+  'Kodikkal',
+  'Karukku Pattayathar',
+  'Mel Nadar',
+  'Mara Nadar',
+  'Shanar',
+  'Other',
+] as const;
+export type NadarSubcategory = (typeof NADAR_SUBCATEGORIES)[number];
+
+// Family net worth (optional, step 4).
+export const NET_WORTH_RANGES = [
+  'Below ₹50 Lakh',
+  '₹50 Lakh – ₹1 Crore',
+  '₹1 Crore – ₹5 Crore',
+  '₹5 Crore – ₹10 Crore',
+  '₹10 Crore – ₹25 Crore',
+  'Above ₹25 Crore',
+  'Prefer not to say',
+] as const;
+export type NetWorthRange = (typeof NET_WORTH_RANGES)[number];
+
+// "Dosham details" picker, shown when the member answers Dosham = Yes.
+// Saved as text in doshamDetails (older profiles may hold free text).
+export const DOSHAM_TYPES = [
+  'Sevvai (Chevvai) Dosham',
+  'Rahu Dosham',
+  'Ketu Dosham',
+  'Rahu-Ketu Dosham',
+  'Kala Sarpa Dosham',
+  'Naga Dosham',
+  'Shani Dosham',
+  'Pitru Dosham',
+  'Nadi Dosham',
+  'Bhakoot Dosham',
+  'Other',
+] as const;
+
+// Mother tongue: no longer asked at registration; kept for partner
+// preferences, search and profiles saved before it was dropped.
 export const MOTHER_TONGUES = [
   'Tamil',
   'Telugu',

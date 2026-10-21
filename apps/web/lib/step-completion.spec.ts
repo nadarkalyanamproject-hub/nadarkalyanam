@@ -9,24 +9,20 @@ describe('getStepCompletionPercent', () => {
       height: '',
       physicalStatus: '',
       maritalStatus: '',
-      religion: '',
-      casteCommunity: '',
       dosham: '',
     });
     expect(percent).toBe(0);
   });
 
   it('returns a correct intermediate percentage as required fields are filled in', () => {
-    // 3 of 5 required fields (height, physicalStatus, maritalStatus) filled
+    // 2 of 3 required fields (height, physicalStatus) filled
     const percent = getStepCompletionPercent(personalReligiousSchema, {
       height: `5'4" (163 cm)`,
       physicalStatus: 'NORMAL',
-      maritalStatus: 'NEVER_MARRIED',
-      religion: '',
-      casteCommunity: '',
+      maritalStatus: '',
       dosham: '',
     });
-    expect(percent).toBe(60);
+    expect(percent).toBe(67);
   });
 
   it('returns 100 once every required field is filled', () => {
@@ -34,8 +30,6 @@ describe('getStepCompletionPercent', () => {
       height: `5'4" (163 cm)`,
       physicalStatus: 'NORMAL',
       maritalStatus: 'NEVER_MARRIED',
-      religion: 'Hindu',
-      casteCommunity: 'Nadar',
       dosham: '',
     });
     expect(percent).toBe(100);
@@ -46,16 +40,12 @@ describe('getStepCompletionPercent', () => {
       height: `5'4" (163 cm)`,
       physicalStatus: 'NORMAL',
       maritalStatus: 'NEVER_MARRIED',
-      religion: 'Hindu',
-      casteCommunity: 'Nadar',
       dosham: '',
     });
     const withDosham = getStepCompletionPercent(personalReligiousSchema, {
       height: `5'4" (163 cm)`,
       physicalStatus: 'NORMAL',
       maritalStatus: 'NEVER_MARRIED',
-      religion: 'Hindu',
-      casteCommunity: 'Nadar',
       dosham: 'YES',
     });
     expect(withoutDosham).toBe(100);

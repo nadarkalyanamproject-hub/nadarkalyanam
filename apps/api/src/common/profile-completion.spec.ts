@@ -6,7 +6,6 @@ const FULL = {
   gender: 'FEMALE',
   dateOfBirth: new Date('1996-01-01'),
   details: {
-    motherTongue: 'Tamil',
     email: 'meena@example.com',
     height: `5'3" (160 cm)`,
     physicalStatus: 'NORMAL',
@@ -42,8 +41,8 @@ function withDetails(overrides: Record<string, unknown>) {
 }
 
 describe('profile completion score', () => {
-  it('counts 21 fields: the 20 onboarding fields plus a photo', () => {
-    expect(COMPLETION_FIELDS).toHaveLength(21);
+  it('counts 20 fields: the 19 onboarding fields plus a photo', () => {
+    expect(COMPLETION_FIELDS).toHaveLength(20);
   });
 
   it('is 100 with every field filled and a photo', () => {
@@ -51,7 +50,7 @@ describe('profile completion score', () => {
     expect(computeCompletionScore(FULL, 3)).toBe(100);
   });
 
-  it('is 95 with every field filled but no photo (20/21)', () => {
+  it('is 95 with every field filled but no photo (19/20)', () => {
     expect(computeCompletionScore(FULL, 0)).toBe(95);
     expect(missingCompletionFields(FULL, 0)).toEqual(['photo']);
   });
@@ -64,7 +63,7 @@ describe('profile completion score', () => {
     expect(missingCompletionFields(profile, 0).sort()).toEqual(
       ['annualIncomeRange', 'dosham', 'educationDetail', 'employedIn', 'photo'].sort(),
     );
-    expect(computeCompletionScore(profile, 0)).toBe(Math.round((16 / 21) * 100)); // 76
+    expect(computeCompletionScore(profile, 0)).toBe(Math.round((15 / 20) * 100)); // 75
   });
 
   it('does not count conditional follow-ups or fields members cannot enter', () => {
@@ -74,7 +73,7 @@ describe('profile completion score', () => {
 
   it('handles a profile with no details at all (legacy rows)', () => {
     expect(computeCompletionScore({ fullName: 'X Y', gender: 'MALE', dateOfBirth: '1990-01-01', details: {} }, 0)).toBe(
-      Math.round((3 / 21) * 100),
+      Math.round((3 / 20) * 100),
     );
   });
 });

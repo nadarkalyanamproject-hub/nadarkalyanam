@@ -10,6 +10,7 @@ import {
 import { ApiError, updateProfile } from '../../lib/api-client';
 import { profileToAdditionalDetailsForm, toCreateProfileRequest } from '../../lib/profile-mapping';
 import { toFieldErrors } from '../../lib/zod-errors';
+import { buildAboutDraft } from '../../lib/about-draft';
 import { useRegistration } from '../../app/providers/registration-provider';
 
 export function AdditionalDetailsEditSection({
@@ -58,7 +59,24 @@ export function AdditionalDetailsEditSection({
 
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-      <AdditionalDetailsFields form={form} errors={errors} onChange={update} />
+      <AdditionalDetailsFields
+        form={form}
+        errors={errors}
+        onChange={update}
+        writeAbout={() =>
+          buildAboutDraft({
+            fullName: profile.fullName,
+            dateOfBirth: profile.dateOfBirth,
+            religion: profile.details?.religion,
+            casteCommunity: profile.details?.casteCommunity,
+            profession: profile.details?.education?.profession,
+            educationLevel: profile.details?.education?.educationLevel,
+            city: profile.details?.location?.city,
+            state: profile.details?.location?.state,
+            familyType: form.familyType,
+          })
+        }
+      />
 
       {formError ? <FormError>{formError}</FormError> : null}
 

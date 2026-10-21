@@ -13,6 +13,7 @@ import { getOverallCompletionPercent } from '../../../lib/onboarding-progress';
 import { toFieldErrors } from '../../../lib/zod-errors';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { useRegistration } from '../../providers/registration-provider';
+import { useIdentityStatus } from '../../../lib/identity-status';
 
 type FormState = BasicDetailsFormState;
 
@@ -20,7 +21,8 @@ const EMPTY_FORM: FormState = {
   fullName: '',
   gender: '',
   dateOfBirth: '',
-  motherTongue: '',
+  religion: '',
+  casteCommunity: '',
   email: '',
 };
 
@@ -47,6 +49,9 @@ function BasicDetailsStep() {
     ...(data.stepInputs?.basicDetails as Partial<FormState> | undefined),
   }));
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const identity = useIdentityStatus(data.accessToken)?.identity ?? null;
+  // Verified with DigiLocker: name and date of birth come from the ID.
+  const values: FormState = identity ? { ...form, fullName: identity.name, dateOfBirth: identity.dateOfBirth } : form;
 
   // Every edit is also kept in the draft (unvalidated), so browser Back and
   // reload keep it too.
@@ -56,7 +61,7 @@ function BasicDetailsStep() {
 
   if (!ready) return null;
 
-  const activePercent = getOverallCompletionPercent(data, 1, form);
+  const activePercent = getOverallCompletionPercent(data, 1, values);
 
   function update<K extends keyof FormState>(key: K, value: string) {
     setForm((prev: FormState) => ({ ...prev, [key]: value }));
@@ -64,7 +69,7 @@ function BasicDetailsStep() {
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    const result = basicDetailsSchema.safeParse(form);
+    const result = basicDetailsSchema.safeParse(values);
     if (!result.success) {
       setErrors(toFieldErrors(result.error));
       return;
@@ -82,7 +87,7 @@ function BasicDetailsStep() {
       subtitle="Tell us a little about yourself"
     >
       <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-        <BasicDetailsFields form={form} errors={errors} onChange={update} />
+        <BasicDetailsFields form={values} errors={errors} onChange={update} identityLocked={Boolean(identity)} />
         <div className="mt-2 flex justify-end">
           <Button type="submit" size="md" className="min-w-32">
             Next

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import type { CreateProfileRequest } from '@nadar-kalyanam/schemas';
+import { NADAR_SUBCATEGORIES, RELIGIONS, type CreateProfileRequest } from '@nadar-kalyanam/schemas';
 import { Button, Card, Field, Input, Select, Textarea } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../../../components/admin-shell';
 import { StatusBadge } from '../../../components/status-badge';
@@ -29,7 +29,6 @@ type FormState = {
   fullName: string;
   gender: string;
   dateOfBirth: string;
-  motherTongue: string;
   email: string;
   height: string;
   physicalStatus: string;
@@ -61,7 +60,6 @@ function toFormState(details: Record<string, unknown>, member: MemberDetail): Fo
     fullName: member.profile?.fullName ?? '',
     gender: member.profile?.gender ?? '',
     dateOfBirth: member.profile?.dateOfBirth ?? '',
-    motherTongue: (details.motherTongue as string) ?? '',
     email: (details.email as string) ?? '',
     height: (details.height as string) ?? '',
     physicalStatus: (details.physicalStatus as string) ?? 'NORMAL',
@@ -90,14 +88,13 @@ function toCreateProfileRequest(form: FormState): CreateProfileRequest {
     fullName: form.fullName,
     gender: form.gender as CreateProfileRequest['gender'],
     dateOfBirth: form.dateOfBirth,
-    motherTongue: form.motherTongue,
+    religion: form.religion as CreateProfileRequest['religion'],
+    casteCommunity: form.casteCommunity as CreateProfileRequest['casteCommunity'],
     email: form.email,
     personal: {
       height: form.height,
       physicalStatus: form.physicalStatus as CreateProfileRequest['personal']['physicalStatus'],
       maritalStatus: form.maritalStatus as CreateProfileRequest['personal']['maritalStatus'],
-      religion: form.religion,
-      casteCommunity: form.casteCommunity,
       dosham: (form.dosham || undefined) as CreateProfileRequest['personal']['dosham'],
       previousMarriageDetails: form.previousMarriageDetails,
       doshamDetails: form.doshamDetails,
@@ -577,13 +574,12 @@ export default function MemberDetailPage() {
                       ['fullName', 'Full name', 'text'],
                       ['gender', 'Gender', 'select-gender'],
                       ['dateOfBirth', 'Date of birth', 'date'],
-                      ['motherTongue', 'Mother tongue', 'text'],
                       ['email', 'Email', 'email'],
                       ['height', 'Height', 'text'],
                       ['physicalStatus', 'Physical status', 'select-physical'],
                       ['maritalStatus', 'Marital status', 'select-marital'],
-                      ['religion', 'Religion', 'text'],
-                      ['casteCommunity', 'Community', 'text'],
+                      ['religion', 'Religion', 'select-religion'],
+                      ['casteCommunity', 'Nadar subcategory', 'select-subcategory'],
                       ['dosham', 'Dosham', 'select-dosham'],
                       ['city', 'City', 'text'],
                       ['state', 'State', 'text'],
@@ -622,6 +618,15 @@ export default function MemberDetailPage() {
                           <option value="NO">No</option>
                           <option value="YES">Yes</option>
                           <option value="DONT_KNOW">Don&apos;t know</option>
+                        </Select>
+                      ) : kind === 'select-religion' || kind === 'select-subcategory' ? (
+                        <Select id={key} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })}>
+                          <option value="">Select</option>
+                          {(kind === 'select-religion' ? RELIGIONS : NADAR_SUBCATEGORIES).map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
                         </Select>
                       ) : kind === 'select-family' ? (
                         <Select id={key} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })}>

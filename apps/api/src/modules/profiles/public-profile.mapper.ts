@@ -49,7 +49,8 @@ export function toPublicProfileDetail(
   const primaryPhotoUrl = photos.find((photo) => photo.isPrimary)?.url ?? photos[0]?.url ?? null;
   return {
     ...toPublicProfileSummary(profile, primaryPhotoUrl, relationship),
-    motherTongue: details.motherTongue,
+    // Empty for profiles saved after mother tongue was dropped.
+    motherTongue: details.motherTongue ?? '',
     height: details.height,
     physicalStatus: details.physicalStatus,
     casteCommunity: details.casteCommunity,

@@ -27,6 +27,12 @@ model User {
   // When the member last opened the Interests page. A PENDING interest
   // received after this drives the "new interests" dot in the header.
   lastViewedInterestsAt DateTime?
+  // DigiLocker identity check (VerificationService). Set once the provider
+  // confirms; name and date of birth come from the ID and lock the profile's
+  // own. Only these are kept: never the Aadhaar number or document.
+  identityVerifiedAt    DateTime?
+  identityName          String?
+  identityDateOfBirth   DateTime?
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 

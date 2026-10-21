@@ -1,21 +1,26 @@
-import { Injectable, NotImplementedException } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { Injectable } from '@nestjs/common';
 import type {
   IdentityConfirmResult,
   IdentityInitiateResult,
   IdentityProviderAdapter,
 } from './identity-provider.adapter.js';
 
-// No identity verification provider is contracted yet (SRS §2.6) — both
-// operations are a hard stop until one is.
+// No DigiLocker provider is contracted yet (SRS §2.6). For local development
+// this stand-in skips DigiLocker: it sends the member straight back to the
+// web app's callback page and confirms with a fixed test identity.
+// VerificationService refuses it in production (assertProviderConfigured).
 @Injectable()
 export class StubIdentityProviderAdapter implements IdentityProviderAdapter {
   readonly isStub = true as const;
 
   initiate(): Promise<IdentityInitiateResult> {
-    throw new NotImplementedException('No identity verification provider is configured yet');
+    const providerReference = `stub-${randomUUID()}`;
+    return Promise.resolve({ redirectUrl: `/verify-identity/callback?reference=${providerReference}`, providerReference });
   }
 
-  confirmStatus(): Promise<IdentityConfirmResult> {
-    throw new NotImplementedException('No identity verification provider is configured yet');
+  confirmStatus(providerReference: string): Promise<IdentityConfirmResult> {
+    if (!providerReference.startsWith('stub-')) return Promise.resolve({ succeeded: false });
+    return Promise.resolve({ succeeded: true, identity: { name: 'Test Member', dateOfBirth: '1996-05-15' } });
   }
 }

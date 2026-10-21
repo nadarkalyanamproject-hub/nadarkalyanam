@@ -62,8 +62,8 @@ const DOSHAM_LABELS: Record<string, string> = {
 // Which counted completion fields (see the API's profile-completion.ts) each
 // real section holds.
 const SECTION_FIELDS = {
-  basic: ['fullName', 'gender', 'dateOfBirth', 'motherTongue', 'email'],
-  personal: ['height', 'physicalStatus', 'maritalStatus', 'religion', 'casteCommunity', 'dosham'],
+  basic: ['fullName', 'gender', 'dateOfBirth', 'religion', 'casteCommunity', 'email'],
+  personal: ['height', 'physicalStatus', 'maritalStatus', 'dosham'],
   education: ['educationLevel', 'educationDetail', 'profession', 'employedIn', 'annualIncomeRange'],
   location: ['city', 'state'],
   family: ['familyType', 'about'],
@@ -316,7 +316,7 @@ export default function ProfilePage() {
 
   // Completion calculation based on real fields
   const hasBasic = Boolean(profile?.fullName && profile?.gender && profile?.dateOfBirth);
-  const hasPersonal = Boolean(profile?.details?.religion && profile?.details?.casteCommunity);
+  const hasPersonal = Boolean(profile?.details?.height && profile?.details?.maritalStatus);
   const hasEducation = Boolean(profile?.details?.education?.profession);
   const hasFamily = Boolean(profile?.details?.additional?.familyType);
 
@@ -440,7 +440,8 @@ export default function ProfilePage() {
                   <DetailItem label="Full Name" value={profile.fullName} />
                   <DetailItem label="Gender" value={GENDER_LABELS[profile.gender] ?? profile.gender} />
                   <DetailItem label="Date of Birth" value={formatDisplayDate(profile.dateOfBirth)} />
-                  <DetailItem label="Mother Tongue" value={profile.details?.motherTongue} />
+                  <DetailItem label="Religion" value={profile.details?.religion} />
+                  <DetailItem label="Nadar Subcategory" value={profile.details?.casteCommunity} />
                   <DetailItem label="Email" value={profile.details?.email} className="sm:col-span-2" />
                 </dl>
               </AccordionSection>
@@ -475,8 +476,6 @@ export default function ProfilePage() {
                     label="Marital Status"
                     value={labelFor(MARITAL_STATUS_LABELS, profile.details?.maritalStatus)}
                   />
-                  <DetailItem label="Religion" value={profile.details?.religion} />
-                  <DetailItem label="Caste / Community" value={profile.details?.casteCommunity} />
                   <DetailItem
                     label="Dosham"
                     value={labelFor(DOSHAM_LABELS, profile.details?.dosham)}
@@ -600,6 +599,7 @@ export default function ProfilePage() {
                     label="Family Status / Type"
                     value={profile.details?.additional?.familyType}
                   />
+                  <DetailItem label="Family Net Worth" value={profile.details?.additional?.netWorth} />
                   <div className="sm:col-span-2">
                     <ComingSoonNote feature="familyValue" />
                   </div>

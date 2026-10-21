@@ -8,14 +8,13 @@ const validPayload: CreateProfileRequest = {
   fullName: 'Meena Kumari',
   gender: 'FEMALE',
   dateOfBirth: '1998-04-12',
-  motherTongue: 'Tamil',
+  religion: 'Hindu',
+  casteCommunity: 'Gramani',
   email: 'meena.kumari@example.com',
   personal: {
     height: `5'4" (163 cm)`,
     physicalStatus: 'NORMAL',
     maritalStatus: 'NEVER_MARRIED',
-    religion: 'Hindu',
-    casteCommunity: 'Nadar',
     dosham: 'NO',
     previousMarriageDetails: '',
     doshamDetails: '',
@@ -51,8 +50,6 @@ const storedProfile = {
     height: `5'4" (163 cm)`,
     physicalStatus: 'NORMAL',
     maritalStatus: 'NEVER_MARRIED',
-    religion: 'Hindu',
-    casteCommunity: 'Nadar',
     dosham: 'NO',
     location: { city: 'Chennai', state: 'Tamil Nadu', country: 'India' },
     education: {
@@ -85,6 +82,10 @@ function buildService() {
     },
     profilePhoto: {
       count: vi.fn().mockResolvedValue(0),
+    },
+    // No DigiLocker identity unless a test sets one.
+    user: {
+      findUnique: vi.fn().mockResolvedValue(null),
     },
   };
   const service = new ProfilesService(prisma as never);
@@ -202,6 +203,25 @@ describe('createProfileSchema', () => {
 });
 
 describe('ProfilesService', () => {
+  it('after DigiLocker, saves the ID\x27s name and date of birth, not the typed ones, and marks the profile verified', async () => {
+    const { service, prisma } = buildService();
+    prisma.user.findUnique.mockResolvedValueOnce({
+      identityVerifiedAt: new Date('2026-10-21T08:00:00Z'),
+      identityName: 'Meena Kumari Rajan',
+      identityDateOfBirth: new Date('1998-04-10T00:00:00Z'),
+    });
+
+    await service.createProfile('user-1', { ...validPayload, fullName: 'Someone Else', dateOfBirth: '2001-01-01' });
+
+    expect(prisma.profile.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        fullName: 'Meena Kumari Rajan',
+        dateOfBirth: new Date('1998-04-10T00:00:00Z'),
+        isVerified: true,
+      }),
+    });
+  });
+
   it('persists the required scalar fields and nests the rest under details', async () => {
     const { service, prisma } = buildService();
 
@@ -214,13 +234,12 @@ describe('ProfilesService', () => {
         gender: 'FEMALE',
         dateOfBirth: new Date('1998-04-12'),
         details: {
-          motherTongue: 'Tamil',
           email: 'meena.kumari@example.com',
           height: `5'4" (163 cm)`,
           physicalStatus: 'NORMAL',
           maritalStatus: 'NEVER_MARRIED',
           religion: 'Hindu',
-          casteCommunity: 'Nadar',
+          casteCommunity: 'Gramani',
           dosham: 'NO',
           previousMarriageDetails: '',
           doshamDetails: '',
@@ -318,7 +337,7 @@ describe('ProfilesService.updateProfile', () => {
     const updatedPayload: CreateProfileRequest = {
       ...validPayload,
       fullName: 'Meena K. Nair',
-      personal: { ...validPayload.personal, religion: 'Christian' },
+      religion: 'Christian',
     };
 
     await service.updateProfile('user-1', updatedPayload);
@@ -330,13 +349,12 @@ describe('ProfilesService.updateProfile', () => {
         gender: 'FEMALE',
         dateOfBirth: new Date('1998-04-12'),
         details: {
-          motherTongue: 'Tamil',
           email: 'meena.kumari@example.com',
           height: `5'4" (163 cm)`,
           physicalStatus: 'NORMAL',
           maritalStatus: 'NEVER_MARRIED',
           religion: 'Christian',
-          casteCommunity: 'Nadar',
+          casteCommunity: 'Gramani',
           dosham: 'NO',
           previousMarriageDetails: '',
           doshamDetails: '',

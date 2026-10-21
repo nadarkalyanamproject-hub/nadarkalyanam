@@ -52,15 +52,14 @@ export const STEP_FIELD_IDS: Record<FormStep, Record<string, string>> = {
     fullName: 'fullName',
     gender: 'gender',
     dateOfBirth: 'dobDay',
-    motherTongue: 'motherTongue',
+    religion: 'religion',
+    casteCommunity: 'casteCommunity',
     email: 'email',
   },
   personal: {
     height: 'height',
     physicalStatus: 'physicalStatus',
     maritalStatus: 'maritalStatus',
-    religion: 'religion',
-    casteCommunity: 'casteCommunity',
     dosham: 'dosham',
     previousMarriageDetails: 'previousMarriageDetails',
     doshamDetails: 'doshamDetails',
@@ -78,6 +77,7 @@ export const STEP_FIELD_IDS: Record<FormStep, Record<string, string>> = {
   },
   additional: {
     familyType: 'familyType',
+    netWorth: 'netWorth',
     about: 'about',
   },
 };

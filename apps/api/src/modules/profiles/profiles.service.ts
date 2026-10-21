@@ -12,8 +12,8 @@ import { getRelationshipStates, type RelationshipState } from '../../common/rela
 import { PrismaService } from '../prisma/prisma.service.js';
 
 function buildProfileData(input: CreateProfileRequest) {
-  const { fullName, gender, dateOfBirth, motherTongue, email, personal, location, additional } = input;
-  const { height, physicalStatus, maritalStatus, religion, casteCommunity, dosham } = personal;
+  const { fullName, gender, dateOfBirth, religion, casteCommunity, email, personal, location, additional } = input;
+  const { height, physicalStatus, maritalStatus, dosham } = personal;
   // The detail fields only mean something while their parent says so; drop
   // them otherwise so no client can leave a stale, hidden value behind.
   const previousMarriageDetails = PRIOR_MARRIAGE_STATUSES.includes(maritalStatus)
@@ -27,8 +27,8 @@ function buildProfileData(input: CreateProfileRequest) {
     fullName,
     gender,
     dateOfBirth: new Date(dateOfBirth),
+    // Mother tongue is no longer asked, so a profile saved now has none.
     details: {
-      motherTongue,
       email,
       height,
       physicalStatus,
@@ -57,6 +57,17 @@ export class ProfilesService {
     return profile;
   }
 
+  // After DigiLocker, the ID's name and date of birth replace whatever was
+  // sent: members can't change them (VerificationService sets them).
+  private async withVerifiedIdentity<T extends { fullName: string; dateOfBirth: Date }>(userId: string, data: T): Promise<T & { isVerified?: true }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { identityVerifiedAt: true, identityName: true, identityDateOfBirth: true },
+    });
+    if (!user?.identityVerifiedAt || !user.identityName || !user.identityDateOfBirth) return data;
+    return { ...data, fullName: user.identityName, dateOfBirth: user.identityDateOfBirth, isVerified: true };
+  }
+
   async createProfile(userId: string, input: CreateProfileRequest) {
     const existing = await this.prisma.profile.findUnique({ where: { userId } });
     if (existing) {
@@ -64,7 +75,7 @@ export class ProfilesService {
     }
 
     // A brand-new profile has no photos yet.
-    const data = buildProfileData(input);
+    const data = await this.withVerifiedIdentity(userId, buildProfileData(input));
     return this.prisma.profile.create({
       // Nobody shares their phone number until they turn it on.
       data: { userId, ...data, phoneVisibility: DEFAULT_PHONE_VISIBILITY, completionScore: computeCompletionScore(data, 0) },
@@ -77,7 +88,7 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found for this user');
     }
 
-    const data = buildProfileData(input);
+    const data = await this.withVerifiedIdentity(userId, buildProfileData(input));
     const photoCount = await this.prisma.profilePhoto.count({ where: { profileId: existing.id } });
     return this.prisma.profile.update({
       where: { userId },

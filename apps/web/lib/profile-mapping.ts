@@ -23,14 +23,15 @@ export function toCreateProfileRequest(profile: ProfileResponse): CreateProfileR
     fullName: profile.fullName,
     gender: profile.gender,
     dateOfBirth: profile.dateOfBirth,
-    motherTongue: profile.details?.motherTongue ?? '',
+    // Older profiles may hold a value outside the current lists; the API
+    // then asks the member to pick again rather than saving it.
+    religion: (profile.details?.religion ?? '') as CreateProfileRequest['religion'],
+    casteCommunity: (profile.details?.casteCommunity ?? '') as CreateProfileRequest['casteCommunity'],
     email: profile.details?.email ?? '',
     personal: {
       height: profile.details?.height ?? '',
       physicalStatus: profile.details?.physicalStatus as CreateProfileRequest['personal']['physicalStatus'],
       maritalStatus: profile.details?.maritalStatus as CreateProfileRequest['personal']['maritalStatus'],
-      religion: profile.details?.religion ?? '',
-      casteCommunity: profile.details?.casteCommunity ?? '',
       dosham: profile.details?.dosham,
       previousMarriageDetails: profile.details?.previousMarriageDetails ?? '',
       doshamDetails: profile.details?.doshamDetails ?? '',
@@ -58,7 +59,8 @@ export function profileToBasicDetailsForm(profile: ProfileResponse): BasicDetail
     fullName: profile.fullName,
     gender: profile.gender,
     dateOfBirth: profile.dateOfBirth,
-    motherTongue: profile.details?.motherTongue ?? '',
+    religion: profile.details?.religion ?? '',
+    casteCommunity: profile.details?.casteCommunity ?? '',
     email: profile.details?.email ?? '',
   };
 }
@@ -68,8 +70,6 @@ export function profileToPersonalReligiousForm(profile: ProfileResponse): Person
     height: profile.details?.height ?? '',
     physicalStatus: profile.details?.physicalStatus ?? '',
     maritalStatus: profile.details?.maritalStatus ?? '',
-    religion: profile.details?.religion ?? '',
-    casteCommunity: profile.details?.casteCommunity ?? '',
     dosham: profile.details?.dosham ?? '',
     previousMarriageDetails: profile.details?.previousMarriageDetails ?? '',
     doshamDetails: profile.details?.doshamDetails ?? '',
@@ -93,6 +93,7 @@ export function profileToLocationProfessionalForm(profile: ProfileResponse): Loc
 export function profileToAdditionalDetailsForm(profile: ProfileResponse): AdditionalDetailsFormState {
   return {
     familyType: profile.details?.additional?.familyType ?? '',
+    netWorth: profile.details?.additional?.netWorth ?? '',
     about: profile.details?.additional?.about ?? '',
   };
 }

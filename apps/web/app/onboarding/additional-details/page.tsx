@@ -15,11 +15,13 @@ import { getOverallCompletionPercent } from '../../../lib/onboarding-progress';
 import { toFieldErrors } from '../../../lib/zod-errors';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { useRegistration } from '../../providers/registration-provider';
+import { buildAboutDraft } from '../../../lib/about-draft';
 
 type FormState = AdditionalDetailsFormState;
 
 const EMPTY_FORM: FormState = {
   familyType: '',
+  netWorth: '',
   about: '',
 };
 
@@ -129,7 +131,12 @@ function AdditionalDetailsStep() {
       subtitle="Your family status and a bit about you"
     >
       <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-        <AdditionalDetailsFields form={form} errors={errors} onChange={update} />
+        <AdditionalDetailsFields
+          form={form}
+          errors={errors}
+          onChange={update}
+          writeAbout={() => buildAboutDraft({ ...data.basicDetails, ...data.location, familyType: form.familyType })}
+        />
 
         {formError ? <FormError>{formError}</FormError> : null}
 

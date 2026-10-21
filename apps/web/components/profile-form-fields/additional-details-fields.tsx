@@ -1,6 +1,7 @@
 'use client';
 
-import type { AdditionalDetails } from '@nadar-kalyanam/schemas';
+import { NET_WORTH_RANGES, type AdditionalDetails } from '@nadar-kalyanam/schemas';
+import { Sparkles } from 'lucide-react';
 import { Field, Select, Textarea } from '@nadar-kalyanam/ui';
 import { isRequired } from '../../lib/required-fields';
 
@@ -10,10 +11,14 @@ export function AdditionalDetailsFields({
   form,
   errors,
   onChange,
+  writeAbout,
 }: {
   form: AdditionalDetailsFormState;
   errors: Record<string, string>;
   onChange: <K extends keyof AdditionalDetailsFormState>(key: K, value: string) => void;
+  // Returns a two-line About you from the member's other answers
+  // (lib/about-draft.ts); shows the "Write it for me" button when given.
+  writeAbout?: () => string;
 }) {
   return (
     <>
@@ -37,11 +42,44 @@ export function AdditionalDetailsFields({
       </Field>
 
       <Field
+        label="Family net worth (optional)"
+        htmlFor="netWorth"
+        required={isRequired('additional', 'netWorth')}
+        error={errors.netWorth}
+      >
+        <Select
+          id="netWorth"
+          invalid={Boolean(errors.netWorth)}
+          value={form.netWorth}
+          onChange={(e) => onChange('netWorth', e.target.value)}
+        >
+          <option value="">Select</option>
+          {NET_WORTH_RANGES.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </Select>
+      </Field>
+
+      {writeAbout && (
+        <button
+          type="button"
+          onClick={() => onChange('about', writeAbout())}
+          data-testid="write-about"
+          className="-mb-2 inline-flex items-center gap-1.5 self-end text-xs font-semibold text-nk-maroon hover:text-nk-maroon-deep"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          {form.about.trim() ? 'Write it again for me' : 'Write it for me'}
+        </button>
+      )}
+
+      <Field
         label="About you"
         htmlFor="about"
         required={isRequired('additional', 'about')}
         error={errors.about}
-        hint="At least 50 characters"
+        hint="At least 50 characters. You can edit anything written for you."
       >
         <Textarea
           id="about"

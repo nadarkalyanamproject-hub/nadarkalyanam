@@ -3,15 +3,16 @@ import type { RegistrationDraft } from './registration-types';
 import { getOverallCompletionPercent } from './onboarding-progress';
 
 // Real required-field counts per schema (verified via schema introspection):
-// basicDetails=5, personal=5, location=4 (city/state/educationLevel/profession —
-// country and annualIncomeCurrency excluded), additional=2. Total = 16.
-const TOTAL = 16;
+// basicDetails=6, personal=3, location=4 (city/state/educationLevel/profession —
+// country and annualIncomeCurrency excluded), additional=2. Total = 15.
+const TOTAL = 15;
 
 const completeBasicDetails = {
   fullName: 'Meena Kumari',
   gender: 'FEMALE',
   dateOfBirth: '1998-04-12',
-  motherTongue: 'Tamil',
+  religion: 'Hindu',
+  casteCommunity: 'Gramani',
   email: 'meena@example.com',
 };
 
@@ -19,8 +20,6 @@ const completePersonal = {
   height: `5'4" (163 cm)`,
   physicalStatus: 'NORMAL',
   maritalStatus: 'NEVER_MARRIED',
-  religion: 'Hindu',
-  casteCommunity: 'Nadar',
 };
 
 const completeLocation = {
@@ -43,19 +42,19 @@ describe('getOverallCompletionPercent', () => {
   });
 
   it('reflects proportional weighting rather than equal 25% per step', () => {
-    // Step 1 alone (5 of 16 required fields) should be ~31%, not 25%.
+    // Step 1 alone (6 of 15 required fields) should be 40%, not 25%.
     const draft: RegistrationDraft = {};
     const percent = getOverallCompletionPercent(draft, 1, completeBasicDetails);
-    expect(percent).toBe(Math.round((5 / TOTAL) * 100));
+    expect(percent).toBe(Math.round((6 / TOTAL) * 100));
     expect(percent).not.toBe(25);
   });
 
   it('does not reset when moving to the next step — carries forward saved steps', () => {
-    // Step 1 was already saved (5/16) and the user is now on step 2 with nothing
+    // Step 1 was already saved (6/15) and the user is now on step 2 with nothing
     // filled in yet. The percentage must reflect step 1's contribution, not 0.
     const draft: RegistrationDraft = { basicDetails: completeBasicDetails as never };
     const percent = getOverallCompletionPercent(draft, 2, {});
-    expect(percent).toBe(Math.round((5 / TOTAL) * 100));
+    expect(percent).toBe(Math.round((6 / TOTAL) * 100));
     expect(percent).toBeGreaterThan(0);
   });
 
@@ -66,7 +65,7 @@ describe('getOverallCompletionPercent', () => {
     };
     // On step 3, with 2 of its 4 required fields filled live.
     const percent = getOverallCompletionPercent(draft, 3, { city: 'Chennai', state: 'Tamil Nadu' });
-    expect(percent).toBe(Math.round(((5 + 5 + 2) / TOTAL) * 100));
+    expect(percent).toBe(Math.round(((6 + 3 + 2) / TOTAL) * 100));
   });
 
   it('does not count steps after the current one', () => {
@@ -77,7 +76,7 @@ describe('getOverallCompletionPercent', () => {
       additional: completeAdditional as never,
     };
     const percent = getOverallCompletionPercent(draftWithFutureData, 2, {});
-    expect(percent).toBe(Math.round((5 / TOTAL) * 100));
+    expect(percent).toBe(Math.round((6 / TOTAL) * 100));
   });
 
   it('decreases when a filled current-step field is cleared', () => {

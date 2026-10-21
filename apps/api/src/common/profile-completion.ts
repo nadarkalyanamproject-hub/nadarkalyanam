@@ -1,8 +1,9 @@
 import type { PrismaService } from '../modules/prisma/prisma.service.js';
 
 // Profile completion = filled fields / COMPLETION_FIELDS.length, as a whole
-// percentage. Every field below counts equally: the 20 profile fields the
-// onboarding wizard collects plus having at least one photo (21 in total).
+// percentage. Every field below counts equally: the 19 profile fields the
+// onboarding wizard collects plus having at least one photo (20 in total).
+// Mother tongue is no longer collected, so it isn't counted.
 // A field is "filled" when it holds a non-blank value. Follow-up details that
 // only apply conditionally (previous marriage details, dosham details) are
 // not counted, so nobody is marked down for a question that doesn't apply.
@@ -17,7 +18,6 @@ export interface CompletionInput {
 }
 
 type Details = {
-  motherTongue?: unknown;
   email?: unknown;
   height?: unknown;
   physicalStatus?: unknown;
@@ -40,7 +40,6 @@ export const COMPLETION_FIELDS: readonly { key: string; value: (p: CompletionInp
   { key: 'fullName', value: (p) => p.fullName },
   { key: 'gender', value: (p) => p.gender },
   { key: 'dateOfBirth', value: (p) => p.dateOfBirth },
-  { key: 'motherTongue', value: (_, d) => d.motherTongue },
   { key: 'email', value: (_, d) => d.email },
   { key: 'height', value: (_, d) => d.height },
   { key: 'physicalStatus', value: (_, d) => d.physicalStatus },

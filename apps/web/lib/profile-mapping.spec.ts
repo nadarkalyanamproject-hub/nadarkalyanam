@@ -20,13 +20,12 @@ const COMPLETE_PROFILE: ProfileResponse = {
   isVerified: false,
   optionalCompletion: { partnerPreferences: false, horoscope: false },
   details: {
-    motherTongue: 'Tamil',
     email: 'meena@example.com',
     height: `5'4" (163 cm)`,
     physicalStatus: 'NORMAL',
     maritalStatus: 'NEVER_MARRIED',
     religion: 'Hindu',
-    casteCommunity: 'Nadar',
+    casteCommunity: 'Gramani',
     dosham: 'NO',
     location: { city: 'Chennai', state: 'Tamil Nadu', country: 'India' },
     education: {
@@ -77,7 +76,8 @@ describe('profile-mapping with a complete profile', () => {
       fullName: 'Meena Kumari',
       gender: 'FEMALE',
       dateOfBirth: '1998-04-12',
-      motherTongue: 'Tamil',
+      religion: 'Hindu',
+      casteCommunity: 'Gramani',
       email: 'meena@example.com',
     });
     expect(profileToLocationProfessionalForm(COMPLETE_PROFILE)).toEqual({
@@ -93,6 +93,7 @@ describe('profile-mapping with a complete profile', () => {
     });
     expect(profileToAdditionalDetailsForm(COMPLETE_PROFILE)).toEqual({
       familyType: 'Middle Class',
+      netWorth: '',
       about: 'Looking for a like-minded partner.',
     });
   });
@@ -108,12 +109,13 @@ describe('profile-mapping with a stale/incomplete profile (missing details.addit
   });
 
   it('falls back missing fields to the same empty sentinel every edit form already uses', () => {
-    expect(profileToAdditionalDetailsForm(STALE_PROFILE)).toEqual({ familyType: '', about: '' });
+    expect(profileToAdditionalDetailsForm(STALE_PROFILE)).toEqual({ familyType: '', netWorth: '', about: '' });
     expect(profileToBasicDetailsForm(STALE_PROFILE)).toEqual({
       fullName: 'Meena Kumari',
       gender: 'FEMALE',
       dateOfBirth: '1998-04-12',
-      motherTongue: '',
+      religion: 'HINDU',
+      casteCommunity: 'BRAHMIN',
       email: '',
     });
   });

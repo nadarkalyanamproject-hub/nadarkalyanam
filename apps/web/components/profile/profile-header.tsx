@@ -32,7 +32,7 @@ export function ProfileHeader({
   const summary = [
     profile?.gender ? GENDER_LABELS[profile.gender] : undefined,
     age !== undefined ? String(age) : undefined,
-    profile?.details?.motherTongue,
+    profile?.details?.casteCommunity,
     profile?.details?.location?.city,
   ]
     .filter(Boolean)

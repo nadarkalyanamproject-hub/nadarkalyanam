@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { photoResponseSchema } from './photo.js';
 import { phoneVisibilityEnum } from './phone.js';
+import { NADAR_SUBCATEGORIES, NET_WORTH_RANGES, RELIGIONS } from './reference-data.js';
 
 export const genderEnum = z.enum(['MALE', 'FEMALE', 'OTHER']);
 export type Gender = z.infer<typeof genderEnum>;
@@ -44,7 +45,9 @@ export const basicDetailsSchema = z.object({
   dateOfBirth: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD'),
-  motherTongue: z.string().trim().min(1, 'Mother tongue is required'),
+  religion: z.enum(RELIGIONS, { message: 'Select your religion' }),
+  // The Nadar sub-community, saved as the profile's casteCommunity.
+  casteCommunity: z.enum(NADAR_SUBCATEGORIES, { message: 'Select your Nadar subcategory' }),
   email: z.string().trim().toLowerCase().email('Enter a valid email address'),
 });
 export type BasicDetails = z.infer<typeof basicDetailsSchema>;
@@ -55,8 +58,6 @@ export const personalReligiousSchema = z.object({
   height: z.string().trim().min(1, 'Height is required'),
   physicalStatus: physicalStatusEnum,
   maritalStatus: maritalStatusEnum,
-  religion: z.string().trim().min(1, 'Religion is required'),
-  casteCommunity: z.string().trim().min(1, 'Community is required'),
   dosham: z.preprocess((value) => (value === '' ? undefined : value), doshamEnum.optional()),
   // Only shown when maritalStatus is in PRIOR_MARRIAGE_STATUSES / dosham is YES.
   previousMarriageDetails: z.string().trim().max(500).optional().default(''),
@@ -83,6 +84,8 @@ export type LocationProfessional = z.infer<typeof locationProfessionalSchema>;
 
 export const additionalDetailsSchema = z.object({
   familyType: familyStatusEnum,
+  // Optional; an empty dropdown means not given.
+  netWorth: z.preprocess((value) => (value === '' ? undefined : value), z.enum(NET_WORTH_RANGES).optional()),
   about: z.string().trim().min(50, 'Write at least 50 characters').max(1000),
 });
 export type AdditionalDetails = z.infer<typeof additionalDetailsSchema>;
@@ -105,7 +108,8 @@ export type CreateProfileResponse = z.infer<typeof createProfileResponseSchema>;
 // --- Read: GET /profiles/me ----------------------------------------------------
 
 export const profileDetailsSchema = z.object({
-  motherTongue: z.string(),
+  // No longer collected; present on profiles saved before it was dropped.
+  motherTongue: z.string().optional(),
   email: z.string(),
   height: z.string(),
   physicalStatus: physicalStatusEnum,

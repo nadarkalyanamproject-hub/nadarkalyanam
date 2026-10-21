@@ -104,6 +104,15 @@ export const envSchema = z.object({
   // LAUNCH_TRIAL_PLAN_CODE plan for LAUNCH_TRIAL_DAYS from launch day. Needs
   // LAUNCH_DATE; unset: no offer.
   LAUNCH_TRIAL_SIGNUP_FROM: z.preprocess((v) => (v === '' ? undefined : v), istDateSchema('LAUNCH_TRIAL_SIGNUP_FROM').optional()),
+  // DigiLocker gate (YYYY-MM-DD, India time): accounts created on/after this
+  // day must pass identity verification before using anything but the
+  // verification routes. Accounts created earlier are grandfathered in.
+  // Unset: no gate. Turn on only once a real provider is configured; with
+  // the stub, production refuses verification and new sign-ups would stop.
+  IDENTITY_VERIFICATION_REQUIRED_FROM: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    istDateSchema('IDENTITY_VERIFICATION_REQUIRED_FROM').optional(),
+  ),
   // 31 days from 20 Feb runs through 22 Mar.
   LAUNCH_TRIAL_DAYS: z.coerce.number().int().min(1).max(366).default(31),
   LAUNCH_TRIAL_PLAN_CODE: z.string().trim().min(1).default('GOLD'),

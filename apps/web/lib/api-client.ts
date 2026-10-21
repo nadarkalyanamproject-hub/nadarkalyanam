@@ -597,6 +597,15 @@ export function getVerificationStatus(accessToken: string): Promise<Verification
   });
 }
 
+// Back from DigiLocker: the API confirms the result with the provider itself.
+export function completeVerification(accessToken: string, reference: string): Promise<VerificationStatusResponse> {
+  return request<VerificationStatusResponse>('/verification/callback', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ reference }),
+  });
+}
+
 // --- Blocking -----------------------------------------------------------------
 
 // Block by user id (chat header) or profile id (profile page). After this the

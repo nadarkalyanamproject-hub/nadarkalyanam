@@ -1,6 +1,6 @@
 'use client';
 
-import { PRIOR_MARRIAGE_STATUSES, type PersonalReligious } from '@nadar-kalyanam/schemas';
+import { DOSHAM_TYPES, PRIOR_MARRIAGE_STATUSES, type PersonalReligious } from '@nadar-kalyanam/schemas';
 import { Field, Input, Select } from '@nadar-kalyanam/ui';
 import { isRequired } from '../../lib/required-fields';
 
@@ -14,6 +14,7 @@ const HEIGHT_OPTIONS = Array.from({ length: 78 - 54 + 1 }, (_, i) => {
   return `${feet}'${inches}" (${cm} cm)`;
 });
 
+// Religion and Nadar subcategory are asked in step 1 (BasicDetailsFields).
 // Dependent fields follow the Education detail pattern: hidden until the
 // parent calls for them, shown directly below it, kept while the parent still
 // calls for them, and cleared the moment it no longer does, so no hidden value
@@ -28,7 +29,6 @@ export function PersonalReligiousFields({
   onChange: <K extends keyof PersonalReligiousFormState>(key: K, value: string) => void;
 }) {
   const showPreviousMarriage = PRIOR_MARRIAGE_STATUSES.includes(form.maritalStatus);
-  const showCommunity = form.religion.trim() !== '';
   const showDoshamDetails = form.dosham === 'YES';
 
   return (
@@ -111,35 +111,6 @@ export function PersonalReligiousFields({
             </Field>
           )}
         </div>
-
-        <div className="flex flex-col gap-4">
-          <Field label="Religion" htmlFor="religion" required={isRequired('personal', 'religion')} error={errors.religion}>
-            <Input
-              id="religion"
-              invalid={Boolean(errors.religion)}
-              value={form.religion}
-              onChange={(e) => {
-                onChange('religion', e.target.value);
-                if (!e.target.value.trim() && form.casteCommunity) onChange('casteCommunity', '');
-              }}
-            />
-          </Field>
-          {showCommunity && (
-            <Field
-              label="Community"
-              htmlFor="casteCommunity"
-              required={isRequired('personal', 'casteCommunity')}
-              error={errors.casteCommunity}
-            >
-              <Input
-                id="casteCommunity"
-                invalid={Boolean(errors.casteCommunity)}
-                value={form.casteCommunity}
-                onChange={(e) => onChange('casteCommunity', e.target.value)}
-              />
-            </Field>
-          )}
-        </div>
       </div>
 
       <div className="grid grid-cols-2 items-start gap-4">
@@ -173,13 +144,23 @@ export function PersonalReligiousFields({
               required={isRequired('personal', 'doshamDetails')}
               error={errors.doshamDetails}
             >
-              <Input
+              <Select
                 id="doshamDetails"
-                placeholder="e.g. Chevvai dosham"
                 invalid={Boolean(errors.doshamDetails)}
                 value={form.doshamDetails}
                 onChange={(e) => onChange('doshamDetails', e.target.value)}
-              />
+              >
+                <option value="">Select dosham</option>
+                {/* Keeps an older free-text answer selectable until it's changed. */}
+                {form.doshamDetails && !(DOSHAM_TYPES as readonly string[]).includes(form.doshamDetails) && (
+                  <option value={form.doshamDetails}>{form.doshamDetails}</option>
+                )}
+                {DOSHAM_TYPES.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </Select>
             </Field>
           )}
         </div>

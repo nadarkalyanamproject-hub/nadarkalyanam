@@ -20,8 +20,6 @@ const EMPTY_FORM: FormState = {
   height: '',
   physicalStatus: 'NORMAL',
   maritalStatus: '',
-  religion: '',
-  casteCommunity: '',
   dosham: '',
   previousMarriageDetails: '',
   doshamDetails: '',

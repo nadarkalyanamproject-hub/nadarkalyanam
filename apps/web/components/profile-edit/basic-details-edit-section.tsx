@@ -11,6 +11,7 @@ import { ApiError, updateProfile } from '../../lib/api-client';
 import { profileToBasicDetailsForm, toCreateProfileRequest } from '../../lib/profile-mapping';
 import { toFieldErrors } from '../../lib/zod-errors';
 import { useRegistration } from '../../app/providers/registration-provider';
+import { useIdentityStatus } from '../../lib/identity-status';
 
 export function BasicDetailsEditSection({
   profile,
@@ -22,6 +23,7 @@ export function BasicDetailsEditSection({
   onSaved: (updated: ProfileResponse) => void;
 }) {
   const { data } = useRegistration();
+  const identityLocked = Boolean(useIdentityStatus(data.accessToken)?.identity);
   const [form, setForm] = useState<BasicDetailsFormState>(() => profileToBasicDetailsForm(profile));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>();
@@ -56,7 +58,7 @@ export function BasicDetailsEditSection({
 
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-      <BasicDetailsFields form={form} errors={errors} onChange={update} />
+      <BasicDetailsFields form={form} errors={errors} onChange={update} identityLocked={identityLocked} />
 
       {formError ? <FormError>{formError}</FormError> : null}
 

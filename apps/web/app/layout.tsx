@@ -4,6 +4,7 @@ import { RegistrationProvider } from './providers/registration-provider';
 import { NavigationTracker } from '../lib/navigation-history';
 import { SiteFooter } from '../components/site-footer';
 import { MotionProvider } from '../components/motion/motion';
+import { IdentityGate } from '../components/identity/identity-gate';
 import './globals.css';
 
 // Headings (--font-heading). --font-playfair is kept as an alias in
@@ -53,7 +54,7 @@ export default function RootLayout({
         <NavigationTracker />
         <RegistrationProvider>
           <MotionProvider>
-            {children}
+            <IdentityGate>{children}</IdentityGate>
             <SiteFooter />
           </MotionProvider>
         </RegistrationProvider>

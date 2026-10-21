@@ -24,14 +24,15 @@ describe('required-field markers', () => {
   });
 
   it('matches the current schemas exactly (a schema change must be a deliberate, visible diff here)', () => {
-    expect(requiredFieldKeys('basicDetails').sort()).toEqual(['dateOfBirth', 'email', 'fullName', 'gender', 'motherTongue']);
-    expect(requiredFieldKeys('personal').sort()).toEqual([
+    expect(requiredFieldKeys('basicDetails').sort()).toEqual([
       'casteCommunity',
-      'height',
-      'maritalStatus',
-      'physicalStatus',
+      'dateOfBirth',
+      'email',
+      'fullName',
+      'gender',
       'religion',
     ]);
+    expect(requiredFieldKeys('personal').sort()).toEqual(['height', 'maritalStatus', 'physicalStatus']);
     expect(requiredFieldKeys('location').sort()).toEqual(['city', 'educationLevel', 'profession', 'state']);
     expect(requiredFieldKeys('additional').sort()).toEqual(['about', 'familyType']);
   });

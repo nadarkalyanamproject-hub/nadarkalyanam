@@ -1,4 +1,5 @@
 import { Body, Controller, HttpCode, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
+import { AllowUnverifiedIdentity } from '../../common/identity-gate.js';
 import {
   type RefreshTokenRequest,
   type SendOtpRequest,
@@ -47,6 +48,7 @@ export class AuthController {
   @Post('logout')
   @HttpCode(204)
   @UseGuards(JwtAuthGuard)
+  @AllowUnverifiedIdentity()
   async logout(@CurrentUser() user: AuthenticatedUser): Promise<void> {
     await this.authService.logout(user.userId, user.sessionId);
   }

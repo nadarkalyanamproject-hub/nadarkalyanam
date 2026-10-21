@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MOTHER_TONGUES, type BasicDetails } from '@nadar-kalyanam/schemas';
+import { NADAR_SUBCATEGORIES, RELIGIONS, type BasicDetails } from '@nadar-kalyanam/schemas';
 import { Field, Input, Select } from '@nadar-kalyanam/ui';
 import { isRequired } from '../../lib/required-fields';
 
@@ -33,51 +33,22 @@ function parseDateOfBirth(value: string | undefined): { day: string; month: stri
   return { day, month, year };
 }
 
-function EyeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function EyeOffIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.8 21.8 0 0 1 5.06-6.06" />
-      <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.77 21.77 0 0 1-2.16 3.19" />
-      <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
-      <line x1="1" y1="1" x2="23" y2="23" />
-    </svg>
-  );
-}
-
 export function BasicDetailsFields({
   form,
   errors,
   onChange,
+  identityLocked = false,
 }: {
   form: BasicDetailsFormState;
   errors: Record<string, string>;
   onChange: <K extends keyof BasicDetailsFormState>(key: K, value: string) => void;
+  // After DigiLocker: name and date of birth come from the ID and can't be
+  // edited (the API ignores any change to them too).
+  identityLocked?: boolean;
 }) {
   const [dob, setDob] = useState(() => parseDateOfBirth(form.dateOfBirth));
-
-  // UI-only field: this app authenticates by phone/OTP only — there is no
-  // password login anywhere in the system (no endpoint, no hashing). This
-  // value exists purely for visual/UX parity with the reference design and
-  // is validated here for feedback only. It is intentionally kept out of
-  // `BasicDetailsFormState`/`BasicDetails`, so it is never saved to the
-  // registration draft or sent to any API — it is discarded the moment this
-  // component unmounts, in both the onboarding and profile-edit contexts.
-  // Revisit only if a future task decides to build real password-based auth.
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const passwordError =
-    password.length > 0 && (password.length < 8 || password.length > 20)
-      ? 'Password must be 8-20 characters'
-      : undefined;
+  const shownDob = identityLocked ? parseDateOfBirth(form.dateOfBirth) : dob;
+  const lockedHint = identityLocked ? 'From DigiLocker' : undefined;
 
   function updateDob(part: 'day' | 'month' | 'year', value: string) {
     const next = { ...dob, [part]: value };
@@ -87,9 +58,10 @@ export function BasicDetailsFields({
 
   return (
     <>
-      <Field label="Full name" htmlFor="fullName" required={isRequired('basicDetails', 'fullName')} error={errors.fullName}>
+      <Field label="Full name" htmlFor="fullName" required={isRequired('basicDetails', 'fullName')} error={errors.fullName} hint={lockedHint}>
         <Input
           id="fullName"
+          disabled={identityLocked}
           invalid={Boolean(errors.fullName)}
           value={form.fullName}
           onChange={(e) => onChange('fullName', e.target.value)}
@@ -116,13 +88,15 @@ export function BasicDetailsFields({
         htmlFor="dobDay"
         required={isRequired('basicDetails', 'dateOfBirth')}
         error={errors.dateOfBirth}
+        hint={lockedHint}
       >
         <div className="grid grid-cols-3 gap-4">
           <Select
             id="dobDay"
             aria-label="Day"
             invalid={Boolean(errors.dateOfBirth)}
-            value={dob.day}
+            value={shownDob.day}
+            disabled={identityLocked}
             onChange={(e) => updateDob('day', e.target.value)}
           >
             <option value="">Day</option>
@@ -136,7 +110,8 @@ export function BasicDetailsFields({
             id="dobMonth"
             aria-label="Month"
             invalid={Boolean(errors.dateOfBirth)}
-            value={dob.month}
+            value={shownDob.month}
+            disabled={identityLocked}
             onChange={(e) => updateDob('month', e.target.value)}
           >
             <option value="">Month</option>
@@ -150,7 +125,8 @@ export function BasicDetailsFields({
             id="dobYear"
             aria-label="Year"
             invalid={Boolean(errors.dateOfBirth)}
-            value={dob.year}
+            value={shownDob.year}
+            disabled={identityLocked}
             onChange={(e) => updateDob('year', e.target.value)}
           >
             <option value="">Year</option>
@@ -164,20 +140,15 @@ export function BasicDetailsFields({
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field
-          label="Mother tongue"
-          htmlFor="motherTongue"
-          required={isRequired('basicDetails', 'motherTongue')}
-          error={errors.motherTongue}
-        >
+        <Field label="Religion" htmlFor="religion" required={isRequired('basicDetails', 'religion')} error={errors.religion}>
           <Select
-            id="motherTongue"
-            invalid={Boolean(errors.motherTongue)}
-            value={form.motherTongue}
-            onChange={(e) => onChange('motherTongue', e.target.value)}
+            id="religion"
+            invalid={Boolean(errors.religion)}
+            value={form.religion}
+            onChange={(e) => onChange('religion', e.target.value)}
           >
             <option value="">Select</option>
-            {MOTHER_TONGUES.map((option) => (
+            {RELIGIONS.map((option) => (
               <option key={option} value={option}>
                 {option}
               </option>
@@ -198,36 +169,25 @@ export function BasicDetailsFields({
         </Field>
       </div>
 
-      {/*
-        UI-only field — see comment above the `password` state declaration.
-        Not part of BasicDetails/basicDetailsSchema, never persisted or transmitted.
-        Deliberately no required marker: it never blocks Next/Save.
-      */}
       <Field
-        label="Create password"
-        htmlFor="password"
-        error={passwordError}
-        hint={passwordError ? undefined : '8-20 characters'}
+        label="Nadar subcategory"
+        htmlFor="casteCommunity"
+        required={isRequired('basicDetails', 'casteCommunity')}
+        error={errors.casteCommunity}
       >
-        <div className="relative">
-          <Input
-            id="password"
-            type={showPassword ? 'text' : 'password'}
-            autoComplete="new-password"
-            invalid={Boolean(passwordError)}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="pr-10"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground hover:text-foreground"
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
-          >
-            {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-          </button>
-        </div>
+        <Select
+          id="casteCommunity"
+          invalid={Boolean(errors.casteCommunity)}
+          value={form.casteCommunity}
+          onChange={(e) => onChange('casteCommunity', e.target.value)}
+        >
+          <option value="">Select</option>
+          {NADAR_SUBCATEGORIES.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </Select>
       </Field>
     </>
   );
