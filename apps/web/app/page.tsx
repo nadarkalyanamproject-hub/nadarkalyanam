@@ -7,6 +7,7 @@ import { useRegistration } from './providers/registration-provider';
 import { ApiError, requestOtp, verifyOtp } from '../lib/api-client';
 import { isValidLocalPhone, toE164 } from '../lib/phone';
 import { OTPVerification } from '@/components/ui/otp-verify';
+import { FounderMessage } from '@/components/landing/founder-message';
 import './landing.css';
 
 const PROFILE_OPTIONS = ['Myself', 'Son', 'Daughter', 'Brother', 'Sister', 'Relative', 'Friend'];
@@ -909,6 +910,8 @@ function HomeContent() {
           </div>
         </div>
       </aside>
+
+      <FounderMessage />
 
       {/* Toast Notification */}
       <div className={`toast-notification${toast.visible ? ' active' : ''}`} role="alert" aria-live="assertive">

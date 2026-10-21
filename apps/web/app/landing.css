@@ -34,6 +34,8 @@
   --color-input-border: #EADBCA;
   --color-input-bg: #FFFFFF;
   --color-input-focus: #8E1B24;
+  --color-field-focus: #A58E80;
+  --shadow-field-focus: 0 0 0 3px rgba(165, 142, 128, 0.14);
 
   /* Aliases for brand compatibility */
   --color-maroon-primary: var(--color-red-primary);
@@ -554,9 +556,10 @@ html {
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
+/* Focus: a darker warm border and a barely-there ring, not a red outline. */
 .input-wrapper:focus-within {
-  border-color: var(--color-maroon-primary);
-  box-shadow: 0 0 0 3px rgba(133, 21, 21, 0.12);
+  border-color: var(--color-field-focus);
+  box-shadow: var(--shadow-field-focus);
 }
 
 .input-leading {
@@ -624,10 +627,15 @@ html {
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
+.custom-select-trigger:hover {
+  border-color: #D3C1B1;
+}
+
 .custom-select-trigger:focus,
 .custom-select-trigger.active {
-  border-color: var(--color-maroon-primary);
-  box-shadow: 0 0 0 3px rgba(133, 21, 21, 0.12);
+  outline: none;
+  border-color: var(--color-field-focus);
+  box-shadow: var(--shadow-field-focus);
 }
 
 .selected-value {
@@ -807,8 +815,7 @@ html {
 
 .gender-chip.active {
   border-color: var(--color-maroon-primary);
-  background-color: #FFF5F5;
-  box-shadow: 0 0 0 2px rgba(142, 27, 36, 0.12);
+  background-color: #FFF8F6;
 }
 
 .gender-radio-circle {
@@ -1265,18 +1272,26 @@ html {
     top: 96px;
     left: 0;
     right: 0;
+    /* The desktop rule's justify-self: center would shrink this fixed panel
+       to its content (browsers now align absolutely-positioned boxes). */
+    justify-self: stretch;
     background-color: var(--color-white);
     flex-direction: column;
     padding: 24px;
     gap: 18px;
     box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    transform: translateY(-150%);
-    transition: transform 0.3s ease;
+    /* Closed: moved fully above the screen (past its own height and the 96px
+       offset) and hidden, so no part of a short menu peeks through. */
+    transform: translateY(calc(-100% - 96px));
+    visibility: hidden;
+    transition: transform 0.3s ease, visibility 0s linear 0.3s;
     z-index: 39;
   }
 
   .nav-menu.open {
     transform: translateY(0);
+    visibility: visible;
+    transition: transform 0.3s ease, visibility 0s;
   }
 
   .hamburger-btn { display: flex; }
@@ -1564,5 +1579,156 @@ html {
   }
   .membership-promo-section .section-title {
     font-size: 1.7rem;
+  }
+}
+
+/* ==========================================================================
+   FOUNDER'S MESSAGE
+   ========================================================================== */
+.founder-section {
+  background:
+    radial-gradient(circle at 12% 20%, rgba(245, 158, 11, 0.08), transparent 40%),
+    var(--color-bg-ivory);
+  padding: 88px 24px;
+}
+
+.founder-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 64px;
+  align-items: center;
+}
+
+.founder-portrait {
+  display: flex;
+  justify-content: center;
+}
+
+.founder-photo-ring {
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  padding: 6px;
+  background: linear-gradient(145deg, #F1D278, #B8862B 55%, #F6E3A8);
+  box-shadow: 0 24px 60px -24px rgba(77, 9, 14, 0.45);
+}
+
+.founder-photo,
+.founder-monogram {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 4px solid var(--color-bg-ivory);
+}
+
+.founder-photo {
+  object-fit: cover;
+}
+
+.founder-monogram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, var(--color-red-primary), var(--color-red-deep));
+  color: #F6E3A8;
+  font-family: var(--font-landing), Georgia, serif;
+  font-size: 4.5rem;
+  letter-spacing: 0.04em;
+}
+
+.founder-eyebrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-red-primary);
+}
+
+.founder-heading {
+  margin-top: 10px;
+  font-family: var(--font-landing), Georgia, serif;
+  font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+  line-height: 1.15;
+  color: var(--color-text-dark);
+}
+
+.founder-quote {
+  position: relative;
+  margin: 24px 0 0;
+  padding-left: 28px;
+  border-left: 2px solid #E6CFA0;
+}
+
+.founder-quote::before {
+  content: '\201C';
+  position: absolute;
+  left: -14px;
+  top: -34px;
+  font-family: var(--font-landing), Georgia, serif;
+  font-size: 5rem;
+  line-height: 1;
+  color: rgba(142, 27, 36, 0.18);
+}
+
+.founder-quote p {
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: #3F2E2A;
+}
+
+.founder-quote p + p {
+  margin-top: 14px;
+}
+
+.founder-signature {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 28px;
+  padding-left: 28px;
+}
+
+.founder-signature-line {
+  width: 36px;
+  height: 2px;
+  background: var(--color-red-primary);
+}
+
+.founder-name {
+  font-family: var(--font-landing), Georgia, serif;
+  font-size: 1.25rem;
+  color: var(--color-text-dark);
+}
+
+.founder-role {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 860px) {
+  .founder-section {
+    padding: 64px 20px;
+  }
+
+  .founder-inner {
+    grid-template-columns: 1fr;
+    gap: 36px;
+    text-align: left;
+  }
+
+  .founder-photo-ring {
+    width: 180px;
+    height: 180px;
+  }
+
+  .founder-monogram {
+    font-size: 3.2rem;
+  }
+
+  .founder-quote p {
+    font-size: 1rem;
   }
 }
