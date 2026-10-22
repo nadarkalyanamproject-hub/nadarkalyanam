@@ -1,4 +1,17 @@
-import { BadRequestException, Body, Controller, Get, Headers, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  Param,
+  Post,
+  Req,
+  Res,
+  StreamableFile,
+  UseGuards,
+} from '@nestjs/common';
 import {
   type CreateOrderRequest,
   createOrderRequestSchema,
@@ -31,6 +44,24 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard)
   listHistory(@CurrentUser() user: AuthenticatedUser) {
     return this.paymentsService.listHistory(user.userId);
+  }
+
+  // FR-7.6: Members can download a PDF receipt for each successful payment.
+  // The owner can download it; any other user gets 404 (IDOR protection).
+  @Get('payments/:id/receipt')
+  @UseGuards(JwtAuthGuard)
+  async downloadReceipt(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: { set: (headers: Record<string, string>) => void },
+  ): Promise<StreamableFile> {
+    const { buffer, filename } = await this.paymentsService.getReceiptPdf(user.userId, id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${filename}"`,
+      'Content-Length': buffer.length.toString(),
+    });
+    return new StreamableFile(buffer);
   }
 
   // No JwtAuthGuard: the caller is the payment provider, authenticated by

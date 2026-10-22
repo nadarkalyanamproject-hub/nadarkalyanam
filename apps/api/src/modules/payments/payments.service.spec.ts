@@ -510,6 +510,7 @@ describe('PaymentsService with RazorpayPaymentGatewayAdapter', () => {
       adapter,
       config as never,
       new SubscriptionService(prisma, notifications as never),
+      notifications as never,
     );
 
     const order = (id: string, planId = 'gold', userId = 'user-1', providerOrderId = 'order_rzp_o1') => {
@@ -556,6 +557,14 @@ describe('PaymentsService with RazorpayPaymentGatewayAdapter', () => {
     expect(w.payments).toHaveLength(1);
     expect(w.payments[0].providerReference).toBe('pay_rzp_1');
     expect(w.notifications.notify).toHaveBeenCalledWith(expect.objectContaining({ recipientUserId: 'user-1', type: 'PLAN_ACTIVATED' }));
+    expect(w.notifications.notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientUserId: 'user-1',
+        type: 'PAYMENT_SUCCEEDED',
+        targetType: 'Payment',
+        data: expect.objectContaining({ orderId: 'o1', amountInPaise: 149900, planName: 'Gold' }),
+      }),
+    );
   });
 
   it('missing or wrong signature is rejected with 400 and writes nothing', async () => {
