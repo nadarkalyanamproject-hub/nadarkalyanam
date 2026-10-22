@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Headers, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Headers, HttpCode, Param, Post, Req, UseGuards } from '@nestjs/common';
 import {
   type CreateOrderRequest,
   createOrderRequestSchema,
@@ -25,6 +25,14 @@ export class PaymentsController {
     @Body(new ZodValidationPipe(createOrderRequestSchema)) body: CreateOrderRequest,
   ) {
     return this.paymentsService.createOrder(user.userId, body.planId);
+  }
+
+  // Development only (see PaymentsService.completeTestPayment).
+  @Post('orders/:id/test-payment')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  completeTestPayment(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.paymentsService.completeTestPayment(user.userId, id);
   }
 
   @Get('payments/history')

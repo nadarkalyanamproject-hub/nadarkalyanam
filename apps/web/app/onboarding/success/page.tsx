@@ -4,7 +4,8 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 
-// How long the welcome animation plays before the member lands on Home.
+// How long the welcome animation plays before the member is taken to the plans
+// page to choose a membership (then Home after paying).
 const REDIRECT_MS = 2600;
 // With reduced motion the animation is skipped, so don't make them wait.
 const REDUCED_MOTION_REDIRECT_MS = 900;
@@ -13,17 +14,17 @@ const REDUCED_MOTION_REDIRECT_MS = 900;
 const PETALS = [0, 45, 90, 135, 180, 225, 270, 315];
 
 // Shown for a moment right after sign-up: a check mark draws itself, petals
-// burst out, then the member goes straight to Home. `replace`, so Back from
-// Home never lands on this screen again.
+// burst out, then the member goes to the plans page. `replace`, so Back from
+// there never lands on this screen again.
 export default function OnboardingSuccessPage() {
   const { ready } = useRequireAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!ready) return;
-    router.prefetch('/');
+    router.prefetch('/membership');
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const timer = window.setTimeout(() => router.replace('/'), reduced ? REDUCED_MOTION_REDIRECT_MS : REDIRECT_MS);
+    const timer = window.setTimeout(() => router.replace('/membership?welcome=1'), reduced ? REDUCED_MOTION_REDIRECT_MS : REDIRECT_MS);
     return () => window.clearTimeout(timer);
   }, [ready, router]);
 

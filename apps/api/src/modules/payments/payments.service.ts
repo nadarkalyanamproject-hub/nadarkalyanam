@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { MembershipPlanResponse, OrderResponse, OrderStatus } from '@nadar-kalyanam/schemas';
@@ -207,6 +208,23 @@ export class PaymentsService {
     }
     if (activated) this.subscriptions.notifyActivated(activated);
     return { outcome };
+  }
+
+  // Development only, with the stub gateway: completes the member's own order
+  // through exactly the path a real provider confirmation takes (a signed
+  // webhook), so the buy → plan → home flow can be tried without gateway
+  // keys. In production, or with a real gateway, it doesn't exist (404).
+  async completeTestPayment(userId: string, orderId: string): Promise<{ outcome: WebhookOutcome }> {
+    if (this.configService.get('NODE_ENV', { infer: true }) === 'production' || !this.gateway.isStub) {
+      throw new NotFoundException();
+    }
+    const order = await this.prisma.order.findFirst({ where: { id: orderId, userId } });
+    if (!order) throw new NotFoundException('Order not found');
+    const body = Buffer.from(
+      JSON.stringify({ providerEventId: `test-${order.id}`, orderId: order.id, status: 'PAID', amountInPaise: order.amountInPaise, currency: 'INR', providerReference: 'test-payment' }),
+    );
+    const signature = createHmac('sha256', this.configService.get('PAYMENT_WEBHOOK_SECRET', { infer: true })).update(body).digest('hex');
+    return this.handleWebhook(body, signature);
   }
 
   async listHistory(userId: string) {

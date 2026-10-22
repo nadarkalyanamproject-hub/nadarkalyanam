@@ -29,6 +29,7 @@ import type {
   UnlockedContactsResponse,
   PhoneVisibility,
   OrderResponse,
+  PaymentHistoryItem,
   PhotoResponse,
   ProfileCardListResponse,
   ProfileListResponse,
@@ -581,6 +582,19 @@ export function createOrder(accessToken: string, payload: CreateOrderRequest): P
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
     body: JSON.stringify(payload),
+  });
+}
+
+// The member's payments, newest first (used to wait for a plan to start).
+export function getPaymentHistory(accessToken: string): Promise<{ items: PaymentHistoryItem[] }> {
+  return request<{ items: PaymentHistoryItem[] }>('/payments/history', { headers: { Authorization: `Bearer ${accessToken}` } });
+}
+
+// Development only: completes an order as if the payment provider confirmed it.
+export function completeTestPayment(accessToken: string, orderId: string): Promise<{ outcome: string }> {
+  return request<{ outcome: string }>(`/orders/${encodeURIComponent(orderId)}/test-payment`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
 }
 

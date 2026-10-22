@@ -10,8 +10,9 @@ import { VipEnquiry } from '@/components/membership/vip-enquiry';
 import { MyMembershipPanel } from '@/components/membership/my-membership-panel';
 import { ComingSoonPill } from '@/components/ui/coming-soon-note';
 import { AppHeader } from '../../components/app-header';
-import { ApiError, createOrder, getMyMembership, listMembershipPlans } from '../../lib/api-client';
-import { discountPercent, durationLabel, formatPrice, whatsappHref } from '../../lib/membership';
+import { ApiError, completeTestPayment, createOrder, getMyMembership, listMembershipPlans } from '../../lib/api-client';
+import { TEST_PAYMENTS, openRazorpayCheckout, waitForPaid } from '../../lib/checkout';
+import { discountPercent, durationLabel, formatPlanDate, formatPlanLastDay, formatPrice, whatsappHref } from '../../lib/membership';
 import { useRegistration } from '../providers/registration-provider';
 import { Check, Crown, EyeOff, Lock, MessageCircle, ShieldCheck, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -31,6 +32,11 @@ type OrderState =
   | { kind: 'idle' }
   | { kind: 'creating'; planId: string }
   | { kind: 'created'; order: OrderResponse; planName: string }
+  // Development only: the stub gateway, paid with a pretend payment.
+  | { kind: 'test'; order: OrderResponse; planName: string }
+  | { kind: 'confirming'; planName: string }
+  // Paid, but the confirmation hasn't reached us yet.
+  | { kind: 'pending'; planName: string }
   | { kind: 'unavailable' }
   | { kind: 'error'; message: string };
 
@@ -265,6 +271,8 @@ export default function MembershipPage() {
   const [plansState, setPlansState] = useState<PlansState>({ kind: 'loading' });
   const [membership, setMembership] = useState<MyMembershipResponse | null>(null);
   const [orderState, setOrderState] = useState<OrderState>({ kind: 'idle' });
+  // Arrived straight from registration (onboarding success → /membership?welcome=1).
+  const [welcome] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('welcome'));
   const accessToken = data.accessToken;
 
   // State is only set once the request settles (the initial state is
@@ -316,10 +324,40 @@ export default function MembershipPage() {
     setOrderState({ kind: 'creating', planId: plan.id });
     try {
       const order = await createOrder(accessToken, { planId: plan.id });
-      setOrderState({ kind: 'created', order, planName: plan.name });
+      if (order.checkoutParams) {
+        const result = await openRazorpayCheckout(order.checkoutParams);
+        if (result === 'dismissed') {
+          setOrderState({ kind: 'idle' });
+          return;
+        }
+        await finishPayment(order.id, plan.name);
+      } else if (TEST_PAYMENTS) {
+        setOrderState({ kind: 'test', order, planName: plan.name });
+      } else {
+        setOrderState({ kind: 'created', order, planName: plan.name });
+      }
     } catch (err) {
       if (err instanceof ApiError && err.status === 503) setOrderState({ kind: 'unavailable' });
       else setOrderState({ kind: 'error', message: err instanceof ApiError ? err.message : 'Could not start your order. Please try again.' });
+    }
+  }
+
+  // After a successful payment the member goes straight to Home.
+  async function finishPayment(orderId: string, planName: string) {
+    if (!accessToken) return;
+    setOrderState({ kind: 'confirming', planName });
+    if (await waitForPaid(accessToken, orderId)) router.replace('/');
+    else setOrderState({ kind: 'pending', planName });
+  }
+
+  async function payTest(order: OrderResponse, planName: string) {
+    if (!accessToken) return;
+    setOrderState({ kind: 'confirming', planName });
+    try {
+      await completeTestPayment(accessToken, order.id);
+      await finishPayment(order.id, planName);
+    } catch (err) {
+      setOrderState({ kind: 'error', message: err instanceof ApiError ? err.message : 'Test payment failed.' });
     }
   }
 
@@ -336,6 +374,7 @@ export default function MembershipPage() {
   function chooseLabel(plan: MembershipPlanResponse, base: string) {
     if (paymentsUnavailable) return 'Online payment opening soon';
     if (orderState.kind === 'creating' && orderState.planId === plan.id) return 'Processing…';
+    if (orderState.kind === 'confirming') return 'Confirming payment…';
     return base;
   }
 
@@ -362,6 +401,23 @@ export default function MembershipPage() {
           </p>
         </div>
 
+        {welcome && (
+          <div className="mx-auto max-w-2xl rounded-2xl border border-nk-line-gold bg-white p-5 text-center shadow-xs" data-testid="welcome-choose-plan">
+            <p className="font-[family-name:var(--font-heading,serif)] text-lg font-bold text-nk-ink">Your profile is ready</p>
+            <p className="mt-1 text-sm text-nk-ink-soft">Choose a plan below to start viewing profiles, sending interests and chatting with families.</p>
+            {membership?.launchOffer && (
+              <p className="mt-3 text-sm text-nk-saffron-text">
+                {membership.launchOffer.earned
+                  ? `You already have ${membership.launchOffer.planName} free from ${formatPlanDate(membership.launchOffer.startsAt)}. `
+                  : `Or add a photo by ${formatPlanLastDay(membership.launchOffer.qualifyBy)} to get ${membership.launchOffer.planName} free. `}
+                <Link href={membership.launchOffer.earned ? '/' : '/profile'} className="font-semibold underline underline-offset-2">
+                  {membership.launchOffer.earned ? 'Continue for now' : 'Add a photo'}
+                </Link>
+              </p>
+            )}
+          </div>
+        )}
+
         {/* The member's own plan, from GET /me/membership. */}
         {accessToken && membership && <MyMembershipPanel me={membership} plans={plansState.kind === 'loaded' ? plansState.plans : null} />}
 
@@ -385,6 +441,33 @@ export default function MembershipPage() {
         {orderState.kind === 'error' && (
           <Card className="mx-auto max-w-2xl rounded-xl border border-red-200 bg-red-50 p-4 text-xs sm:text-sm text-nk-maroon-bright" role="alert">
             {orderState.message}
+          </Card>
+        )}
+        {orderState.kind === 'test' && (
+          <Card className="mx-auto max-w-2xl rounded-xl border border-nk-sky/30 bg-nk-sky-soft p-5 text-center text-sm" data-testid="test-payment" role="dialog" aria-label="Test payment">
+            <p className="font-bold text-nk-sky-text">Test payment (development only)</p>
+            <p className="mt-1 text-nk-sky-text">
+              {orderState.planName} · {formatPrice(orderState.order.amountInPaise)}. No real money; this confirms the order the same way Razorpay would.
+            </p>
+            <div className="mt-4 flex justify-center gap-3">
+              <button type="button" onClick={() => void payTest(orderState.order, orderState.planName)} className="rounded-full bg-nk-maroon-deep px-5 py-2 text-sm font-semibold text-white hover:bg-[#550809]" data-testid="test-pay">
+                Pay {formatPrice(orderState.order.amountInPaise)} (test)
+              </button>
+              <button type="button" onClick={() => setOrderState({ kind: 'idle' })} className="rounded-full border border-nk-line px-5 py-2 text-sm font-semibold text-nk-ink hover:bg-nk-sand">
+                Cancel
+              </button>
+            </div>
+          </Card>
+        )}
+        {orderState.kind === 'confirming' && (
+          <Card className="mx-auto max-w-2xl rounded-xl border border-nk-line-gold bg-[#FFFBF0] p-4 text-center text-sm text-nk-ink-soft" role="status">
+            Confirming your {orderState.planName} payment… You&apos;ll be taken to Home in a moment.
+          </Card>
+        )}
+        {orderState.kind === 'pending' && (
+          <Card className="mx-auto max-w-2xl rounded-xl border border-nk-line-gold bg-[#FFFBF0] p-4 text-center text-sm text-nk-ink-soft" role="status">
+            Your payment for {orderState.planName} was received and is still being confirmed. It usually takes a minute.{' '}
+            <Link href="/" className="font-semibold text-nk-maroon underline">Go to Home</Link>
           </Card>
         )}
         {orderState.kind === 'created' && (
