@@ -43,6 +43,18 @@ export function notificationMessage(type: string, actorName: string, data: Recor
       return typeof data.planName === 'string' ? `Your ${data.planName} membership was cancelled` : 'Your membership was cancelled';
     case 'PLAN_EXPIRED':
       return typeof data.planName === 'string' ? `Your ${data.planName} membership has ended` : 'Your membership has ended';
+    case 'PAYMENT_SUCCEEDED': {
+      const plan = typeof data.planName === 'string' ? data.planName : 'membership';
+      return `Payment successful for ${plan}. Your receipt is ready.`;
+    }
+    case 'PAYMENT_FAILED': {
+      const plan = typeof data.planName === 'string' ? data.planName : 'membership';
+      return `Payment failed for ${plan}. Please try again.`;
+    }
+    case 'PAYMENT_REFUNDED': {
+      const plan = typeof data.planName === 'string' ? data.planName : 'membership';
+      return `Payment for ${plan} has been refunded.`;
+    }
     default:
       return 'You have a new notification';
   }

@@ -112,4 +112,16 @@ describe('validateEnv', () => {
     expect(validRazorpay.PAYMENT_PROVIDER).toBe('razorpay');
     expect(validRazorpay.RAZORPAY_KEY_ID).toBe('rzp_test_123');
   });
+
+  it('allows optional BUSINESS_GSTIN for tax receipts', () => {
+    const base = {
+      DATABASE_URL: 'postgresql://user:pass@localhost:5439/db',
+      REDIS_URL: 'redis://localhost:6380',
+      JWT_ACCESS_TOKEN_SECRET: 'test-secret',
+      ...validMinioEnv,
+    };
+
+    expect(validateEnv(base).BUSINESS_GSTIN).toBeUndefined();
+    expect(validateEnv({ ...base, BUSINESS_GSTIN: '33AAAAA0000A1Z5' }).BUSINESS_GSTIN).toBe('33AAAAA0000A1Z5');
+  });
 });
