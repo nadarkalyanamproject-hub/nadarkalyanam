@@ -75,7 +75,9 @@ class MemberGridCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: NK.lineGold)),
+      elevation: 2,
+      shadowColor: const Color(0x222B1B14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: NK.lineGold)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => context.push('/member/${member.profileId}'),
@@ -87,38 +89,56 @@ class MemberGridCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   MemberPhoto(url: member.photoUrl),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: const [0.5, 1],
+                        // Maroon over the cream placeholder; it reads muddy in black.
+                        colors: [Colors.transparent, member.photoUrl == null ? const Color(0xE65C0C13) : const Color(0xCC1A0F0A)],
+                      ),
+                    ),
+                  ),
                   if (badge != null)
                     Positioned(
                       left: 8,
                       top: 8,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(color: NK.maroon, borderRadius: BorderRadius.circular(999)),
-                        child: Text(badge!, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                        decoration: BoxDecoration(color: NK.goldLight, borderRadius: BorderRadius.circular(999)),
+                        child: Text(badge!, style: const TextStyle(color: NK.maroonDeep, fontSize: 11, fontWeight: FontWeight.w800)),
                       ),
                     ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 2),
-              child: Row(
-                children: [
-                  Flexible(
-                    child: Text(firstName(member.fullName),
-                        maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  Positioned(
+                    left: 10,
+                    right: 10,
+                    bottom: 8,
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            [firstName(member.fullName), if (member.age > 0) '${member.age}'].join(', '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
+                          ),
+                        ),
+                        if (member.isVerified) ...[const SizedBox(width: 4), const Icon(Icons.verified_rounded, color: NK.goldLight, size: 16)],
+                      ],
+                    ),
                   ),
-                  if (member.isVerified) ...[const SizedBox(width: 4), const Icon(Icons.verified_rounded, color: NK.gold, size: 16)],
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Text(member.ageAndCity, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: NK.muted, fontSize: 12.5)),
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
+              child: Text(member.place ?? ' ',
+                  maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: NK.ink, fontSize: 12.5, fontWeight: FontWeight.w600)),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
-              child: Text(member.work ?? ' ', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: NK.subtle, fontSize: 12)),
+              padding: const EdgeInsets.fromLTRB(10, 1, 10, 6),
+              child: Text(member.work ?? ' ', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: NK.muted, fontSize: 12)),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
@@ -353,7 +373,16 @@ class SectionTitle extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: serif(22, color: NK.maroon)),
+                Text(title, style: serif(23, color: NK.maroon)),
+                const SizedBox(height: 4),
+                Container(
+                  width: 34,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(2),
+                    gradient: const LinearGradient(colors: [NK.gold, NK.goldLight]),
+                  ),
+                ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
                   Text(subtitle!, style: const TextStyle(color: NK.muted, fontSize: 13)),

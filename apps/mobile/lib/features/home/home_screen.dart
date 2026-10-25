@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../data/daily_picks.dart';
 import '../../data/members.dart';
 import '../../data/models.dart';
 import '../../state/session.dart';
@@ -11,6 +13,7 @@ import '../../widgets/form.dart';
 import '../../widgets/logo.dart';
 import '../../widgets/member.dart';
 import '../../widgets/top_actions.dart';
+import 'daily_deck.dart';
 
 final membershipProvider = FutureProvider.autoDispose<Membership>((ref) => ref.watch(repoProvider).membership());
 
@@ -30,65 +33,230 @@ class HomeScreen extends ConsumerWidget {
     // locked out for want of a plan.
     final open = membership.maybeWhen(data: (m) => m.opensAt == null && !m.accessLocked, orElse: () => false);
 
-    return Scaffold(
-      appBar: AppBar(title: const Logo(size: 17), actions: const [TopActions()]),
-      body: RefreshIndicator(
-        color: NK.maroon,
-        onRefresh: () async {
-          ref.invalidate(membershipProvider);
-          ref.invalidate(_homeStripsProvider);
-          await session.refreshProfile();
-        },
-        child: ListView(
-          padding: const EdgeInsets.only(top: 20, bottom: 32),
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(first.isEmpty ? 'Vanakkam' : 'Vanakkam, $first', style: serif(30, color: NK.ink)),
-                  const SizedBox(height: 4),
-                  Text(open ? 'Here are members picked for you.' : 'Here is where your profile stands.',
-                      style: const TextStyle(color: NK.muted, fontSize: 14.5)),
-                  const SizedBox(height: 18),
-                  membership.when(
-                    loading: () => const Padding(padding: EdgeInsets.all(28), child: Center(child: CircularProgressIndicator(color: NK.maroon))),
-                    error: (e, _) => ErrorBanner('$e'),
-                    data: (m) => Column(
-                      children: [
-                        if (m.opensAt != null) _OpensCard(opensAt: m.opensAt!),
-                        if (m.opensAt == null && m.accessLocked) const _PlanNeededCard(),
-                        if (m.launchOffer != null) ...[const SizedBox(height: 14), _OfferCard(offer: m.launchOffer!)],
-                      ],
-                    ),
-                  ),
-                  if (profile != null && profile.completionScore < 100) ...[const SizedBox(height: 14), _CompletionCard(profile: profile)],
-                ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Light status-bar icons over the maroon hero.
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        body: RefreshIndicator(
+          color: NK.maroon,
+          onRefresh: () async {
+            ref.invalidate(membershipProvider);
+            ref.invalidate(_homeStripsProvider);
+            await session.refreshProfile();
+          },
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 32),
+            children: [
+              _Hero(
+                first: first,
+                photoUrl: profile?.primaryPhoto?.url,
+                score: profile?.completionScore ?? 0,
+                subtitle: open ? 'Here are members picked for you today.' : 'Here is where your profile stands.',
               ),
-            ),
-            if (open) const _HomeStrips(),
-            if (profile != null && profile.completionScore >= 100)
-              Padding(padding: const EdgeInsets.fromLTRB(18, 14, 18, 0), child: _CompletionCard(profile: profile)),
-          ],
+              if (open) const _DailySection(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    membership.when(
+                      loading: () => const Padding(padding: EdgeInsets.all(28), child: Center(child: CircularProgressIndicator(color: NK.maroon))),
+                      error: (e, _) => ErrorBanner('$e'),
+                      data: (m) => Column(
+                        children: [
+                          if (m.opensAt != null) _OpensCard(opensAt: m.opensAt!),
+                          if (m.opensAt == null && m.accessLocked) const _PlanNeededCard(),
+                          if (m.launchOffer != null) ...[const SizedBox(height: 14), _OfferCard(offer: m.launchOffer!)],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (open) const _HomeStrips(),
+              if (profile != null && profile.completionScore >= 100)
+                Padding(padding: const EdgeInsets.fromLTRB(18, 14, 18, 0), child: _CompletionCard(profile: profile)),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
+// Up to 50 matches, as the website: the top few are "Recommended for you",
+// the rest feed today's picks.
 final _homeStripsProvider = FutureProvider.autoDispose((ref) async {
   final repo = ref.watch(repoProvider);
+  final userId = ref.watch(tokenStoreProvider).userId ?? '';
   // A strip that fails just isn't shown; the others still load.
   Future<List<MemberCard>> safe(Future<List<MemberCard>> f) => f.catchError((_) => <MemberCard>[]);
+  var hiddenByMustHave = 0;
   final results = await Future.wait([
-    safe(repo.matches(limit: 12).then((m) => m.items.where((c) => c.relationship != Relationship.connected).toList())),
+    safe(repo.matches(limit: 50).then((m) {
+      hiddenByMustHave = m.hiddenByMustHave;
+      return m.items;
+    })),
     safe(repo.category('newly-joined')),
     safe(repo.category('viewed-me')),
     safe(repo.category('viewed-by-me')),
   ]);
-  return results;
+  final split = splitHomeMatches(results[0], userId: userId);
+  return (
+    recommended: split.recommended,
+    daily: split.daily,
+    hiddenByMustHave: hiddenByMustHave,
+    newlyJoined: results[1],
+    viewedMe: results[2],
+    viewedByMe: results[3],
+  );
 });
+
+class _Hero extends StatelessWidget {
+  const _Hero({required this.first, required this.photoUrl, required this.score, required this.subtitle});
+  final String first;
+  final String? photoUrl;
+  final int score;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final top = MediaQuery.of(context).padding.top;
+    return Container(
+      padding: EdgeInsets.fromLTRB(18, top + 10, 8, 26),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(colors: [NK.maroonBright, NK.maroonDeep], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Logo(size: 17, light: true),
+              const Spacer(),
+              IconTheme(data: const IconThemeData(color: Colors.white), child: const TopActions()),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => context.push('/me/profile'),
+                child: Container(
+                  padding: const EdgeInsets.all(2.5),
+                  decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [NK.goldLight, NK.gold])),
+                  child: MemberAvatar(url: photoUrl, radius: 30),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(first.isEmpty ? 'Vanakkam' : 'Vanakkam, $first', style: serif(28, color: Colors.white)),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13.5)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (score < 100) ...[
+            const SizedBox(height: 18),
+            InkWell(
+              onTap: () => context.push('/me/profile'),
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+                margin: const EdgeInsets.only(right: 10),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Profile $score% complete',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                          const SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(99),
+                            child: LinearProgressIndicator(
+                              value: score / 100,
+                              minHeight: 6,
+                              color: NK.goldLight,
+                              backgroundColor: Colors.white.withValues(alpha: 0.2),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('Complete', style: TextStyle(color: NK.goldLight, fontWeight: FontWeight.w700, fontSize: 13)),
+                    const Icon(Icons.chevron_right_rounded, color: NK.goldLight),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _DailySection extends ConsumerWidget {
+  const _DailySection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final data = ref.watch(_homeStripsProvider);
+    return data.maybeWhen(
+      data: (d) => d.daily.isEmpty
+          ? d.recommended.isEmpty && d.hiddenByMustHave > 0
+              ? Padding(padding: const EdgeInsets.fromLTRB(18, 18, 18, 0), child: _HiddenByPreferences(count: d.hiddenByMustHave))
+              : const SizedBox.shrink()
+          : Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SectionTitle('Daily recommendations', subtitle: 'Fresh picks from your matches, new every day.'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: DailyDeck(picks: d.daily),
+          ),
+        ],
+      ),
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+}
+
+// Every match is filtered out by a must-have preference: say so, rather
+// than leaving the picks empty without a reason.
+class _HiddenByPreferences extends StatelessWidget {
+  const _HiddenByPreferences({required this.count});
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return NkCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('No daily picks today', style: serif(22, color: NK.maroon)),
+          const SizedBox(height: 8),
+          Text(
+            'Your must-have partner preferences hide $count ${count == 1 ? 'member' : 'members'} who would otherwise be recommended. Relax one of them to see more.',
+            style: const TextStyle(color: NK.muted, height: 1.5),
+          ),
+          const SizedBox(height: 14),
+          OutlinedButton(onPressed: () => context.push('/me/preferences'), child: const Text('Edit preferences')),
+        ],
+      ),
+    );
+  }
+}
 
 // The website's signed-in home sections.
 class _HomeStrips extends ConsumerWidget {
@@ -101,15 +269,15 @@ class _HomeStrips extends ConsumerWidget {
     return data.when(
       loading: () => loadingSpinner,
       error: (e, _) => LoadError(error: e, onRetry: reload),
-      data: (lists) {
+      data: (d) {
         final sections = [
-          ('Recommended for you', 'Based on your preferences, location and lifestyle.', lists[0], '/matches', true),
-          ('Newly joined', 'Members who joined in the last 30 days.', lists[1], '/search/category/newly-joined', false),
-          ('Viewed your profile', 'Members who recently opened your profile.', lists[2], '/search/category/viewed-you', false),
-          ('Profiles you viewed', 'Members whose profiles you opened recently.', lists[3], '/search/category/viewed-by-you', false),
+          ('Recommended for you', 'Based on your preferences, location and lifestyle.', d.recommended, '/matches', true),
+          ('Newly joined', 'Members who joined in the last 30 days.', d.newlyJoined, '/search/category/newly-joined', false),
+          ('Viewed your profile', 'Members who recently opened your profile.', d.viewedMe, '/search/category/viewed-you', false),
+          ('Profiles you viewed', 'Members whose profiles you opened recently.', d.viewedByMe, '/search/category/viewed-by-you', false),
         ];
         final shown = sections.where((s) => s.$3.isNotEmpty).toList();
-        if (shown.isEmpty) {
+        if (shown.isEmpty && d.daily.isEmpty) {
           return const EmptyState(
             icon: Icons.favorite_border_rounded,
             title: 'No members to show yet',

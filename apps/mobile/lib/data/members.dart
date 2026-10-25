@@ -86,6 +86,8 @@ class MemberCard {
   // "27 · Madurai"
   String get ageAndCity => [if (age > 0) '$age yrs', ?city].join(' · ');
   String? get work => profession ?? educationLevel;
+  // "Madurai, Tamil Nadu", whichever parts are known.
+  String? get place => city == null && state == null ? null : [?city, ?state].join(', ');
 }
 
 class MatchesPage {
