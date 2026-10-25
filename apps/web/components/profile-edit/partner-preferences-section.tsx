@@ -3,7 +3,6 @@
 import { useState, type FormEvent } from 'react';
 import {
   INDIA_STATES_AND_UTS,
-  MOTHER_TONGUES,
   partnerPreferencesSchema,
   type DoshamPreference,
   type SavedPartnerPreferences,
@@ -221,16 +220,6 @@ export function PartnerPreferencesEditor({
         />
         <MustHave id="pref-must-marital" checked={form.mustHaveMaritalStatus} onChange={(v) => set('mustHaveMaritalStatus', v)} />
         {errors.mustHaveMaritalStatus && <p className="mt-1 text-xs font-semibold text-destructive">{errors.mustHaveMaritalStatus}</p>}
-      </div>
-
-      <div>
-        <p className="mb-2 text-sm font-semibold text-nk-ink">Mother tongue</p>
-        <CheckboxGroup
-          name="pref-tongue"
-          options={MOTHER_TONGUES.map((t) => ({ value: t, label: t }))}
-          values={form.motherTongues}
-          onChange={(v) => set('motherTongues', v)}
-        />
       </div>
 
       <div>

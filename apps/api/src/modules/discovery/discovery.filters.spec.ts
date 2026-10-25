@@ -28,6 +28,7 @@ const BASE_DETAILS = {
   location: { city: 'Madurai', state: 'Tamil Nadu', country: 'India' },
   education: { educationLevel: 'B.E', profession: 'Engineer', employedIn: 'Private', annualIncomeRange: '8-12 LPA' },
   additional: { familyType: 'Middle Class' },
+  lifestyle: { diet: 'Vegetarian', smoking: 'No', hobbies: [] },
 };
 
 function details(overrides: Record<string, any> = {}) {
@@ -53,6 +54,10 @@ const DECOYS: Record<string, Partial<FakeProfile>> = {
   incomeBareNumber: { details: details({ education: { annualIncomeRange: '10' } }) },
   employedIn: { details: details({ education: { employedIn: 'Government' } }) },
   familyType: { details: details({ additional: { familyType: 'Upper Middle Class' } }) },
+  diet: { details: details({ lifestyle: { diet: 'Non-Vegetarian', smoking: 'No', hobbies: [] } }) },
+  smoking: { details: details({ lifestyle: { diet: 'Vegetarian', smoking: 'Occasionally', hobbies: [] } }) },
+  // Never answered Lifestyle & Habits: no diet or smoking filter can match.
+  noLifestyle: { details: { ...details(), lifestyle: undefined } },
   country: { details: details({ location: { country: 'USA' } }) },
   nearby: { details: details({ location: { city: 'Bengaluru', state: 'Karnataka' } }) },
   joined: { createdAt: new Date(Date.now() - 60 * DAY) },
@@ -75,6 +80,8 @@ const SINGLE_FILTERS: [string, Record<string, unknown>, string[]][] = [
   ['annual income range', { incomeMinLakhs: '10', incomeMaxLakhs: '15' }, ['income', 'incomeBareNumber']],
   ['employment type', { employedIn: 'private' }, ['employedIn']],
   ['family status', { familyType: 'Middle Class' }, ['familyType']],
+  ['diet', { diet: 'Vegetarian' }, ['diet', 'noLifestyle']],
+  ['smoking', { smoking: 'No' }, ['smoking', 'noLifestyle']],
   ['country', { country: 'India' }, ['country']],
   ['nearby', { nearby: 'true' }, ['nearby']],
   ['created within', { joinedWithinDays: '30' }, ['joined']],

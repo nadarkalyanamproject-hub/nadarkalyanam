@@ -1,5 +1,6 @@
 import { type CanActivate, type ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { formatDisplayDate } from '@nadar-kalyanam/schemas';
 import type { AuthenticatedRequest } from '../modules/auth/guards/jwt-auth.guard.js';
 import type { Env } from '../modules/config/env.schema.js';
 import { PrismaService } from '../modules/prisma/prisma.service.js';
@@ -14,7 +15,7 @@ export function planRequiredException(): ForbiddenException {
 }
 
 export function preLaunchMessage(opensAt: Date): string {
-  const day = opensAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' });
+  const day = formatDisplayDate(opensAt);
   return `Matching opens on ${day}. Until then you can complete your profile and add photos.`;
 }
 

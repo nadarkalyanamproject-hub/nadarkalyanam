@@ -44,7 +44,6 @@ type Prefs = Omit<SavedPartnerPreferences, 'updatedAt'>;
 type CandidateDetails = {
   height?: unknown;
   maritalStatus?: unknown;
-  motherTongue?: unknown;
   dosham?: unknown;
   location?: { city?: unknown; state?: unknown };
   education?: { annualIncomeRange?: unknown };
@@ -76,12 +75,6 @@ export function preferenceFit(prefs: Prefs, candidate: Pick<Profile, 'dateOfBirt
     fields.push({
       key: 'maritalStatus',
       matched: typeof d.maritalStatus === 'string' ? prefs.maritalStatuses.includes(d.maritalStatus as never) : null,
-    });
-  }
-  if (prefs.motherTongues.length > 0) {
-    fields.push({
-      key: 'motherTongue',
-      matched: typeof d.motherTongue === 'string' && d.motherTongue.trim() ? prefs.motherTongues.some((t) => sameText(d.motherTongue, t)) : null,
     });
   }
   if (prefs.states.length > 0 || prefs.cities.length > 0) {

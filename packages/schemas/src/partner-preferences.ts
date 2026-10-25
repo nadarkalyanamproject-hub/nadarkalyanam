@@ -110,7 +110,7 @@ export type SavedPartnerPreferences = NonNullable<PartnerPreferencesResponse['pr
 
 // The preference keys counted for "N of M preferences match" and the
 // Matches fit score. Each one the member has set counts once.
-export const PREFERENCE_FIT_KEYS = ['age', 'height', 'maritalStatus', 'motherTongue', 'location', 'income', 'dosham'] as const;
+export const PREFERENCE_FIT_KEYS = ['age', 'height', 'maritalStatus', 'location', 'income', 'dosham'] as const;
 export type PreferenceFitKey = (typeof PREFERENCE_FIT_KEYS)[number];
 
 // "N of M of your preferences match" — computed for the viewing member only,

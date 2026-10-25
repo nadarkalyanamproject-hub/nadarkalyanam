@@ -45,9 +45,9 @@ describe('formatRelativeTime', () => {
     expect(formatRelativeTime(ago(ms), now)).toBe(expected);
   });
 
-  it('older than a week shows a short date (with the year only when it differs)', () => {
-    expect(formatRelativeTime('2026-09-01T12:00:00.000Z', now)).toMatch(/1 Sept?/);
-    expect(formatRelativeTime('2025-09-01T12:00:00.000Z', now)).toMatch(/2025/);
+  it('older than a week shows the date as dd-mm-yyyy', () => {
+    expect(formatRelativeTime('2026-09-01T12:00:00.000Z', now)).toBe('01-09-2026');
+    expect(formatRelativeTime('2025-09-01T12:00:00.000Z', now)).toBe('01-09-2025');
   });
 
   it('never shows a negative time for a slightly-future timestamp (clock skew)', () => {

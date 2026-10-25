@@ -18,10 +18,10 @@ describe.each([
     ['00:01 today', '2026-10-12T00:01:00', morning, '12:01 AM'],
     ['11:59 PM yesterday, seen just after midnight', '2026-10-11T23:59:00', at('2026-10-12T00:05:00'), 'Yesterday'],
     ['yesterday afternoon', '2026-10-11T14:00:00', morning, 'Yesterday'],
-    ['36 hours ago, on an earlier day', '2026-10-10T22:00:00', morning, '10 Oct'],
-    ['two days ago', '2026-10-10T09:00:00', morning, '10 Oct'],
-    ['earlier this year', '2026-03-08T12:00:00', morning, '8 Mar'],
-    ['a previous year', '2025-10-08T12:00:00', morning, '8 Oct 2025'],
+    ['36 hours ago, on an earlier day', '2026-10-10T22:00:00', morning, '10-10-2026'],
+    ['two days ago', '2026-10-10T09:00:00', morning, '10-10-2026'],
+    ['earlier this year', '2026-03-08T12:00:00', morning, '08-03-2026'],
+    ['a previous year', '2025-10-08T12:00:00', morning, '08-10-2025'],
     ['just after midnight, now just before the next midnight', '2026-10-12T00:00:30', at('2026-10-12T23:59:30'), '12:00 AM'],
     ['a minute in the future (clock skew)', '2026-10-12T10:01:00', morning, '10:01 AM'],
     ['in the future across midnight (clock skew)', '2026-10-13T00:01:00', at('2026-10-12T23:59:30'), '12:01 AM'],
@@ -37,7 +37,7 @@ describe.each([
   it('gives the exact moment for the tooltip and <time dateTime>', () => {
     const result = formatMessageTime(at('2026-10-10T09:00:00'), new Date(morning), { timeZone, locale: 'en-US' });
     expect(result?.dateTime).toBe(new Date(at('2026-10-10T09:00:00')).toISOString());
-    expect(result?.title).toBe('Saturday, October 10, 2026 at 9:00 AM');
+    expect(result?.title).toBe('10-10-2026, 9:00 AM');
   });
 });
 

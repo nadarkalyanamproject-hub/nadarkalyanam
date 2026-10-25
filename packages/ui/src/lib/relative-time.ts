@@ -2,7 +2,7 @@ const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
-// "just now", "5m ago", "3h ago", "Yesterday", "4d ago", then a short date.
+// "just now", "5m ago", "3h ago", "Yesterday", "4d ago", then the date as dd-mm-yyyy.
 // Shared by the member app (Notifications) and the admin app (Recent activity).
 export function formatRelativeTime(iso: string, now: number = Date.now()): string {
   const then = new Date(iso).getTime();
@@ -14,6 +14,6 @@ export function formatRelativeTime(iso: string, now: number = Date.now()): strin
   if (diff < 2 * DAY) return 'Yesterday';
   if (diff < 7 * DAY) return `${Math.floor(diff / DAY)}d ago`;
   const date = new Date(then);
-  const sameYear = date.getFullYear() === new Date(now).getFullYear();
-  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) });
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()}`;
 }

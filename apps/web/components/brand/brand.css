@@ -1,0 +1,123 @@
+/* Logo lockup (components/brand/logo.tsx). Sizes are in em of the NADAR
+   size, taken from the logo sheet (Cinzel 70px / 41.5px, pendant 100.4px tall
+   starting 5px below the word block, 24px gap), so the pendant always spans
+   from the top of NADAR to the KALYANAM baseline. */
+.nk-logo {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.343em;
+  font-family: var(--font-display), serif;
+  white-space: nowrap;
+  line-height: 1;
+}
+.nk-logo-mark {
+  display: block;
+  flex-shrink: 0;
+  height: 1.434em;
+  width: auto;
+  margin-top: 0.0714em;
+}
+.nk-logo-word {
+  display: flex;
+  flex-direction: column;
+}
+.nk-logo-a {
+  font-size: 1em;
+  font-weight: 700;
+  letter-spacing: 0.1286em;
+  line-height: 1.02;
+  color: #7a1118;
+}
+.nk-logo-b {
+  font-size: 0.593em;
+  font-weight: 600;
+  letter-spacing: 0.2217em;
+  line-height: 1.02;
+  color: #8a6420;
+}
+.nk-logo-light .nk-logo-a { color: #fff; }
+.nk-logo-light .nk-logo-b { color: #e9c77a; }
+
+/* Boot splash (components/brand/splash.tsx), about 2.4s on every full load:
+   0.0   pendant rises into place      0.8   NADAR letter by letter
+   0.4   inner borders draw            1.05  KALYANAM spreads out
+   0.65  lingam and goddess rise in    1.2   a shine sweeps across the gold
+   2.0   the splash fades away */
+.nk-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fffdf9;
+  cursor: pointer;
+  animation: nk-splash-out 0.4s 2s ease-in forwards;
+}
+html[data-splash='off'] .nk-splash { display: none; }
+.nk-splash-logo { font-size: 70px; }
+@media (max-width: 640px) { .nk-splash-logo { font-size: 38px; } }
+.nk-splash-mark {
+  position: relative;
+  flex-shrink: 0;
+  animation: nk-rise 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.nk-splash-shine {
+  position: absolute;
+  inset: 0;
+  opacity: 0.75;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(105deg, transparent 42%, #000 50%, transparent 58%);
+  mask-image: linear-gradient(105deg, transparent 42%, #000 50%, transparent 58%);
+  -webkit-mask-size: 300% 100%;
+  mask-size: 300% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  animation: nk-shine 0.8s 1.2s ease-in-out both;
+}
+.nk-splash .nk-ring { stroke-dasharray: 1; animation: nk-draw 0.45s 0.4s ease-out both; }
+.nk-splash .nk-lingam,
+.nk-splash .nk-goddess { animation: nk-fig 0.5s 0.65s ease-out both; }
+.nk-splash .nk-goddess { animation-delay: 0.72s; }
+.nk-splash-shine .nk-ring,
+.nk-splash-shine .nk-lingam,
+.nk-splash-shine .nk-goddess { animation: none; }
+.nk-splash-l { display: inline-block; animation: nk-letter 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.nk-splash-b { animation: nk-track 0.7s 1.05s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Page loading (app/loading.tsx) */
+.nk-loader { animation: nk-breathe 1.6s ease-in-out infinite; }
+.nk-loader .nk-ring { stroke-dasharray: 1; animation: nk-draw-loop 1.6s ease-in-out infinite; }
+
+@keyframes nk-rise {
+  from { opacity: 0; transform: translateY(18px); clip-path: inset(100% 0 0 0); }
+  to { opacity: 1; transform: none; clip-path: inset(0); }
+}
+@keyframes nk-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes nk-fig { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@keyframes nk-shine {
+  from { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
+  to { -webkit-mask-position: 0 0; mask-position: 0 0; }
+}
+@keyframes nk-letter { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes nk-track { from { opacity: 0; letter-spacing: 0; } }
+@keyframes nk-splash-out { to { opacity: 0; visibility: hidden; } }
+@keyframes nk-breathe { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+@keyframes nk-draw-loop {
+  0% { stroke-dashoffset: 1; }
+  60%, 100% { stroke-dashoffset: 0; }
+}
+
+/* Reduced motion: the finished logo, shown briefly and faded out, with no
+   movement. data-splash="still" is set by the splash script; the media
+   query covers a browser where the script didn't run. */
+html[data-splash='still'] .nk-splash * { animation: none !important; }
+html[data-splash='still'] .nk-splash-shine { display: none; }
+html[data-splash='still'] .nk-splash { animation: nk-splash-out 0.4s 1.1s ease-in forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nk-splash * { animation: none !important; }
+  .nk-splash-shine { display: none; }
+  .nk-splash { animation: nk-splash-out 0.4s 1.1s ease-in forwards; }
+  .nk-loader, .nk-loader .nk-ring { animation: none; }
+}

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
-import type { MyHoroscope, ProfileResponse, SavedPartnerPreferences } from '@nadar-kalyanam/schemas';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { formatDisplayDate, type MyHoroscope, type ProfileResponse, type SavedPartnerPreferences } from '@nadar-kalyanam/schemas';
 import { AppHeader } from '../../components/app-header';
 import { AdditionalDetailsEditSection } from '../../components/profile-edit/additional-details-edit-section';
 import { BasicDetailsEditSection } from '../../components/profile-edit/basic-details-edit-section';
@@ -9,17 +9,31 @@ import { LocationProfessionalEditSection } from '../../components/profile-edit/l
 import { PersonalReligiousEditSection } from '../../components/profile-edit/personal-religious-edit-section';
 import { PartnerPreferencesEditor, PartnerPreferencesView } from '../../components/profile-edit/partner-preferences-section';
 import { HoroscopeEditor, HoroscopeOwnerView } from '../../components/profile-edit/horoscope-section';
+import { LifestyleEditSection } from '../../components/profile-edit/lifestyle-edit-section';
+import { hasLifestyle } from '../../lib/lifestyle';
 import { ApiError, getMyHoroscope, getPartnerPreferences } from '../../lib/api-client';
 import { useRegistration } from '../providers/registration-provider';
 import { ProfileHeader } from '../../components/profile/profile-header';
 import { PhotoGalleryCard } from '../../components/profile/photo-gallery-card';
 import { TrustVerificationCard } from '../../components/profile/trust-verification-card';
+import { ProfileForProvider } from '../../components/profile-form-fields/profile-for';
 import { CompletionChecklistCard } from '../../components/profile/completion-checklist-card';
 import { PrivacySettingsCard } from '../../components/profile/privacy-settings-card';
 import { BlockedMembersCard } from '../../components/profile/blocked-members-card';
+import { SignedInDevicesCard } from '../../components/profile/signed-in-devices-card';
 import { MyPlanNote } from '../../components/profile/my-plan-note';
 import { ComingSoonNote, ComingSoonPill } from '../../components/ui/coming-soon-note';
-import { CulturalDivider, LotusOrnament } from '../../components/profile/cultural-divider';
+import { CulturalDivider } from '../../components/profile/cultural-divider';
+import {
+  BookIcon,
+  CoffeeIcon,
+  CoupleIcon,
+  FamilyIcon,
+  HomeKolamIcon,
+  LampIcon,
+  PortraitIcon,
+  RasiChartIcon,
+} from '../../components/profile/section-icons';
 import { useProfile } from '../../lib/use-profile';
 import { useRequireAuth } from '../../lib/use-require-auth';
 import './profile.css';
@@ -69,22 +83,15 @@ const SECTION_FIELDS = {
   family: ['familyType', 'about'],
 } as const;
 
-// Display label for a stored enum value; blank stays blank (shown as '—').
+// Display label for a stored enum value; blank stays blank (shown as "+ Add").
 function labelFor(labels: Record<string, string>, value: string | undefined): string | undefined {
   return value ? (labels[value] ?? value) : undefined;
 }
 
-function formatDisplayDate(dateStr?: string): string {
-  if (!dateStr) return '—';
-  try {
-    const [year, month, day] = dateStr.split('-');
-    if (!year || !month || !day) return dateStr;
-    const date = new Date(Number(year), Number(month) - 1, Number(day));
-    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
-}
+
+// The enclosing section's "open the edit form" action, so an empty field
+// can offer "+ Add" without every field being wired up by hand.
+const SectionEditContext = createContext<(() => void) | undefined>(undefined);
 
 function DetailItem({
   label: itemLabel,
@@ -95,13 +102,28 @@ function DetailItem({
   value: string | undefined;
   className?: string;
 }) {
+  const onAdd = useContext(SectionEditContext);
+  const filled = Boolean(value && value.trim().length > 0);
   return (
     <div className={`space-y-1 ${className}`}>
       <dt className="text-[11px] font-bold uppercase tracking-wider text-nk-muted">
         {itemLabel}
       </dt>
       <dd className="text-sm font-semibold text-nk-ink break-words">
-        {value && value.trim().length > 0 ? value : '—'}
+        {filled ? (
+          value
+        ) : onAdd ? (
+          <button
+            type="button"
+            onClick={onAdd}
+            aria-label={`Add ${itemLabel}`}
+            className="font-semibold text-nk-maroon underline-offset-2 hover:underline"
+          >
+            + Add
+          </button>
+        ) : (
+          <span className="font-normal text-nk-subtle">Not added</span>
+        )}
       </dd>
     </div>
   );
@@ -158,7 +180,7 @@ function AccordionSection({
           onClick={onToggle}
           className="flex flex-1 items-center gap-3 text-left focus:outline-none"
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-nk-cream text-nk-maroon border border-nk-line">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl">
             {icon}
           </div>
           <div>
@@ -189,10 +211,23 @@ function AccordionSection({
             <button
               type="button"
               onClick={onEdit}
-              className="inline-flex items-center gap-1 rounded-lg border border-nk-line bg-nk-ivory px-3 py-1.5 text-xs font-semibold text-nk-maroon shadow-2xs transition-all hover:border-nk-gold-light hover:bg-nk-cream hover:text-nk-maroon-bright"
+              aria-label={`Edit ${title}`}
+              title="Edit"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-nk-maroon transition-colors hover:bg-[#FAF6EF] hover:text-nk-maroon-bright"
             >
-              <span>Edit</span>
-              <span className="text-nk-gold-light">→</span>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+                aria-hidden="true"
+              >
+                <path d="M16.9 3.6a2.1 2.1 0 0 1 3 3L7.5 19 3.5 20.5 5 16.5Z" />
+                <path d="m15 5.5 3.5 3.5" />
+              </svg>
             </button>
           )}
 
@@ -220,7 +255,11 @@ function AccordionSection({
       {/* Section Content */}
       {isOpen && (
         <div className="p-5 sm:p-6 animate-in fade-in duration-200">
-          {isEditing && editView ? editView : children}
+          {isEditing && editView ? (
+            editView
+          ) : (
+            <SectionEditContext.Provider value={comingSoon ? undefined : onEdit}>{children}</SectionEditContext.Provider>
+          )}
         </div>
       )}
     </div>
@@ -394,322 +433,306 @@ export default function ProfilePage() {
         )}
 
         {profile && (
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-            {/* LEFT COLUMN: Photo Gallery, Verification, Completion Checklist */}
-            <div className="space-y-6 lg:col-span-5 xl:col-span-4 2xl:col-span-3">
-              {/* Photo Gallery Card */}
-              <PhotoGalleryCard profile={profile} onChanged={() => void refetch()} />
+          <ProfileForProvider value={profile.details?.profileFor ?? null}>
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+              {/* LEFT COLUMN: Photo Gallery, Verification, Completion Checklist */}
+              <div className="space-y-6 lg:col-span-5 xl:col-span-4 2xl:col-span-3">
+                {/* Photo Gallery Card */}
+                <PhotoGalleryCard profile={profile} onChanged={() => void refetch()} />
 
-              {/* Trust & Verification Card */}
-              <TrustVerificationCard email={profile.details?.email} />
+                {/* Trust & Verification Card */}
+                <TrustVerificationCard email={profile.details?.email} />
 
-              {/* Profile Completion Checklist Card */}
-              <CompletionChecklistCard
-                percentage={completionPercent}
-                items={checklistItems}
-                onCompleteClick={handleChecklistClick}
-              />
-            </div>
+                {/* Profile Completion Checklist Card */}
+                <CompletionChecklistCard
+                  percentage={completionPercent}
+                  items={checklistItems}
+                  onCompleteClick={handleChecklistClick}
+                />
+              </div>
 
-            {/* RIGHT COLUMN: Expandable Profile Sections */}
-            <div className="space-y-5 lg:col-span-7 xl:col-span-8 2xl:col-span-9">
-              {/* 1. Basic Details */}
-              <AccordionSection
-                id="basic"
-                title="Basic Details"
-                icon={
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
-                    <circle cx="12" cy="8" r="4" />
-                    <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
-                  </svg>
-                }
-                statusBadge={sectionBadge('basic')}
-                isOpen={openSections.basic}
-                isEditing={editingSection === 'basic'}
-                onToggle={() => toggleSection('basic')}
-                onEdit={() => handleStartEditing('basic')}
-                editView={
-                  <BasicDetailsEditSection
-                    profile={profile}
-                    onCancel={() => setEditingSection(null)}
-                    onSaved={handleSaved}
-                  />
-                }
-              >
-                <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
-                  <DetailItem label="Full Name" value={profile.fullName} />
-                  <DetailItem label="Gender" value={GENDER_LABELS[profile.gender] ?? profile.gender} />
-                  <DetailItem label="Date of Birth" value={formatDisplayDate(profile.dateOfBirth)} />
-                  <DetailItem label="Religion" value={profile.details?.religion} />
-                  <DetailItem label="Nadar Subcategory" value={profile.details?.casteCommunity} />
-                  <DetailItem label="Email" value={profile.details?.email} className="sm:col-span-2" />
-                </dl>
-              </AccordionSection>
+              {/* RIGHT COLUMN: Expandable Profile Sections */}
+              <div className="space-y-5 lg:col-span-7 xl:col-span-8 2xl:col-span-9">
+                {/* 1. Basic Details */}
+                <AccordionSection
+                  id="basic"
+                  title="Basic Details"
+                  icon={<PortraitIcon className="h-11 w-11" />}
+                  statusBadge={sectionBadge('basic')}
+                  isOpen={openSections.basic}
+                  isEditing={editingSection === 'basic'}
+                  onToggle={() => toggleSection('basic')}
+                  onEdit={() => handleStartEditing('basic')}
+                  editView={
+                    <BasicDetailsEditSection
+                      profile={profile}
+                      onCancel={() => setEditingSection(null)}
+                      onSaved={handleSaved}
+                    />
+                  }
+                >
+                  <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                    <DetailItem label="Full Name" value={profile.fullName} />
+                    <DetailItem label="Gender" value={GENDER_LABELS[profile.gender] ?? profile.gender} />
+                    <DetailItem label="Date of Birth" value={formatDisplayDate(profile.dateOfBirth)} />
+                    <DetailItem label="Religion" value={profile.details?.religion} />
+                    <DetailItem label="Nadar Subcategory" value={profile.details?.casteCommunity} />
+                    <DetailItem label="Email" value={profile.details?.email} className="sm:col-span-2" />
+                  </dl>
+                </AccordionSection>
 
-              {/* 2. Personal & Religious */}
-              <AccordionSection
-                id="personal"
-                title="Personal & Religious"
-                icon={
-                  <LotusOrnament className="h-5 w-5" />
-                }
-                statusBadge={sectionBadge('personal')}
-                isOpen={openSections.personal}
-                isEditing={editingSection === 'personal'}
-                onToggle={() => toggleSection('personal')}
-                onEdit={() => handleStartEditing('personal')}
-                editView={
-                  <PersonalReligiousEditSection
-                    profile={profile}
-                    onCancel={() => setEditingSection(null)}
-                    onSaved={handleSaved}
-                  />
-                }
-              >
-                <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
-                  <DetailItem label="Height" value={profile.details?.height} />
-                  <DetailItem
-                    label="Physical Status"
-                    value={labelFor(PHYSICAL_STATUS_LABELS, profile.details?.physicalStatus)}
-                  />
-                  <DetailItem label="Complexion" value={profile.details?.complexion} />
-                  <DetailItem
-                    label="Marital Status"
-                    value={labelFor(MARITAL_STATUS_LABELS, profile.details?.maritalStatus)}
-                  />
-                  <DetailItem
-                    label="Dosham"
-                    value={labelFor(DOSHAM_LABELS, profile.details?.dosham)}
-                  />
-                </dl>
-              </AccordionSection>
+                {/* 2. Personal & Religious */}
+                <AccordionSection
+                  id="personal"
+                  title="Personal & Religious"
+                  icon={<LampIcon className="h-11 w-11" />}
+                  statusBadge={sectionBadge('personal')}
+                  isOpen={openSections.personal}
+                  isEditing={editingSection === 'personal'}
+                  onToggle={() => toggleSection('personal')}
+                  onEdit={() => handleStartEditing('personal')}
+                  editView={
+                    <PersonalReligiousEditSection
+                      profile={profile}
+                      onCancel={() => setEditingSection(null)}
+                      onSaved={handleSaved}
+                    />
+                  }
+                >
+                  <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                    <DetailItem label="Height" value={profile.details?.height} />
+                    <DetailItem
+                      label="Physical Status"
+                      value={labelFor(PHYSICAL_STATUS_LABELS, profile.details?.physicalStatus)}
+                    />
+                    <DetailItem label="Complexion" value={profile.details?.complexion} />
+                    <DetailItem
+                      label="Marital Status"
+                      value={labelFor(MARITAL_STATUS_LABELS, profile.details?.maritalStatus)}
+                    />
+                    <DetailItem
+                      label="Dosham"
+                      value={labelFor(DOSHAM_LABELS, profile.details?.dosham)}
+                    />
+                  </dl>
+                </AccordionSection>
 
-              {/* 3. Education & Career */}
-              <AccordionSection
-                id="education"
-                title="Education & Career"
-                icon={
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
-                    <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-                    <path d="M6 12v5c3 3 9 3 12 0v-5" />
-                  </svg>
-                }
-                statusBadge={sectionBadge('education')}
-                isOpen={openSections.education}
-                isEditing={editingSection === 'education'}
-                onToggle={() => toggleSection('education')}
-                onEdit={() => handleStartEditing('education')}
-                editView={
-                  <LocationProfessionalEditSection
-                    profile={profile}
-                    onCancel={() => setEditingSection(null)}
-                    onSaved={handleSaved}
-                  />
-                }
-              >
-                <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
-                  <DetailItem
-                    label="Education Level"
-                    value={profile.details?.education?.educationLevel}
-                  />
-                  <DetailItem
-                    label="Education Detail"
-                    value={profile.details?.education?.educationDetail}
-                  />
-                  <DetailItem
-                    label="Profession"
-                    value={profile.details?.education?.profession}
-                  />
-                  <DetailItem
-                    label="Employed In"
-                    value={profile.details?.education?.employedIn}
-                  />
-                  <DetailItem
-                    label="Annual Income"
-                    value={
-                      // Currency is fixed to INR at onboarding; only shown with an amount.
-                      profile.details?.education?.annualIncomeRange?.trim()
-                        ? `${profile.details.education.annualIncomeRange} ${profile.details.education.annualIncomeCurrency || 'INR'}`
-                        : undefined
-                    }
-                    className="sm:col-span-2"
-                  />
-                </dl>
-              </AccordionSection>
+                {/* 3. Education & Career */}
+                <AccordionSection
+                  id="education"
+                  title="Education & Career"
+                  icon={<BookIcon className="h-11 w-11" />}
+                  statusBadge={sectionBadge('education')}
+                  isOpen={openSections.education}
+                  isEditing={editingSection === 'education'}
+                  onToggle={() => toggleSection('education')}
+                  onEdit={() => handleStartEditing('education')}
+                  editView={
+                    <LocationProfessionalEditSection
+                      profile={profile}
+                      onCancel={() => setEditingSection(null)}
+                      onSaved={handleSaved}
+                    />
+                  }
+                >
+                  <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                    <DetailItem
+                      label="Education Level"
+                      value={profile.details?.education?.educationLevel}
+                    />
+                    <DetailItem
+                      label="Education Detail"
+                      value={profile.details?.education?.educationDetail}
+                    />
+                    <DetailItem
+                      label="Profession"
+                      value={profile.details?.education?.profession}
+                    />
+                    <DetailItem
+                      label="Employed In"
+                      value={profile.details?.education?.employedIn}
+                    />
+                    <DetailItem
+                      label="Annual Income"
+                      value={
+                        // Currency is fixed to INR at onboarding; only shown with an amount.
+                        profile.details?.education?.annualIncomeRange?.trim()
+                          ? `${profile.details.education.annualIncomeRange} ${profile.details.education.annualIncomeCurrency || 'INR'}`
+                          : undefined
+                      }
+                      className="sm:col-span-2"
+                    />
+                  </dl>
+                </AccordionSection>
 
-              {/* 4. Location */}
-              <AccordionSection
-                id="location"
-                title="Location Details"
-                icon={
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
-                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                }
-                statusBadge={sectionBadge('location')}
-                isOpen={openSections.location}
-                isEditing={editingSection === 'location'}
-                onToggle={() => toggleSection('location')}
-                onEdit={() => handleStartEditing('location')}
-                editView={
-                  <LocationProfessionalEditSection
-                    profile={profile}
-                    onCancel={() => setEditingSection(null)}
-                    onSaved={handleSaved}
-                  />
-                }
-              >
-                <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
-                  <DetailItem label="City" value={profile.details?.location?.city} />
-                  <DetailItem label="State" value={profile.details?.location?.state} />
-                  <DetailItem label="Country" value={profile.details?.location?.country} />
-                  <div className="sm:col-span-2">
-                    <ComingSoonNote feature="citizenship" />
-                  </div>
-                </dl>
-              </AccordionSection>
+                {/* 4. Location */}
+                <AccordionSection
+                  id="location"
+                  title="Location Details"
+                  icon={<HomeKolamIcon className="h-11 w-11" />}
+                  statusBadge={sectionBadge('location')}
+                  isOpen={openSections.location}
+                  isEditing={editingSection === 'location'}
+                  onToggle={() => toggleSection('location')}
+                  onEdit={() => handleStartEditing('location')}
+                  editView={
+                    <LocationProfessionalEditSection
+                      profile={profile}
+                      onCancel={() => setEditingSection(null)}
+                      onSaved={handleSaved}
+                    />
+                  }
+                >
+                  <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                    <DetailItem label="City" value={profile.details?.location?.city} />
+                    <DetailItem label="State" value={profile.details?.location?.state} />
+                    <DetailItem label="Country" value={profile.details?.location?.country} />
+                    <div className="sm:col-span-2">
+                      <ComingSoonNote feature="citizenship" />
+                    </div>
+                  </dl>
+                </AccordionSection>
 
-              {/* 5. Family Details */}
-              <AccordionSection
-                id="family"
-                title="Family Details"
-                icon={
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
-                }
-                statusBadge={sectionBadge('family')}
-                isOpen={openSections.family}
-                isEditing={editingSection === 'family'}
-                onToggle={() => toggleSection('family')}
-                onEdit={() => handleStartEditing('family')}
-                editView={
-                  <AdditionalDetailsEditSection
-                    profile={profile}
-                    onCancel={() => setEditingSection(null)}
-                    onSaved={handleSaved}
-                  />
-                }
-              >
-                <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
-                  <DetailItem
-                    label="Family Status / Type"
-                    value={profile.details?.additional?.familyType}
-                  />
-                  <DetailItem label="Family Net Worth" value={profile.details?.additional?.netWorth} />
-                  <div className="sm:col-span-2">
-                    <ComingSoonNote feature="familyValue" />
-                  </div>
-                  {/* The onboarding "About you" text — about the member, not their family. */}
-                  <DetailItem label="About You" value={profile.details?.additional?.about} className="sm:col-span-2" />
-                </dl>
-              </AccordionSection>
+                {/* 5. Family Details */}
+                <AccordionSection
+                  id="family"
+                  title="Family Details"
+                  icon={<FamilyIcon className="h-11 w-11" />}
+                  statusBadge={sectionBadge('family')}
+                  isOpen={openSections.family}
+                  isEditing={editingSection === 'family'}
+                  onToggle={() => toggleSection('family')}
+                  onEdit={() => handleStartEditing('family')}
+                  editView={
+                    <AdditionalDetailsEditSection
+                      profile={profile}
+                      onCancel={() => setEditingSection(null)}
+                      onSaved={handleSaved}
+                    />
+                  }
+                >
+                  <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                    <DetailItem
+                      label="Family Status / Type"
+                      value={profile.details?.additional?.familyType}
+                    />
+                    <DetailItem label="Family Net Worth" value={profile.details?.additional?.netWorth} />
+                    <div className="sm:col-span-2">
+                      <ComingSoonNote feature="familyValue" />
+                    </div>
+                    {/* The onboarding "About you" text — about the member, not their family. */}
+                    <DetailItem label="About You" value={profile.details?.additional?.about} className="sm:col-span-2" />
+                  </dl>
+                </AccordionSection>
 
-              {/* 6. Lifestyle & Habits: nothing is collected yet, so nothing to show or edit. */}
-              <AccordionSection
-                id="lifestyle"
-                title="Lifestyle & Habits"
-                icon={
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                  </svg>
-                }
-                comingSoon
-                isOpen={openSections.lifestyle}
-                isEditing={false}
-                onToggle={() => toggleSection('lifestyle')}
-              >
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <ComingSoonNote feature="habits" />
-                  <ComingSoonNote feature="hobbies" />
+                {/* 6. Lifestyle & Habits: optional, not counted in the completion score. */}
+                <AccordionSection
+                  id="lifestyle"
+                  title="Lifestyle & Habits"
+                  icon={<CoffeeIcon className="h-11 w-11" />}
+                  statusBadge={
+                    hasLifestyle(profile.details?.lifestyle) ? { label: 'Added', variant: 'complete' } : { label: 'Optional', variant: 'pending' }
+                  }
+                  isOpen={openSections.lifestyle}
+                  isEditing={editingSection === 'lifestyle'}
+                  onToggle={() => toggleSection('lifestyle')}
+                  onEdit={() => handleStartEditing('lifestyle')}
+                  editView={
+                    <LifestyleEditSection
+                      profile={profile}
+                      onCancel={() => setEditingSection(null)}
+                      onSaved={handleSaved}
+                    />
+                  }
+                >
+                  <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-3">
+                    <DetailItem label="Diet" value={profile.details?.lifestyle?.diet} />
+                    <DetailItem label="Smoking" value={profile.details?.lifestyle?.smoking} />
+                    <DetailItem label="Drinking" value={profile.details?.lifestyle?.drinking} />
+                    <DetailItem
+                      label="Hobbies & Interests"
+                      value={profile.details?.lifestyle?.hobbies?.join(', ')}
+                      className="sm:col-span-3"
+                    />
+                  </dl>
+                </AccordionSection>
+
+                {/* 7. Horoscope Details (owner-only endpoint; others see it only as the visibility setting allows). */}
+                <AccordionSection
+                  id="horoscope"
+                  title="Horoscope Details"
+                  icon={<RasiChartIcon className="h-11 w-11" />}
+                  statusBadge={
+                    profile.optionalCompletion.horoscope ? { label: 'Added', variant: 'complete' } : { label: 'Optional', variant: 'pending' }
+                  }
+                  isOpen={openSections.horoscope}
+                  isEditing={editingSection === 'horoscope'}
+                  onToggle={() => toggleSection('horoscope')}
+                  onEdit={horoscope === undefined || extrasError ? undefined : () => handleStartEditing('horoscope')}
+                  editView={
+                    <HoroscopeEditor
+                      saved={horoscope ?? null}
+                      onCancel={() => setEditingSection(null)}
+                      onSaved={(h, text) => {
+                        setHoroscope(h);
+                        handleExtrasSaved('horoscope', text);
+                      }}
+                    />
+                  }
+                >
+                  {extrasBody(
+                    'horoscope',
+                    <HoroscopeOwnerView
+                      saved={horoscope ?? null}
+                      onChanged={(h, text) => {
+                        setHoroscope(h);
+                        handleExtrasSaved('horoscope', text);
+                      }}
+                    />,
+                  )}
+                </AccordionSection>
+
+                {/* 8. Partner Preferences (owner-only; never shown to other members). */}
+                <AccordionSection
+                  id="preferences"
+                  title="Partner Preferences"
+                  icon={<CoupleIcon className="h-11 w-11" />}
+                  statusBadge={
+                    profile.optionalCompletion.partnerPreferences ? { label: 'Set', variant: 'complete' } : { label: 'Optional', variant: 'pending' }
+                  }
+                  isOpen={openSections.preferences}
+                  isEditing={editingSection === 'preferences'}
+                  onToggle={() => toggleSection('preferences')}
+                  onEdit={preferences === undefined || extrasError ? undefined : () => handleStartEditing('preferences')}
+                  editView={
+                    <PartnerPreferencesEditor
+                      saved={preferences ?? null}
+                      onCancel={() => setEditingSection(null)}
+                      onSaved={(p, text) => {
+                        setPreferences(p);
+                        handleExtrasSaved('preferences', text);
+                      }}
+                    />
+                  }
+                >
+                  {extrasBody('preferences', <PartnerPreferencesView saved={preferences ?? null} />)}
+                </AccordionSection>
+
+                <CulturalDivider className="my-6" />
+
+                {/* 9. Privacy & Visibility */}
+                <PrivacySettingsCard profile={profile} onSaved={setProfile} />
+
+                <div className="mt-6">
+                  <BlockedMembersCard />
                 </div>
-              </AccordionSection>
 
-              {/* 7. Horoscope Details (owner-only endpoint; others see it only as the visibility setting allows). */}
-              <AccordionSection
-                id="horoscope"
-                title="Horoscope Details"
-                icon={
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M12 3v18" />
-                    <path d="M3 12h18" />
-                  </svg>
-                }
-                statusBadge={
-                  profile.optionalCompletion.horoscope ? { label: 'Added', variant: 'complete' } : { label: 'Optional', variant: 'pending' }
-                }
-                isOpen={openSections.horoscope}
-                isEditing={editingSection === 'horoscope'}
-                onToggle={() => toggleSection('horoscope')}
-                onEdit={horoscope === undefined || extrasError ? undefined : () => handleStartEditing('horoscope')}
-                editView={
-                  <HoroscopeEditor
-                    saved={horoscope ?? null}
-                    onCancel={() => setEditingSection(null)}
-                    onSaved={(h, text) => {
-                      setHoroscope(h);
-                      handleExtrasSaved('horoscope', text);
-                    }}
-                  />
-                }
-              >
-                {extrasBody(
-                  'horoscope',
-                  <HoroscopeOwnerView
-                    saved={horoscope ?? null}
-                    onChanged={(h, text) => {
-                      setHoroscope(h);
-                      handleExtrasSaved('horoscope', text);
-                    }}
-                  />,
-                )}
-              </AccordionSection>
-
-              {/* 8. Partner Preferences (owner-only; never shown to other members). */}
-              <AccordionSection
-                id="preferences"
-                title="Partner Preferences"
-                icon={
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} className="h-5 w-5">
-                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-                  </svg>
-                }
-                statusBadge={
-                  profile.optionalCompletion.partnerPreferences ? { label: 'Set', variant: 'complete' } : { label: 'Optional', variant: 'pending' }
-                }
-                isOpen={openSections.preferences}
-                isEditing={editingSection === 'preferences'}
-                onToggle={() => toggleSection('preferences')}
-                onEdit={preferences === undefined || extrasError ? undefined : () => handleStartEditing('preferences')}
-                editView={
-                  <PartnerPreferencesEditor
-                    saved={preferences ?? null}
-                    onCancel={() => setEditingSection(null)}
-                    onSaved={(p, text) => {
-                      setPreferences(p);
-                      handleExtrasSaved('preferences', text);
-                    }}
-                  />
-                }
-              >
-                {extrasBody('preferences', <PartnerPreferencesView saved={preferences ?? null} />)}
-              </AccordionSection>
-
-              <CulturalDivider className="my-6" />
-
-              {/* 9. Privacy & Visibility */}
-              <PrivacySettingsCard profile={profile} onSaved={setProfile} />
-
-              <div className="mt-6">
-                <BlockedMembersCard />
+                <div className="mt-6">
+                  <SignedInDevicesCard />
+                </div>
               </div>
             </div>
-          </div>
+          </ProfileForProvider>
         )}
       </main>
     </div>

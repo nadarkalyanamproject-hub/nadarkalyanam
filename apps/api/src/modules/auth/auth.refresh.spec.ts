@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { describe, expect, it } from 'vitest';
 import { noopOtpRateLimiter } from '../../common/testing/noop-otp-rate-limiter.js';
 import { AdminAuthGuard } from '../admin/guards/admin-auth.guard.js';
-import { AuthService } from './auth.service.js';
+import { AuthService, REFRESH_REUSE_GRACE_MS } from './auth.service.js';
 import { JwtAuthGuard, type AuthenticatedRequest } from './guards/jwt-auth.guard.js';
 import { revokeSession } from './session.util.js';
 
@@ -119,10 +119,12 @@ describe('refresh token rotation', () => {
     expect((jwt.decode(next.accessToken) as { sid: string }).sid).toBe('session-1');
   });
 
-  it('the old refresh token is rejected after rotation, and reusing it revokes the whole session', async () => {
-    const { login, service, member, sessions } = setup();
+  it('reusing an old refresh token after the grace window revokes the whole session', async () => {
+    const { login, service, member, sessions, tokens } = setup();
     const first = await login();
     const second = await service.refresh(first.refreshToken);
+    // The first token was spent longer ago than the grace window.
+    tokens[0]!.usedAt = new Date(Date.now() - REFRESH_REUSE_GRACE_MS - 1000);
 
     await expect(service.refresh(first.refreshToken)).rejects.toBeInstanceOf(UnauthorizedException);
 
@@ -130,6 +132,18 @@ describe('refresh token rotation', () => {
     // Everything from that session is now dead: the newest tokens included.
     await expect(member(second.accessToken)).rejects.toBeInstanceOf(UnauthorizedException);
     await expect(service.refresh(second.refreshToken)).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('a token re-sent within the grace window (the reply was lost) gets a fresh pair instead of a sign-out', async () => {
+    const { login, service, member, sessions } = setup();
+    const first = await login();
+    await service.refresh(first.refreshToken); // the response never reached the device
+
+    const retried = await service.refresh(first.refreshToken);
+
+    expect(sessions[0]!.revokedAt).toBeNull();
+    await expect(member(retried.accessToken)).resolves.toBe(true);
+    await expect(service.refresh(retried.refreshToken)).resolves.toMatchObject({ accessToken: expect.any(String) });
   });
 
   it('a chain of rotations keeps working while each token is used once', async () => {

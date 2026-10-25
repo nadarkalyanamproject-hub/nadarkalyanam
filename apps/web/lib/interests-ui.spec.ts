@@ -27,9 +27,9 @@ const interest: InterestResponse = {
 };
 
 describe('Interests UI Logic', () => {
-  it('formats dates cleanly as DD MMM YYYY', () => {
-    expect(formatInterestDate('2025-09-12T10:00:00.000Z')).toBe('12 Sep 2025');
-    expect(formatInterestDate('2025-08-28T16:45:00.000Z')).toBe('28 Aug 2025');
+  it('formats dates as dd-mm-yyyy (India time)', () => {
+    expect(formatInterestDate('2025-09-12T10:00:00.000Z')).toBe('12-09-2025');
+    expect(formatInterestDate('2025-08-28T16:45:00.000Z')).toBe('28-08-2025');
   });
 
   it('maps a received interest to the sender with the real interest id and profile details', () => {

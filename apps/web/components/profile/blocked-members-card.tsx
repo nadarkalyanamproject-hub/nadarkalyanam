@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { BlockedMember } from '@nadar-kalyanam/schemas';
+import { formatDisplayDate, type BlockedMember } from '@nadar-kalyanam/schemas';
 import { useRegistration } from '../../app/providers/registration-provider';
 import { ApiError, listBlockedMembers, unblockMember } from '../../lib/api-client';
 import { UserIcon } from '../app-header';
@@ -90,7 +90,7 @@ export function BlockedMembersCard() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-nk-ink">{member.fullName}</p>
-                <p className="text-xs text-nk-muted">Blocked {new Date(member.blockedAt).toLocaleDateString()}</p>
+                <p className="text-xs text-nk-muted">Blocked {formatDisplayDate(member.blockedAt)}</p>
               </div>
               <button
                 type="button"

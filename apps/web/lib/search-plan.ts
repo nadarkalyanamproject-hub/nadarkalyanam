@@ -21,6 +21,17 @@ export type SearchPlan =
   // GET /search/profiles with these filters.
   | { kind: 'search'; category: RealCategory | null; filters: SearchFilters; note: string | null };
 
+// The Search page's Lifestyle filters (from the URL), '' meaning any.
+export interface LifestyleFilters {
+  diet: string;
+  smoking: string;
+}
+export const NO_LIFESTYLE_FILTERS: LifestyleFilters = { diet: '', smoking: '' };
+
+export function hasLifestyleFilters(lifestyle: LifestyleFilters): boolean {
+  return Boolean(lifestyle.diet || lifestyle.smoking);
+}
+
 // undefined = still loading, null = none saved.
 type Preferences = SavedPartnerPreferences | null | undefined;
 
@@ -39,19 +50,27 @@ const NOTES = {
   ownRules: "This list has its own rules (who viewed or shortlisted whom), so your partner preferences aren't applied to it.",
   builtIn: 'This list is already based on your partner preferences.',
   combined: 'Showing members in this category who also fit your partner preferences.',
+  lifestyleIgnored: "Diet and smoking filters don't apply to this list.",
+  lifestyleOnly: 'Only members who added their diet or smoking habits can match these filters.',
 };
+
+const joinNotes = (...notes: (string | null)[]) => notes.filter(Boolean).join(' ') || null;
 
 export function planSearch({
   slug,
   usePreferences,
   preferences,
+  lifestyle = NO_LIFESTYLE_FILTERS,
 }: {
   slug: string | null;
   usePreferences: boolean;
   preferences: Preferences;
+  lifestyle?: LifestyleFilters;
 }): SearchPlan {
   const category = findSearchCategory(slug);
   if (slug && !category) return { kind: 'unknown', slug };
+  const lifestyleOn = hasLifestyleFilters(lifestyle);
+  const lifestyleNote = lifestyleOn ? NOTES.lifestyleOnly : null;
 
   const fromPreferences = (): SearchFilters | 'waiting' | 'none' => {
     if (preferences === undefined) return 'waiting';
@@ -60,11 +79,15 @@ export function planSearch({
   };
 
   if (!category) {
-    if (!usePreferences) return { kind: 'idle' };
+    if (!usePreferences) {
+      return lifestyleOn
+        ? { kind: 'search', category: null, filters: { ...EMPTY_SEARCH_FILTERS, ...lifestyle }, note: lifestyleNote }
+        : { kind: 'idle' };
+    }
     const filters = fromPreferences();
     if (filters === 'waiting') return { kind: 'waiting-for-preferences' };
     if (filters === 'none') return { kind: 'needs-preferences', missing: 'any', category: null };
-    return { kind: 'search', category: null, filters, note: null };
+    return { kind: 'search', category: null, filters: { ...filters, ...lifestyle }, note: lifestyleNote };
   }
 
   if (category.kind === 'coming-soon') return { kind: 'coming-soon', category };
@@ -79,8 +102,8 @@ export function planSearch({
     return {
       kind: 'search',
       category,
-      filters: { ...filters, stateIn: preferences.states.join(','), cityIn: preferences.cities.join(',') },
-      note: usePreferences ? NOTES.combined : null,
+      filters: { ...filters, ...lifestyle, stateIn: preferences.states.join(','), cityIn: preferences.cities.join(',') },
+      note: joinNotes(usePreferences ? NOTES.combined : null, lifestyleNote),
     };
   }
 
@@ -89,9 +112,23 @@ export function planSearch({
     const filters = fromPreferences();
     if (filters === 'waiting') return { kind: 'waiting-for-preferences' };
     if (filters === 'none') return { kind: 'needs-preferences', missing: 'any', category };
-    return { kind: 'search', category, filters: { ...filters, ...CATEGORY_FILTERS[source] }, note: NOTES.combined };
+    return {
+      kind: 'search',
+      category,
+      filters: { ...filters, ...CATEGORY_FILTERS[source], ...lifestyle },
+      note: joinNotes(NOTES.combined, lifestyleNote),
+    };
+  }
+  // Lifestyle filters alone turn a search-mode category into a search too.
+  if (category.preferenceMode === 'search' && lifestyleOn) {
+    return {
+      kind: 'search',
+      category,
+      filters: { ...EMPTY_SEARCH_FILTERS, ...CATEGORY_FILTERS[source], ...lifestyle },
+      note: lifestyleNote,
+    };
   }
 
-  const note = !usePreferences ? null : category.preferenceMode === 'own-rules' ? NOTES.ownRules : NOTES.builtIn;
-  return { kind: 'endpoint', category, source, note };
+  const prefsNote = !usePreferences ? null : category.preferenceMode === 'own-rules' ? NOTES.ownRules : NOTES.builtIn;
+  return { kind: 'endpoint', category, source, note: joinNotes(prefsNote, lifestyleOn ? NOTES.lifestyleIgnored : null) };
 }

@@ -172,7 +172,7 @@ describe('PlanRequiredGuard before launch', () => {
     const guard = new PlanRequiredGuard(prisma as never, config({ LAUNCH_DATE: '2999-01-01' }));
     const error = await guard.canActivate(context).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ForbiddenException);
-    expect((error as ForbiddenException).getResponse()).toMatchObject({ errorCode: 'PRE_LAUNCH', message: expect.stringContaining('1 January 2999') });
+    expect((error as ForbiddenException).getResponse()).toMatchObject({ errorCode: 'PRE_LAUNCH', message: expect.stringContaining('01-01-2999') });
     await expect(new PlanRequiredGuard(prisma as never, config({ LAUNCH_DATE: '2000-01-01' })).canActivate(context)).resolves.toBe(true);
   });
 });

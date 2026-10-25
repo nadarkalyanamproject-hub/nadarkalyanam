@@ -50,8 +50,11 @@ export function toCreateProfileRequest(profile: ProfileResponse): CreateProfileR
     },
     additional: {
       familyType: profile.details?.additional?.familyType as CreateProfileRequest['additional']['familyType'],
+      // Resent so saving any other section doesn't clear it.
+      netWorth: profile.details?.additional?.netWorth,
       about: profile.details?.additional?.about ?? '',
     },
+    lifestyle: profile.details?.lifestyle,
   };
 }
 

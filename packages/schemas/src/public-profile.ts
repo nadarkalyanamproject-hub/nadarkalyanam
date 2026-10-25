@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { additionalDetailsSchema, doshamEnum, genderEnum, maritalStatusEnum, physicalStatusEnum } from './profile.js';
+import {
+  additionalDetailsSchema,
+  doshamEnum,
+  genderEnum,
+  lifestyleSchema,
+  maritalStatusEnum,
+  physicalStatusEnum,
+} from './profile.js';
 import { horoscopeViewSchema } from './horoscope.js';
 import { partnerPreferencesResponseSchema, preferenceFitSchema } from './partner-preferences.js';
 import { photoResponseSchema } from './photo.js';
@@ -49,6 +56,8 @@ export const publicProfileDetailSchema = publicProfileSummarySchema.extend({
     annualIncomeCurrency: z.string(),
   }),
   additional: additionalDetailsSchema,
+  // null when the member hasn't filled in Lifestyle & Habits.
+  lifestyle: lifestyleSchema.nullable(),
   photos: z.array(photoResponseSchema),
   // Only on the single profile view, never in lists. Computed for the
   // viewing member from their OWN preferences (null if they have none).

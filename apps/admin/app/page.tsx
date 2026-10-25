@@ -1,5 +1,6 @@
 'use client';
 
+import { formatDisplayDate } from '@nadar-kalyanam/schemas';
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight, ScrollText, ShieldCheck, Users } from 'lucide-react';
@@ -285,7 +286,7 @@ export default function AdminHome() {
                         </td>
                         <td className="px-5 py-3 text-muted-foreground">{signup.phoneNumber}</td>
                         <td className="px-5 py-3 text-right text-muted-foreground">
-                          {new Date(signup.createdAt).toLocaleDateString()}
+                          {formatDisplayDate(signup.createdAt)}
                         </td>
                       </tr>
                     ))}

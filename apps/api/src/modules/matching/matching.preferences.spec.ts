@@ -118,14 +118,13 @@ describe('preferenceFit ("N of M preferences match")', () => {
       heightMinCm: 160,
       heightMaxCm: 170,
       maritalStatuses: ['NEVER_MARRIED'],
-      motherTongues: ['tamil'],
       cities: ['madurai'],
       incomeMinLakhs: 10,
       doshamPreference: 'WITHOUT_DOSHAM',
     });
     expect(preferenceFit(all, candidate(FULL))).toMatchObject({
-      matched: 7,
-      total: 7,
+      matched: 6,
+      total: 6,
     });
     const off = preferenceFit(
       all,
@@ -134,13 +133,12 @@ describe('preferenceFit ("N of M preferences match")', () => {
           ...FULL,
           height: '6ft',
           maritalStatus: 'DIVORCED',
-          motherTongue: 'Hindi',
           dosham: 'YES',
         },
         40,
       ),
     );
-    expect(off.fields.filter((f) => f.matched === false).map((f) => f.key)).toEqual(['age', 'height', 'maritalStatus', 'motherTongue', 'dosham']);
+    expect(off.fields.filter((f) => f.matched === false).map((f) => f.key)).toEqual(['age', 'height', 'maritalStatus', 'dosham']);
   });
 
   it('reports unreadable or missing values as unknown, never as a match', () => {
@@ -157,7 +155,8 @@ describe('preferenceFit ("N of M preferences match")', () => {
         education: { annualIncomeRange: '10' },
       }),
     );
-    expect(fit).toMatchObject({ matched: 0, total: 4, unknown: 4 });
+    // Mother tongue is no longer asked, so a choice saved before still doesn't count.
+    expect(fit).toMatchObject({ matched: 0, total: 3, unknown: 3 });
   });
 });
 

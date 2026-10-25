@@ -34,6 +34,35 @@ describe('planSearch', () => {
     expect(plan(null, false).kind).toBe('idle');
   });
 
+  describe('Lifestyle filters (diet, smoking)', () => {
+    const veg = { diet: 'Vegetarian', smoking: '' };
+    const withLifestyle = (slug: string | null, usePreferences: boolean, lifestyle = veg) =>
+      planSearch({ slug, usePreferences, preferences: PREFS, lifestyle });
+
+    it('alone, they search every member and say only answered profiles can match', () => {
+      const p = withLifestyle(null, false, { diet: 'Vegetarian', smoking: 'No' });
+      expect(query(p)).toMatchObject({ diet: 'Vegetarian', smoking: 'No' });
+      expect(p.kind === 'search' && p.note).toMatch(/Only members who added/);
+    });
+
+    it('combine with the preferences toggle and with search-mode categories', () => {
+      expect(query(withLifestyle(null, true))).toMatchObject({ ageMin: 25, stateIn: 'Tamil Nadu', diet: 'Vegetarian' });
+      expect(query(withLifestyle('with-photos', false))).toMatchObject({ withPhoto: true, diet: 'Vegetarian' });
+      expect(query(withLifestyle('newly-joined', true))).toMatchObject({ joinedWithinDays: 30, ageMin: 25, diet: 'Vegetarian' });
+      expect(query(withLifestyle('location-preference', false))).toMatchObject({ stateIn: 'Tamil Nadu', diet: 'Vegetarian' });
+    });
+
+    it("fixed lists keep their own endpoint and say the filters don't apply", () => {
+      const p = withLifestyle('viewed-you', false);
+      expect(p).toMatchObject({ kind: 'endpoint', source: 'viewed-me' });
+      expect(p.kind === 'endpoint' && p.note).toMatch(/Diet and smoking filters don't apply/);
+    });
+
+    it('an unknown value never reaches the query', () => {
+      expect(query(withLifestyle(null, false, { diet: 'Fruitarian', smoking: 'Daily' }))).toMatchObject({ diet: undefined, smoking: undefined });
+    });
+  });
+
   it('an unknown slug (old or mistyped link) is reported, not guessed', () => {
     expect(plan('looking-for-you', false)).toEqual({ kind: 'unknown', slug: 'looking-for-you' });
   });

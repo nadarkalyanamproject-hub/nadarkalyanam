@@ -1,9 +1,13 @@
-import { Body, Controller, HttpCode, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Req, UseFilters, UseGuards } from '@nestjs/common';
 import { AllowUnverifiedIdentity } from '../../common/identity-gate.js';
 import {
+  type AccountStatusResponse,
+  type LogoutOthersOtpResponse,
+  type LogoutOthersRequest,
   type RefreshTokenRequest,
   type SendOtpRequest,
   type VerifyOtpRequest,
+  logoutOthersRequestSchema,
   refreshTokenRequestSchema,
   sendOtpRequestSchema,
   verifyOtpRequestSchema,
@@ -51,5 +55,60 @@ export class AuthController {
   @AllowUnverifiedIdentity()
   async logout(@CurrentUser() user: AuthenticatedUser): Promise<void> {
     await this.authService.logout(user.userId, user.sessionId);
+  }
+
+  // The member's own account state (e.g. a deletion scheduled).
+  @Get('account')
+  @UseGuards(JwtAuthGuard)
+  @AllowUnverifiedIdentity()
+  account(@CurrentUser() user: AuthenticatedUser): Promise<AccountStatusResponse> {
+    return this.authService.getAccount(user.userId);
+  }
+
+  // "Delete my account": hidden at once, erased after 14 days unless cancelled.
+  @Post('account/delete')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  @AllowUnverifiedIdentity()
+  deleteAccount(@CurrentUser() user: AuthenticatedUser): Promise<AccountStatusResponse> {
+    return this.authService.requestAccountDeletion(user.userId);
+  }
+
+  @Post('account/cancel-deletion')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  @AllowUnverifiedIdentity()
+  cancelDeletion(@CurrentUser() user: AuthenticatedUser): Promise<AccountStatusResponse> {
+    return this.authService.cancelAccountDeletion(user.userId);
+  }
+
+  // How many devices this member is signed in on (this one included).
+  @Get('sessions')
+  @UseGuards(JwtAuthGuard)
+  @AllowUnverifiedIdentity()
+  async sessions(@CurrentUser() user: AuthenticatedUser): Promise<{ activeSessions: number }> {
+    return { activeSessions: await this.authService.countActiveSessions(user.userId) };
+  }
+
+  // Sends a code to the member's registered number, needed to sign out
+  // every other device (so a stolen signed-in device can't lock the owner out).
+  @Post('logout-others/otp')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  @AllowUnverifiedIdentity()
+  requestLogoutOthersOtp(@CurrentUser() user: AuthenticatedUser, @Req() request: { ip?: string }): Promise<LogoutOthersOtpResponse> {
+    return this.authService.requestLogoutOthersOtp(user.userId, request.ip);
+  }
+
+  // Signs out every other device once the code checks out; this one stays signed in.
+  @Post('logout-others')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  @AllowUnverifiedIdentity()
+  async logoutOthers(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodValidationPipe(logoutOthersRequestSchema)) body: LogoutOthersRequest,
+  ): Promise<{ loggedOut: number }> {
+    return { loggedOut: await this.authService.logoutOtherSessions(user.userId, user.sessionId, body.otp) };
   }
 }

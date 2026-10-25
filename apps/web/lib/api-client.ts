@@ -11,6 +11,7 @@ import type {
   ListInterestsResponse,
   ListMatchesResponse,
   ListNotificationsResponse,
+  LogoutOthersOtpResponse,
   MembershipPlansResponse,
   MyHoroscopeResponse,
   PartnerPreferencesRequest,
@@ -22,6 +23,7 @@ import type {
   MyVipEnquiryResponse,
   SupportContactResponse,
   VipEnquiryResponse,
+  Lifestyle,
   NearbyMatchesResponse,
   NotificationCategory,
   PhoneStatusResponse,
@@ -38,6 +40,7 @@ import type {
   PublicProfileDetail,
   ReportRequest,
   RequestUploadUrlResponse,
+  SearchProfilesQuery,
   SearchProfilesResponse,
   SendInterestRequest,
   SendOtpRequest,
@@ -215,6 +218,40 @@ export function updateProfileVisibility(accessToken: string, visibility: Profile
     method: 'PATCH',
     headers: { Authorization: `Bearer ${accessToken}` },
     body: JSON.stringify({ visibility }),
+  });
+}
+
+// How many devices this member is signed in on (this one included).
+export function getActiveSessions(accessToken: string): Promise<{ activeSessions: number }> {
+  return request<{ activeSessions: number }>('/auth/sessions', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// Sends the code "Log out of all other devices" needs to the member's
+// registered number.
+export function requestLogoutOthersOtp(accessToken: string): Promise<LogoutOthersOtpResponse> {
+  return request<LogoutOthersOtpResponse>('/auth/logout-others/otp', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// Signs out every other device once the code checks out; this one stays signed in.
+export function logoutOtherDevices(accessToken: string, otp: string): Promise<{ loggedOut: number }> {
+  return request<{ loggedOut: number }>('/auth/logout-others', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ otp }),
+  });
+}
+
+// Lifestyle & Habits: saved on its own, never resending the rest of the profile.
+export function updateLifestyle(accessToken: string, lifestyle: Lifestyle): Promise<ProfileResponse> {
+  return request<ProfileResponse>('/profiles/me/lifestyle', {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(lifestyle),
   });
 }
 
@@ -425,6 +462,8 @@ export interface SearchProfilesParams {
   incomeMinLakhs?: number;
   incomeMaxLakhs?: number;
   familyType?: 'Middle Class' | 'Upper Middle Class' | 'Rich / Affluent (Elite)';
+  diet?: SearchProfilesQuery['diet'];
+  smoking?: SearchProfilesQuery['smoking'];
   country?: 'India';
   nearby?: boolean;
   joinedWithinDays?: number;

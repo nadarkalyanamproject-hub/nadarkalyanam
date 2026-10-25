@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { Connection, ListConnectionsResponse } from '@nadar-kalyanam/schemas';
+import { formatDisplayDate, type Connection, type ListConnectionsResponse } from '@nadar-kalyanam/schemas';
 import { calculateAge } from '../../common/age.js';
 import { getBlockedUserIds, isBlockedEitherDirection } from '../../common/blocks.util.js';
 import { istMonthWindow } from '../../common/ist-calendar.js';
@@ -117,7 +117,7 @@ export class InterestsService {
             const used = await tx.interest.count({ where: { senderId: callerUserId, createdAt: { gte: start, lt: resetsAt } } });
             const limit = this.entitlements.freeInterestsPerMonth();
             if (used >= limit) {
-              const resets = resetsAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+              const resets = formatDisplayDate(resetsAt);
               throw new ForbiddenException({
                 statusCode: 403,
                 errorCode: 'PLAN_LIMIT_REACHED',

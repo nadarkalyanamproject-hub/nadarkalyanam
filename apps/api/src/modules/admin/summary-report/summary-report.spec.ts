@@ -95,9 +95,9 @@ describe('summary report PDF', () => {
 
   it('shows the window dates and generation time, and the expected signups for known windows', async () => {
     const lines = extractPdfText(buildSummaryReportPdf(await collectSummaryReportData(service(), 7, NOW)));
-    expect(lines).toContain('Generated 3 Oct 2026, 12:00 IST');
-    expect(lines).toContain('27 Sept 2026 to 3 Oct 2026 (India time)');
-    expect(lineAfter(lines, '27 Sept 2026 to 3 Oct 2026 (India time)')).toBe('3'); // 3 days, 2 days and 1 hour ago
+    expect(lines).toContain('Generated 03-10-2026, 12:00 pm IST');
+    expect(lines).toContain('27-09-2026 to 03-10-2026 (India time)');
+    expect(lineAfter(lines, '27-09-2026 to 03-10-2026 (India time)')).toBe('3'); // 3 days, 2 days and 1 hour ago
   });
 
   it('contains no member details and no financial figures', async () => {

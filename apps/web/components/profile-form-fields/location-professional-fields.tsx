@@ -3,6 +3,7 @@
 import { INDIA_STATES_AND_UTS, type LocationProfessional } from '@nadar-kalyanam/schemas';
 import { Field, Input, Select } from '@nadar-kalyanam/ui';
 import { isRequired } from '../../lib/required-fields';
+import { useSubjectLabels } from './profile-for';
 
 export type LocationProfessionalFormState = Record<keyof LocationProfessional, string>;
 
@@ -15,13 +16,14 @@ export function LocationProfessionalFields({
   errors: Record<string, string>;
   onChange: <K extends keyof LocationProfessionalFormState>(key: K, value: string) => void;
 }) {
+  const subject = useSubjectLabels();
   return (
     <>
       {/* Country is fixed to India (single option by design) and always has a
           value, so State needs no reveal gate. City is revealed once a State
           is chosen, directly below it, and cleared if State is emptied. */}
       <div className="grid grid-cols-2 items-start gap-4">
-        <Field label="Country" htmlFor="country" required={isRequired('location', 'country')} error={errors.country}>
+        <Field label={subject.label('Country')} htmlFor="country" required={isRequired('location', 'country')} error={errors.country}>
           {/* Single-option select, deliberately not `disabled`: it opens and
               shows its one value like any dropdown, but can't change. */}
           <Select id="country" value={form.country || 'India'} onChange={(e) => onChange('country', e.target.value)}>
@@ -29,7 +31,7 @@ export function LocationProfessionalFields({
           </Select>
         </Field>
         <div className="flex flex-col gap-4">
-          <Field label="State" htmlFor="state" required={isRequired('location', 'state')} error={errors.state}>
+          <Field label={subject.label('State')} htmlFor="state" required={isRequired('location', 'state')} error={errors.state}>
             <Select
               id="state"
               invalid={Boolean(errors.state)}
@@ -48,7 +50,7 @@ export function LocationProfessionalFields({
             </Select>
           </Field>
           {form.state !== '' && (
-            <Field label="City" htmlFor="city" required={isRequired('location', 'city')} error={errors.city}>
+            <Field label={subject.label('City')} htmlFor="city" required={isRequired('location', 'city')} error={errors.city}>
               <Input
                 id="city"
                 invalid={Boolean(errors.city)}
@@ -66,7 +68,7 @@ export function LocationProfessionalFields({
           level hides it AND clears it, so no hidden value is ever saved. */}
       <div className="flex flex-col gap-4">
         <Field
-          label="Educational details"
+          label={subject.label('Educational details')}
           htmlFor="educationLevel"
           required={isRequired('location', 'educationLevel')}
           error={errors.educationLevel}
@@ -84,7 +86,7 @@ export function LocationProfessionalFields({
         </Field>
         {form.educationLevel.trim() !== '' && (
           <Field
-            label="Education detail"
+            label={subject.label('Education detail')}
             htmlFor="educationDetail"
             required={isRequired('location', 'educationDetail')}
             error={errors.educationDetail}
@@ -102,7 +104,7 @@ export function LocationProfessionalFields({
 
       <div className="grid grid-cols-2 gap-4">
         <Field
-          label="Occupation"
+          label={subject.label('Occupation')}
           htmlFor="profession"
           required={isRequired('location', 'profession')}
           error={errors.profession}
@@ -120,7 +122,7 @@ export function LocationProfessionalFields({
           />
         </Field>
         <Field
-          label="Employment type"
+          label={subject.label('Employment type')}
           htmlFor="employedIn"
           required={isRequired('location', 'employedIn')}
           error={errors.employedIn}
@@ -140,7 +142,7 @@ export function LocationProfessionalFields({
           <legend className="mb-3 text-sm font-semibold text-nk-maroon-bright">Income details</legend>
           <div className="grid grid-cols-2 gap-4">
             <Field
-              label="Annual income"
+              label={subject.label('Annual income')}
               htmlFor="annualIncomeRange"
               required={isRequired('location', 'annualIncomeRange')}
               error={errors.annualIncomeRange}
@@ -154,7 +156,7 @@ export function LocationProfessionalFields({
               />
             </Field>
             <Field
-              label="Annual income currency"
+              label={subject.label('Annual income currency')}
               htmlFor="annualIncomeCurrency"
               required={isRequired('location', 'annualIncomeCurrency')}
               error={errors.annualIncomeCurrency}

@@ -9,11 +9,12 @@ import { AppHeader } from '../../components/app-header';
 import { ResultCard } from '../../components/discovery/result-card';
 import { CategoryTile } from '../../components/search/category-tile';
 import { UsePreferencesToggle } from '../../components/search/use-preferences-toggle';
+import { LifestyleFilters } from '../../components/search/lifestyle-filters';
 import { PageShell, SectionCard } from '../../components/ui/page-shell';
 import { ApiError, getPartnerPreferences, searchProfiles } from '../../lib/api-client';
 import { loadCategory, toResultItem, type ResultItem } from '../../lib/category-loader';
 import { CATEGORY_GROUPS, PREFERENCES_EDITOR_HREF, SEARCH_CATEGORIES, searchHref } from '../../lib/search-categories';
-import { planSearch, type SearchPlan } from '../../lib/search-plan';
+import { planSearch, type LifestyleFilters as LifestyleFiltersValue, type SearchPlan } from '../../lib/search-plan';
 import { toSearchQuery } from '../../lib/search-query';
 import { useRegistration } from '../providers/registration-provider';
 import { useRequireAuth } from '../../lib/use-require-auth';
@@ -52,6 +53,13 @@ function SearchPageContent() {
   // Back or a shared link shows the same thing.
   const slug = searchParams.get('category');
   const usePreferences = searchParams.get('prefs') === '1';
+  const lifestyle: LifestyleFiltersValue = {
+    diet: searchParams.get('diet') ?? '',
+    smoking: searchParams.get('smoking') ?? '',
+  };
+  // Every link and toggle on the page keeps the current Lifestyle filters.
+  const hrefFor = (next: { category: string | null; usePreferences: boolean; lifestyle?: LifestyleFiltersValue }) =>
+    searchHref({ category: next.category, usePreferences: next.usePreferences, ...(next.lifestyle ?? lifestyle) });
 
   const [preferences, setPreferences] = useState<SavedPartnerPreferences | null | undefined>(undefined);
   const [preferencesError, setPreferencesError] = useState<string | null>(null);
@@ -70,7 +78,7 @@ function SearchPageContent() {
     };
   }, [ready, accessToken]);
 
-  const plan = planSearch({ slug, usePreferences, preferences });
+  const plan = planSearch({ slug, usePreferences, preferences, lifestyle });
   const key = planKey(plan);
 
   const [results, setResults] = useState<Results | null>(null);
@@ -138,9 +146,14 @@ function SearchPageContent() {
       >
         <UsePreferencesToggle
           checked={usePreferences}
-          onChange={(next) => router.push(searchHref({ category: slug, usePreferences: next }), { scroll: false })}
+          onChange={(next) => router.push(hrefFor({ category: slug, usePreferences: next }), { scroll: false })}
           preferences={preferences}
           error={preferencesError}
+        />
+
+        <LifestyleFilters
+          value={lifestyle}
+          onChange={(next) => router.push(hrefFor({ category: slug, usePreferences, lifestyle: next }), { scroll: false })}
         />
 
         {plan.kind !== 'idle' && (
@@ -152,6 +165,7 @@ function SearchPageContent() {
               loadingMore={loadingMore}
               onLoadMore={() => void handleLoadMore()}
               clearHref={searchHref({ category: null, usePreferences: false })}
+              lifestyleOnly={!usePreferences}
             />
           </div>
         )}
@@ -164,7 +178,7 @@ function SearchPageContent() {
                   key={category.slug}
                   category={category}
                   selected={category.slug === slug}
-                  href={searchHref({ category: category.slug, usePreferences })}
+                  href={hrefFor({ category: category.slug, usePreferences })}
                 />
               ))}
             </div>
@@ -182,6 +196,7 @@ function ResultsPanel({
   loadingMore,
   onLoadMore,
   clearHref,
+  lifestyleOnly,
 }: {
   plan: Exclude<SearchPlan, { kind: 'idle' }>;
   results: Results | null;
@@ -189,9 +204,14 @@ function ResultsPanel({
   loadingMore: boolean;
   onLoadMore: () => void;
   clearHref: string;
+  // No category and no preferences: only the Lifestyle filters are applied.
+  lifestyleOnly: boolean;
 }) {
   const category = 'category' in plan ? plan.category : null;
-  const title = plan.kind === 'unknown' ? 'Category not found' : (category?.title ?? 'Your partner preferences');
+  const title =
+    plan.kind === 'unknown'
+      ? 'Category not found'
+      : (category?.title ?? (lifestyleOnly ? 'Lifestyle matches' : 'Your partner preferences'));
   const clear = (
     <Link href={clearHref} scroll={false} className="text-xs font-semibold text-nk-maroon hover:underline" data-testid="clear-selection">
       Clear

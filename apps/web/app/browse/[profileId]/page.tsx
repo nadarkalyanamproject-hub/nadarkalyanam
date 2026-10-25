@@ -27,6 +27,7 @@ import { useBackNavigation } from '../../../lib/navigation-history';
 import { HoroscopeCard, PreferenceFitNote } from '../../../components/profile-view/horoscope-card';
 import { TheirPreferencesCard } from '../../../components/profile-view/their-preferences-card';
 import { PlanGate } from '../../../components/plan/plan-gate';
+import { hasLifestyle } from '../../../lib/lifestyle';
 
 const MARITAL_STATUS_LABELS: Record<string, string> = {
   NEVER_MARRIED: 'Never Married',
@@ -47,16 +48,19 @@ const DOSHAM_LABELS: Record<string, string> = {
 };
 
 function label(map: Record<string, string>, value: string | undefined): string {
-  if (!value) return '—';
+  if (!value) return '';
   return map[value] ?? value;
 }
+
+// Shown for a field the member left empty: they chose not to fill it.
+const NOT_SHARED = <span className="font-normal text-nk-subtle">Not shared</span>;
 
 // One detail: a small grey label over the value, divided by a hairline.
 function DataTile({ label: itemLabel, value, subvalue }: { label: string; value: React.ReactNode; subvalue?: string }) {
   return (
     <div className="border-b border-nk-line-soft py-3">
       <p className="text-[11px] font-semibold uppercase tracking-wider text-nk-subtle">{itemLabel}</p>
-      <div className="mt-0.5 text-sm font-semibold text-nk-ink break-words">{value || '—'}</div>
+      <div className="mt-0.5 text-sm font-semibold text-nk-ink break-words">{value || NOT_SHARED}</div>
       {subvalue ? <p className="mt-0.5 text-xs text-nk-muted">{subvalue}</p> : null}
     </div>
   );
@@ -205,7 +209,7 @@ function ViewProfilePageContent() {
                     </h1>
                     <div className="mt-1 flex items-center gap-1.5 text-sm sm:text-base text-[#64748B]">
                       <MapPin className="h-4 w-4 text-[#A86B76] shrink-0 stroke-[1.75]" />
-                      <span>{[profile.location?.city, profile.location?.state].filter(Boolean).join(', ') || '—'}</span>
+                      <span>{[profile.location?.city, profile.location?.state].filter(Boolean).join(', ') || 'Location not shared'}</span>
                     </div>
                     {/* The essentials at a glance, as one line of text (name, age
                         and place are already above). Only values the member
@@ -217,7 +221,6 @@ function ViewProfilePageContent() {
                         profile.education?.educationLevel,
                         [profile.casteCommunity, profile.religion].filter(Boolean).join(', '),
                         profile.maritalStatus ? (MARITAL_STATUS_LABELS[profile.maritalStatus] ?? profile.maritalStatus) : null,
-                        profile.motherTongue,
                         profile.dosham === 'NO' ? 'No dosham' : null,
                       ]
                         .filter((fact): fact is string => Boolean(fact))
@@ -453,10 +456,6 @@ function ViewProfilePageContent() {
                         value={label(MARITAL_STATUS_LABELS, profile.maritalStatus)}
                       />
                       <DataTile
-                        label="Mother Tongue"
-                        value={profile.motherTongue}
-                      />
-                      <DataTile
                         label="Religion"
                         value={profile.religion}
                       />
@@ -493,7 +492,7 @@ function ViewProfilePageContent() {
                         <div>
                           <p className="text-xs font-bold uppercase tracking-wider text-[#8A796E]">Designation</p>
                           <h3 className="text-base sm:text-lg font-bold text-nk-ink">
-                            {profile.education?.profession || '—'}
+                            {profile.education?.profession || NOT_SHARED}
                           </h3>
                           {profile.education.employedIn && (
                             <p className="text-xs text-nk-muted">{profile.education.employedIn}</p>
@@ -530,7 +529,7 @@ function ViewProfilePageContent() {
                         value={
                           profile.education?.annualIncomeRange?.trim()
                             ? `${profile.education.annualIncomeRange} ${profile.education.annualIncomeCurrency || 'INR'}`
-                            : '—'
+                            : ''
                         }
                       />
                     </div>
@@ -563,6 +562,42 @@ function ViewProfilePageContent() {
 
                     </div>
                   </div>
+
+                  {/* Lifestyle & Habits: only when the member filled it in */}
+                  {hasLifestyle(profile.lifestyle) && (
+                    <div className="rounded-3xl border border-nk-line-soft bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+                      <div className="flex items-center gap-2.5 border-b border-nk-line-soft pb-4">
+                        <div>
+                          <h2 className="font-[family-name:var(--font-playfair)] font-serif text-lg sm:text-xl font-bold text-nk-ink">
+                            Lifestyle & Habits
+                          </h2>
+                          <p className="text-xs text-nk-muted">Food, habits and what they enjoy</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 grid grid-cols-1 gap-x-10 sm:grid-cols-3">
+                        <DataTile label="Diet" value={profile.lifestyle?.diet} />
+                        <DataTile label="Smoking" value={profile.lifestyle?.smoking} />
+                        <DataTile label="Drinking" value={profile.lifestyle?.drinking} />
+                      </div>
+
+                      {profile.lifestyle?.hobbies?.length ? (
+                        <div className="mt-4">
+                          <p className="text-xs font-bold uppercase tracking-wider text-[#8A796E]">Hobbies & Interests</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {profile.lifestyle.hobbies.map((hobby) => (
+                              <span
+                                key={hobby}
+                                className="rounded-full border border-nk-line bg-nk-ivory px-3 py-1 text-sm font-medium text-nk-ink"
+                              >
+                                {hobby}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
 
                   <TheirPreferencesCard profile={profile} />
                 </div>

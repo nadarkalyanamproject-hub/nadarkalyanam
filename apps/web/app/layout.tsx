@@ -5,7 +5,9 @@ import { NavigationTracker } from '../lib/navigation-history';
 import { SiteFooter } from '../components/site-footer';
 import { MotionProvider } from '../components/motion/motion';
 import { IdentityGate } from '../components/identity/identity-gate';
+import { Splash } from '../components/brand/splash';
 import './globals.css';
+import '../components/brand/brand.css';
 
 // Headings (--font-heading). --font-playfair is kept as an alias in
 // globals.css for the components that still name it.
@@ -48,9 +50,11 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${sourceSerif.variable} ${cormorantGaramond.variable} ${cinzel.variable} ${plusJakartaSans.variable}`}
     >
       <body>
+        <Splash />
         <NavigationTracker />
         <RegistrationProvider>
           <MotionProvider>

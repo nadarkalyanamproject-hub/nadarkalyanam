@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { NotificationCategory, NotificationResponse } from '@nadar-kalyanam/schemas';
+import { formatDisplayDateTime, type NotificationCategory, type NotificationResponse } from '@nadar-kalyanam/schemas';
 import { AppHeader, UserIcon } from '../../components/app-header';
 import {
   ApiError,
@@ -335,7 +335,7 @@ export default function NotificationsPage() {
                 const style = TYPE_STYLE[notification.type] ?? SYSTEM_STYLE;
                 const IconComponent = style.icon;
                 const time = formatRelativeTime(notification.createdAt);
-                const fullDate = new Date(notification.createdAt).toLocaleString();
+                const fullDate = formatDisplayDateTime(notification.createdAt);
                 return (
                   <div
                     key={notification.id}

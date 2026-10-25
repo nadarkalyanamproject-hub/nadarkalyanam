@@ -1,7 +1,17 @@
 import { z } from 'zod';
 import { photoResponseSchema } from './photo.js';
 import { phoneVisibilityEnum } from './phone.js';
-import { COMPLEXIONS, NADAR_SUBCATEGORIES, NET_WORTH_RANGES, RELIGIONS } from './reference-data.js';
+import {
+  COMPLEXIONS,
+  DIETS,
+  HABIT_FREQUENCIES,
+  HOBBIES,
+  MAX_HOBBIES,
+  NADAR_SUBCATEGORIES,
+  NET_WORTH_RANGES,
+  PROFILE_FOR,
+  RELIGIONS,
+} from './reference-data.js';
 
 export const genderEnum = z.enum(['MALE', 'FEMALE', 'OTHER']);
 export type Gender = z.infer<typeof genderEnum>;
@@ -36,6 +46,8 @@ export type Dosham = z.infer<typeof doshamEnum>;
 
 export const familyStatusEnum = z.enum(['Middle Class', 'Upper Middle Class', 'Rich / Affluent (Elite)']);
 export type FamilyStatus = z.infer<typeof familyStatusEnum>;
+// Net worth is asked, and kept, only for this family status.
+export const NET_WORTH_FAMILY_STATUS: FamilyStatus = 'Rich / Affluent (Elite)';
 
 // --- Step 1: basic details ---------------------------------------------------
 
@@ -92,12 +104,39 @@ export const additionalDetailsSchema = z.object({
 });
 export type AdditionalDetails = z.infer<typeof additionalDetailsSchema>;
 
+// --- Lifestyle & Habits (optional, My Profile only) ---------------------------
+
+// Every answer is optional; an empty dropdown means not given. Not counted in
+// the completion score.
+export const lifestyleSchema = z.object({
+  diet: z.preprocess((value) => (value === '' ? undefined : value), z.enum(DIETS).optional()),
+  smoking: z.preprocess((value) => (value === '' ? undefined : value), z.enum(HABIT_FREQUENCIES).optional()),
+  drinking: z.preprocess((value) => (value === '' ? undefined : value), z.enum(HABIT_FREQUENCIES).optional()),
+  hobbies: z
+    .array(z.enum(HOBBIES))
+    .max(MAX_HOBBIES, `Pick up to ${MAX_HOBBIES}`)
+    .optional()
+    .default([]),
+});
+export type Lifestyle = z.infer<typeof lifestyleSchema>;
+
+// PATCH /profiles/me/lifestyle: saved on its own, so an older value in some
+// other section can never block it.
+export const updateLifestyleSchema = lifestyleSchema.strict();
+export type UpdateLifestyleRequest = z.infer<typeof updateLifestyleSchema>;
+
 // --- Final submit: create profile ---------------------------------------------
 
 export const createProfileSchema = basicDetailsSchema.extend({
+  // Who the profile is for, chosen when registering (not a form field).
+  // Left out, an update keeps what was saved before.
+  profileFor: z.enum(PROFILE_FOR).optional(),
   personal: personalReligiousSchema,
   location: locationProfessionalSchema,
   additional: additionalDetailsSchema,
+  // Left out by the onboarding wizard; on an update, leaving it out keeps
+  // whatever the member saved before.
+  lifestyle: lifestyleSchema.optional(),
 });
 export type CreateProfileRequest = z.infer<typeof createProfileSchema>;
 
@@ -112,6 +151,8 @@ export type CreateProfileResponse = z.infer<typeof createProfileResponseSchema>;
 export const profileDetailsSchema = z.object({
   // No longer collected; present on profiles saved before it was dropped.
   motherTongue: z.string().optional(),
+  // Absent on profiles saved before it was recorded.
+  profileFor: z.enum(PROFILE_FOR).optional(),
   email: z.string(),
   height: z.string(),
   physicalStatus: physicalStatusEnum,
@@ -137,6 +178,8 @@ export const profileDetailsSchema = z.object({
     annualIncomeCurrency: z.string(),
   }),
   additional: additionalDetailsSchema,
+  // Absent until the member fills in Lifestyle & Habits.
+  lifestyle: lifestyleSchema.optional(),
 });
 export type ProfileDetails = z.infer<typeof profileDetailsSchema>;
 

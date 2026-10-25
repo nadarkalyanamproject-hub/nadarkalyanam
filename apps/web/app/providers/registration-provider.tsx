@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import type { ProfileFor } from '@nadar-kalyanam/schemas';
 import { claimAuthRedirect, onTokensRefreshed, onUnauthorized, releaseAuthRedirectClaim } from '../../lib/auth-events';
 import {
   REGISTRATION_STORAGE_KEY,
@@ -17,6 +18,7 @@ interface RegistrationContextValue {
     phoneNumber: string,
     fullNamePrefill?: string,
     genderPrefill?: 'MALE' | 'FEMALE',
+    profileForPrefill?: ProfileFor,
   ) => void;
   setDevOtp: (devOtp: string | undefined) => void;
   setAuth: (auth: {
@@ -119,7 +121,7 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
   }, [hydrated, leaveIfSessionLost]);
 
   const setPhoneNumber = useCallback(
-    (phoneNumber: string, fullNamePrefill?: string, genderPrefill?: 'MALE' | 'FEMALE') => {
+    (phoneNumber: string, fullNamePrefill?: string, genderPrefill?: 'MALE' | 'FEMALE', profileForPrefill?: ProfileFor) => {
       setData((prev) =>
         prev.accessToken
           ? {
@@ -127,10 +129,11 @@ export function RegistrationProvider({ children }: { children: ReactNode }) {
               phoneNumber,
               fullNamePrefill: fullNamePrefill ?? prev.fullNamePrefill,
               genderPrefill: genderPrefill ?? prev.genderPrefill,
+              profileForPrefill: profileForPrefill ?? prev.profileForPrefill,
             }
           : // No active session: this is a brand-new registration attempt, so
             // nothing left in storage (another account's draft) carries over.
-            { phoneNumber, fullNamePrefill, genderPrefill },
+            { phoneNumber, fullNamePrefill, genderPrefill, profileForPrefill },
       );
     },
     [],

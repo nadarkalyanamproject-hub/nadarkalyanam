@@ -1,9 +1,10 @@
 'use client';
 
-import { NET_WORTH_RANGES, type AdditionalDetails } from '@nadar-kalyanam/schemas';
+import { NET_WORTH_FAMILY_STATUS, NET_WORTH_RANGES, type AdditionalDetails } from '@nadar-kalyanam/schemas';
 import { Sparkles } from 'lucide-react';
 import { Field, Select, Textarea } from '@nadar-kalyanam/ui';
 import { isRequired } from '../../lib/required-fields';
+import { useSubjectLabels } from './profile-for';
 
 export type AdditionalDetailsFormState = Record<keyof AdditionalDetails, string>;
 
@@ -20,6 +21,7 @@ export function AdditionalDetailsFields({
   // (lib/about-draft.ts); shows the "Write it for me" button when given.
   writeAbout?: () => string;
 }) {
+  const subject = useSubjectLabels();
   return (
     <>
       <Field
@@ -41,41 +43,31 @@ export function AdditionalDetailsFields({
         </Select>
       </Field>
 
-      <Field
-        label="Family net worth (optional)"
-        htmlFor="netWorth"
-        required={isRequired('additional', 'netWorth')}
-        error={errors.netWorth}
-      >
-        <Select
-          id="netWorth"
-          invalid={Boolean(errors.netWorth)}
-          value={form.netWorth}
-          onChange={(e) => onChange('netWorth', e.target.value)}
+      {form.familyType === NET_WORTH_FAMILY_STATUS && (
+        <Field
+          label="Family net worth (optional)"
+          htmlFor="netWorth"
+          required={isRequired('additional', 'netWorth')}
+          error={errors.netWorth}
         >
-          <option value="">Select</option>
-          {NET_WORTH_RANGES.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </Select>
-      </Field>
-
-      {writeAbout && (
-        <button
-          type="button"
-          onClick={() => onChange('about', writeAbout())}
-          data-testid="write-about"
-          className="-mb-2 inline-flex items-center gap-1.5 self-end text-xs font-semibold text-nk-maroon hover:text-nk-maroon-deep"
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          {form.about.trim() ? 'Write it again for me' : 'Write it for me'}
-        </button>
+          <Select
+            id="netWorth"
+            invalid={Boolean(errors.netWorth)}
+            value={form.netWorth}
+            onChange={(e) => onChange('netWorth', e.target.value)}
+          >
+            <option value="">Select</option>
+            {NET_WORTH_RANGES.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </Select>
+        </Field>
       )}
 
       <Field
-        label="About you"
+        label={subject.about}
         htmlFor="about"
         required={isRequired('additional', 'about')}
         error={errors.about}
@@ -88,6 +80,18 @@ export function AdditionalDetailsFields({
           onChange={(e) => onChange('about', e.target.value)}
         />
       </Field>
+
+      {writeAbout && (
+        <button
+          type="button"
+          onClick={() => onChange('about', writeAbout())}
+          data-testid="write-about"
+          className="inline-flex items-center gap-1.5 self-end text-xs font-semibold text-nk-maroon hover:text-nk-maroon-deep"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          {form.about.trim() ? 'Write it again for me' : 'Write it for me'}
+        </button>
+      )}
     </>
   );
 }

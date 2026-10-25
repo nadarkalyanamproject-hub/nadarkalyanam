@@ -33,7 +33,6 @@ export const FIT_KEY_LABELS: Record<PreferenceFitKey, string> = {
   age: 'Age',
   height: 'Height',
   maritalStatus: 'Marital status',
-  motherTongue: 'Mother tongue',
   location: 'Location',
   income: 'Income',
   dosham: 'Dosham',
@@ -47,7 +46,6 @@ export interface PreferencesForm {
   heightMinCm: string;
   heightMaxCm: string;
   maritalStatuses: string[];
-  motherTongues: string[];
   states: string[];
   cities: string[];
   incomeMinLakhs: string;
@@ -68,7 +66,6 @@ export function preferencesFormFrom(saved: SavedPartnerPreferences | null): Pref
     heightMinCm: str(saved?.heightMinCm ?? null),
     heightMaxCm: str(saved?.heightMaxCm ?? null),
     maritalStatuses: saved?.maritalStatuses ?? [],
-    motherTongues: saved?.motherTongues ?? [],
     states: saved?.states ?? [],
     cities: saved?.cities ?? [],
     incomeMinLakhs: str(saved?.incomeMinLakhs ?? null),
@@ -87,7 +84,8 @@ export function toPreferencesRequest(form: PreferencesForm): PartnerPreferencesR
     heightMinCm: num(form.heightMinCm),
     heightMaxCm: num(form.heightMaxCm),
     maritalStatuses: form.maritalStatuses as PartnerPreferencesRequest['maritalStatuses'],
-    motherTongues: form.motherTongues as PartnerPreferencesRequest['motherTongues'],
+    // No longer asked; saving clears any choice made before it was removed.
+    motherTongues: [],
     states: form.states as PartnerPreferencesRequest['states'],
     cities: form.cities,
     incomeMinLakhs: num(form.incomeMinLakhs),
@@ -136,7 +134,6 @@ export function preferenceSummary(saved: SavedPartnerPreferences): { label: stri
     range(saved.heightMinCm, saved.heightMaxCm, (n) => `${n} cm`),
   );
   add('Marital status', saved.maritalStatuses.map((m) => MARITAL_LABELS[m] ?? m).join(', ') || null, saved.mustHaveMaritalStatus);
-  add('Mother tongue', saved.motherTongues.join(', ') || null);
   add('Location', [...saved.states, ...saved.cities].join(', ') || null, saved.mustHaveLocation);
   add('Annual income', range(saved.incomeMinLakhs, saved.incomeMaxLakhs, formatLakhs));
   add('Dosham', saved.doshamPreference === 'DOESNT_MATTER' ? null : DOSHAM_PREFERENCE_LABELS[saved.doshamPreference]);
@@ -169,7 +166,6 @@ export function theirPreferenceRows(prefs: SavedPartnerPreferences, fit: Prefere
       value: prefs.maritalStatuses.map((m) => MARITAL_LABELS[m] ?? m).join(', ') || null,
       mustHave: prefs.mustHaveMaritalStatus,
     },
-    motherTongue: { label: 'Mother tongue', value: prefs.motherTongues.join(', ') || null, mustHave: false },
     location: { label: 'Location', value: [...prefs.cities, ...prefs.states].join(', ') || null, mustHave: prefs.mustHaveLocation },
     income: { label: 'Annual income', value: range(prefs.incomeMinLakhs, prefs.incomeMaxLakhs, formatLakhs), mustHave: false },
     dosham: { label: 'Dosham', value: DOSHAM_PREFERENCE_LABELS[prefs.doshamPreference], mustHave: false },
@@ -237,7 +233,7 @@ export function searchFiltersFromPreferences(saved: SavedPartnerPreferences): Pr
     motherTongue: '',
     city: '',
     maritalStatusIn: saved.maritalStatuses.join(','),
-    motherTongueIn: saved.motherTongues.join(','),
+    motherTongueIn: '',
     stateIn: saved.states.join(','),
     cityIn: saved.cities.join(','),
   };

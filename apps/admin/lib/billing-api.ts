@@ -10,6 +10,7 @@ import type {
   UpdateVipEnquiryRequest,
   VipEnquiryStatus,
 } from '@nadar-kalyanam/schemas';
+import { formatDisplayDate } from '@nadar-kalyanam/schemas';
 import { adminRequest } from './api-client';
 
 export interface AdminPlan {
@@ -188,5 +189,5 @@ export function rupees(paise: number): string {
 
 export function formatDate(iso: string | null): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+  return formatDisplayDate(iso);
 }

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { doshamEnum, familyStatusEnum, physicalStatusEnum } from './profile.js';
+import { DIETS, HABIT_FREQUENCIES } from './reference-data.js';
 import { relationshipFieldsSchema } from './relationship.js';
 
 // Query-string booleans: only the literal 'true'/'false' (z.coerce.boolean
@@ -41,6 +42,10 @@ export const searchProfilesQuerySchema = z.object({
   dosham: doshamEnum.optional(),
   employedIn: z.string().optional(),
   familyType: familyStatusEnum.optional(),
+  // Lifestyle & Habits (optional on profiles): exact match, so members who
+  // haven't answered never match these.
+  diet: z.enum(DIETS).optional(),
+  smoking: z.enum(HABIT_FREQUENCIES).optional(),
   // Height and income are stored as text; profiles whose value can't be read
   // as a height / a lakh amount never match these ranges.
   heightMinCm: z.coerce.number().int().min(100).max(250).optional(),
@@ -69,7 +74,7 @@ export const searchProfilesQuerySchema = z.object({
   excludeShortlisted: queryFlag,
   // Only members whose identity verification completed (isVerified).
   verified: queryFlag,
-  // Any other key (e.g. a "coming soon" filter such as star or eating
+  // Any other key (e.g. a "coming soon" filter such as star or drinking
   // habits) is stripped by z.object, never applied and never an error.
   // 'newest' trades cursor-pagination stability for createdAt-desc order —
   // fine for a small, unpaginated "recently joined" home-page strip; the

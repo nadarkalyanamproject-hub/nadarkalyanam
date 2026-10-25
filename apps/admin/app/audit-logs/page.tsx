@@ -1,5 +1,6 @@
 'use client';
 
+import { formatDisplayDateTime } from '@nadar-kalyanam/schemas';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button, Card, Field, Input, Select } from '@nadar-kalyanam/ui';
@@ -211,7 +212,7 @@ export default function AuditLogsPage() {
                   return (
                     <tr key={entry.id} className="border-t border-border align-top">
                       <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                        {new Date(entry.createdAt).toLocaleString()}
+                        {formatDisplayDateTime(entry.createdAt)}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{entry.adminEmail}</td>
                       <td className="px-4 py-3 font-medium text-foreground">

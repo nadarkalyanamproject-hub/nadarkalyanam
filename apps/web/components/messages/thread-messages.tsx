@@ -22,7 +22,7 @@ function ReadTicks({ read }: { read: boolean }) {
 }
 
 // The thread's messages, WhatsApp-style: a day pill ("Today", "Yesterday",
-// "8 Oct") before each calendar day, and the clock time at the bottom right
+// "08-10-2026") before each calendar day, and the clock time at the bottom right
 // of every bubble, followed by the read ticks on the member's own messages.
 // The time floats right after the text, so it shares the last line when
 // there's room and drops below it when there isn't, without widening a

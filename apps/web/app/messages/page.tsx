@@ -19,7 +19,7 @@ const CONVERSATION_CARD_CLASS =
   'flex items-center gap-3.5 sm:gap-4 rounded-2xl border border-nk-line-soft bg-white p-4 shadow-2xs transition-all hover:border-nk-line-strong hover:shadow-xs';
 
 // The last message's time, WhatsApp-style ("10:45 AM", "Yesterday",
-// "8 Oct"), with the exact moment in the tooltip. Nothing for a bad date.
+// "08-10-2026"), with the exact moment in the tooltip. Nothing for a bad date.
 function MessageTime({ iso, now }: { iso: string; now: Date }) {
   const time = formatMessageTime(iso, now);
   if (!time) return null;

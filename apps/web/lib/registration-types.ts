@@ -1,16 +1,21 @@
 import type {
   AdditionalDetails,
   BasicDetails,
+  ProfileFor,
   LocationProfessional,
   PersonalReligious,
 } from '@nadar-kalyanam/schemas';
 
-export type WizardStepKey = 'basicDetails' | 'personal' | 'location' | 'additional';
+// 'lifestyle' is the optional Lifestyle & Habits part of step 4; it only ever
+// lives in stepInputs (hobbies joined with '|'), since it's sent with step 4.
+export type WizardStepKey = 'basicDetails' | 'personal' | 'location' | 'additional' | 'lifestyle';
 
 export interface RegistrationDraft {
   phoneNumber?: string;
   fullNamePrefill?: string;
   genderPrefill?: 'MALE' | 'FEMALE';
+  // Who the profile is for, picked on the landing page; saved with the profile.
+  profileForPrefill?: ProfileFor;
   devOtp?: string;
   accessToken?: string;
   refreshToken?: string;

@@ -9,8 +9,10 @@ import {
   type ProfileListResponse,
   type ProfileResponse,
   type PublicProfileDetail,
+  type UpdateLifestyleRequest,
   type UpdateProfileVisibilityRequest,
   createProfileSchema,
+  updateLifestyleSchema,
   updateProfileVisibilitySchema,
 } from '@nadar-kalyanam/schemas';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
@@ -99,6 +101,18 @@ export class ProfilesController {
     @Body(new ZodValidationPipe(createProfileSchema)) body: CreateProfileRequest,
   ): Promise<ProfileResponse> {
     const profile = await this.profilesService.updateProfile(user.userId, body);
+    return this.ownResponse(profile);
+  }
+
+  // Lifestyle & Habits: only those answers, so saving them never depends on
+  // (or is blocked by) an older value elsewhere in the profile.
+  @Patch('me/lifestyle')
+  @UseGuards(JwtAuthGuard)
+  async updateMyLifestyle(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodValidationPipe(updateLifestyleSchema)) body: UpdateLifestyleRequest,
+  ): Promise<ProfileResponse> {
+    const profile = await this.profilesService.updateLifestyle(user.userId, body);
     return this.ownResponse(profile);
   }
 

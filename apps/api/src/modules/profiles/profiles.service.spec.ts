@@ -142,6 +142,16 @@ describe('createProfileSchema', () => {
     expect(result.success && result.data.additional).toEqual(validPayload.additional);
   });
 
+  it('accepts an optional lifestyle and rejects unknown or too many hobbies', () => {
+    const ok = createProfileSchema.safeParse({ ...validPayload, lifestyle: { diet: '', hobbies: ['Music'] } });
+    expect(ok.success && ok.data.lifestyle).toEqual({ hobbies: ['Music'] });
+
+    expect(createProfileSchema.safeParse({ ...validPayload, lifestyle: { hobbies: ['Skydiving'] } }).success).toBe(false);
+    expect(createProfileSchema.safeParse({ ...validPayload, lifestyle: { smoking: 'Daily' } }).success).toBe(false);
+    const nine = ['Music', 'Reading', 'Cooking', 'Travel', 'Movies', 'Sports', 'Dance', 'Gardening', 'Pets'];
+    expect(createProfileSchema.safeParse({ ...validPayload, lifestyle: { hobbies: nine } }).success).toBe(false);
+  });
+
   it('rejects a familyType value outside the three allowed options', () => {
     const result = createProfileSchema.safeParse({
       ...validPayload,
@@ -222,6 +232,17 @@ describe('ProfilesService', () => {
     });
   });
 
+  it('saves the optional lifestyle sent from onboarding step 4, and leaves it out when not sent', async () => {
+    const { service, prisma } = buildService();
+    const lifestyle = { diet: 'Vegetarian' as const, hobbies: ['Music' as const] };
+
+    await service.createProfile('user-1', { ...validPayload, lifestyle });
+    expect(prisma.profile.create.mock.calls[0][0].data.details.lifestyle).toEqual(lifestyle);
+
+    await service.createProfile('user-2', validPayload);
+    expect(prisma.profile.create.mock.calls[1][0].data.details).not.toHaveProperty('lifestyle');
+  });
+
   it('persists the required scalar fields and nests the rest under details', async () => {
     const { service, prisma } = buildService();
 
@@ -295,6 +316,27 @@ describe('ProfilesService', () => {
     const details = prisma.profile.update.mock.calls[0][0].data.details;
     expect(details.previousMarriageDetails).toBe('');
     expect(details.doshamDetails).toBe('');
+  });
+
+  it('keeps net worth only for a Rich / Affluent (Elite) family', async () => {
+    const { service, prisma } = buildService();
+    const rich = { ...validPayload.additional, familyType: 'Rich / Affluent (Elite)' as const, netWorth: 'Above ₹25 Crore' as const };
+    await service.createProfile('user-1', { ...validPayload, additional: rich });
+    expect(prisma.profile.create.mock.calls[0][0].data.details.additional.netWorth).toBe('Above ₹25 Crore');
+
+    prisma.profile.findUnique.mockResolvedValueOnce({ id: 'profile-1' });
+    await service.updateProfile('user-1', { ...validPayload, additional: { ...rich, familyType: 'Middle Class' } });
+    expect(prisma.profile.update.mock.calls[0][0].data.details.additional.netWorth).toBeUndefined();
+  });
+
+  it('saves who the profile is for, and an edit that leaves it out keeps it', async () => {
+    const { service, prisma } = buildService();
+    await service.createProfile('user-1', { ...validPayload, profileFor: 'SISTER' });
+    expect(prisma.profile.create.mock.calls[0][0].data.details.profileFor).toBe('SISTER');
+
+    prisma.profile.findUnique.mockResolvedValueOnce({ id: 'profile-1', details: { profileFor: 'SISTER' } });
+    await service.updateProfile('user-1', validPayload);
+    expect(prisma.profile.update.mock.calls[0][0].data.details.profileFor).toBe('SISTER');
   });
 
   it('rejects creating a second profile for the same user', async () => {
@@ -390,6 +432,41 @@ describe('ProfilesService.updateProfile', () => {
       location: { ...validPayload.location, employedIn: '', annualIncomeRange: '' },
     });
     expect(prisma.profile.update.mock.calls[1][0].data.completionScore).toBe(90);
+  });
+
+  it('saves Lifestyle & Habits when sent, without changing completionScore', async () => {
+    const { service, prisma } = buildService();
+    prisma.profile.findUnique.mockResolvedValueOnce({ id: 'profile-1', details: {} });
+    const lifestyle = { diet: 'Vegetarian', smoking: 'No', drinking: 'No', hobbies: ['Music', 'Travel'] } as const;
+
+    await service.updateProfile('user-1', { ...validPayload, lifestyle: { ...lifestyle, hobbies: [...lifestyle.hobbies] } });
+
+    const { details, completionScore } = prisma.profile.update.mock.calls[0][0].data;
+    expect(details.lifestyle).toEqual(lifestyle);
+    expect(completionScore).toBe(95);
+  });
+
+  it('updateLifestyle merges only the lifestyle, even when another field holds an outdated value', async () => {
+    const { service, prisma } = buildService();
+    const stored = { religion: 'Other', casteCommunity: 'Nadar', additional: { about: 'x' } };
+    prisma.profile.findUnique.mockResolvedValueOnce({ id: 'profile-1', details: stored });
+
+    await service.updateLifestyle('user-1', { diet: 'Vegan', hobbies: ['Pets'] });
+
+    expect(prisma.profile.update).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
+      data: { details: { ...stored, lifestyle: { diet: 'Vegan', hobbies: ['Pets'] } } },
+    });
+  });
+
+  it('keeps the saved lifestyle when another section saves without it', async () => {
+    const { service, prisma } = buildService();
+    const saved = { diet: 'Eggetarian', hobbies: ['Reading'] };
+    prisma.profile.findUnique.mockResolvedValueOnce({ id: 'profile-1', details: { lifestyle: saved } });
+
+    await service.updateProfile('user-1', validPayload);
+
+    expect(prisma.profile.update.mock.calls[0][0].data.details.lifestyle).toEqual(saved);
   });
 
   it('throws NotFoundException when no profile exists for the user', async () => {

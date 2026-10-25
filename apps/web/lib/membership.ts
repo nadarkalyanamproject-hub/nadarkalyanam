@@ -1,4 +1,4 @@
-import type { MembershipPlanResponse } from '@nadar-kalyanam/schemas';
+import { formatDisplayDate, type MembershipPlanResponse } from '@nadar-kalyanam/schemas';
 
 // Pure display helpers for the Membership page (unit-tested in
 // membership.spec.ts). Everything shown comes from GET /membership-plans and
@@ -26,9 +26,9 @@ export function durationLabel(days: number): string {
   return `${days} days`;
 }
 
-// "5 Oct 2026" — expiry dates, in India time.
+// "05-10-2026": expiry dates, in India time.
 export function formatPlanDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+  return formatDisplayDate(iso);
 }
 
 // The last day a plan covers, in India time. A plan ending exactly at

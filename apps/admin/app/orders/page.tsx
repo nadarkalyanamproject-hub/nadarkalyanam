@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import type { OrderStatus } from '@nadar-kalyanam/schemas';
+import { formatDisplayDateTime, type OrderStatus } from '@nadar-kalyanam/schemas';
 import { Button, Card, Input, Select } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../../components/admin-shell';
 import { Dialog, ReasonDialog, StateBadge } from '../../components/billing-ui';
@@ -199,7 +199,7 @@ export default function OrdersPage() {
             <ul className="mt-1 space-y-1 text-xs">
               {detail.paymentEvents.map((e) => (
                 <li key={e.providerEventId} className="rounded border border-border p-2">
-                  <span className="font-mono">{e.providerEventId}</span> · {e.type} · {e.amountInPaise !== null ? rupees(e.amountInPaise) : '—'} {e.currency ?? ''} · signature {e.signatureValid ? 'verified' : 'invalid'} · {new Date(e.processedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                  <span className="font-mono">{e.providerEventId}</span> · {e.type} · {e.amountInPaise !== null ? rupees(e.amountInPaise) : '—'} {e.currency ?? ''} · signature {e.signatureValid ? 'verified' : 'invalid'} · {formatDisplayDateTime(e.processedAt)}
                 </li>
               ))}
             </ul>

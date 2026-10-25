@@ -48,7 +48,7 @@ describe.each([
         ],
         now,
       ),
-    ).toEqual(['[8 Oct 2025]', 'lastyear@12:00 PM', '[8 Mar]', 'march@12:00 PM', '[8 Oct]', 'older@9:30 AM', '[Yesterday]', 'yday@2:00 PM', '[Today]', 'today@8:15 AM']);
+    ).toEqual(['[08-10-2025]', 'lastyear@12:00 PM', '[08-03-2026]', 'march@12:00 PM', '[08-10-2026]', 'older@9:30 AM', '[Yesterday]', 'yday@2:00 PM', '[Today]', 'today@8:15 AM']);
   });
 
   it('11:59 PM then 12:01 AM: two days, two separators', () => {

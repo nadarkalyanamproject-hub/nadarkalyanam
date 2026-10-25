@@ -20,7 +20,9 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   REDIS_URL: z.string().min(1, 'REDIS_URL is required'),
   JWT_ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900),
-  JWT_REFRESH_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(2592000),
+  // Sliding: every refresh pushes it out again, so a member who opens the
+  // site within a year never has to sign in again (365 days).
+  JWT_REFRESH_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(31536000),
   JWT_ACCESS_TOKEN_SECRET: z.string().min(1, 'JWT_ACCESS_TOKEN_SECRET is required'),
   MINIO_ENDPOINT: z.string().min(1, 'MINIO_ENDPOINT is required'),
   MINIO_ACCESS_KEY: z.string().min(1, 'MINIO_ACCESS_KEY is required'),

@@ -58,6 +58,7 @@ export function toPublicProfileDetail(
     dosham: details.dosham,
     education: details.education,
     additional: details.additional,
+    lifestyle: details.lifestyle ?? null,
     photos,
     preferenceFit: extras.preferenceFit,
     theirPreferences: extras.theirPreferences,

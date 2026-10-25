@@ -34,6 +34,15 @@ export const sendOtpResponseSchema = z.object({
 });
 export type SendOtpResponse = z.infer<typeof sendOtpResponseSchema>;
 
+// "Log out of all other devices" needs a code sent to the member's own
+// registered number: POST /auth/logout-others/otp sends it (sentTo is the
+// number, masked), POST /auth/logout-others takes it.
+export const logoutOthersOtpResponseSchema = sendOtpResponseSchema.extend({ sentTo: z.string() });
+export type LogoutOthersOtpResponse = z.infer<typeof logoutOthersOtpResponseSchema>;
+
+export const logoutOthersRequestSchema = z.object({ otp: z.string().length(6) });
+export type LogoutOthersRequest = z.infer<typeof logoutOthersRequestSchema>;
+
 export const authUserSchema = z.object({
   id: z.string(),
   phoneNumber: z.string(),
@@ -49,3 +58,12 @@ export const verifyOtpResponseSchema = authTokensSchema.extend({
   user: authUserSchema,
 });
 export type VerifyOtpResponse = z.infer<typeof verifyOtpResponseSchema>;
+
+// GET /auth/account (and the delete / cancel-deletion responses): the
+// member's own account state. deletionScheduledAt is set while a deletion
+// request is pending (the account is erased then, unless cancelled first).
+export const accountStatusResponseSchema = z.object({
+  status: z.enum(['ACTIVE', 'PENDING_DELETION', 'SUSPENDED', 'DELETED']),
+  deletionScheduledAt: z.string().nullable(),
+});
+export type AccountStatusResponse = z.infer<typeof accountStatusResponseSchema>;

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { NADAR_SUBCATEGORIES, RELIGIONS, type BasicDetails } from '@nadar-kalyanam/schemas';
 import { Field, Input, Select } from '@nadar-kalyanam/ui';
 import { isRequired } from '../../lib/required-fields';
+import { useSubjectLabels } from './profile-for';
 
 export type BasicDetailsFormState = Record<keyof BasicDetails, string>;
 
@@ -46,6 +47,7 @@ export function BasicDetailsFields({
   // edited (the API ignores any change to them too).
   identityLocked?: boolean;
 }) {
+  const subject = useSubjectLabels();
   const [dob, setDob] = useState(() => parseDateOfBirth(form.dateOfBirth));
   const shownDob = identityLocked ? parseDateOfBirth(form.dateOfBirth) : dob;
   const lockedHint = identityLocked ? 'From DigiLocker' : undefined;
@@ -58,7 +60,7 @@ export function BasicDetailsFields({
 
   return (
     <>
-      <Field label="Full name" htmlFor="fullName" required={isRequired('basicDetails', 'fullName')} error={errors.fullName} hint={lockedHint}>
+      <Field label={subject.label('Full name')} htmlFor="fullName" required={isRequired('basicDetails', 'fullName')} error={errors.fullName} hint={lockedHint}>
         <Input
           id="fullName"
           disabled={identityLocked}
@@ -68,7 +70,7 @@ export function BasicDetailsFields({
         />
       </Field>
 
-      <Field label="Gender" htmlFor="gender" required={isRequired('basicDetails', 'gender')} error={errors.gender}>
+      <Field label={subject.label('Gender')} htmlFor="gender" required={isRequired('basicDetails', 'gender')} error={errors.gender}>
         <Select
           id="gender"
           invalid={Boolean(errors.gender)}
@@ -84,7 +86,7 @@ export function BasicDetailsFields({
 
       {/* One group label (and one "*") for the three date selects. */}
       <Field
-        label="Date of birth"
+        label={subject.label('Date of birth')}
         htmlFor="dobDay"
         required={isRequired('basicDetails', 'dateOfBirth')}
         error={errors.dateOfBirth}
@@ -140,7 +142,7 @@ export function BasicDetailsFields({
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Religion" htmlFor="religion" required={isRequired('basicDetails', 'religion')} error={errors.religion}>
+        <Field label={subject.label('Religion')} htmlFor="religion" required={isRequired('basicDetails', 'religion')} error={errors.religion}>
           <Select
             id="religion"
             invalid={Boolean(errors.religion)}
@@ -170,7 +172,7 @@ export function BasicDetailsFields({
       </div>
 
       <Field
-        label="Nadar subcategory"
+        label={subject.label('Nadar subcategory')}
         htmlFor="casteCommunity"
         required={isRequired('basicDetails', 'casteCommunity')}
         error={errors.casteCommunity}

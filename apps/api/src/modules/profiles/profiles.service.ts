@@ -1,8 +1,10 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import {
   DEFAULT_PHONE_VISIBILITY,
+  NET_WORTH_FAMILY_STATUS,
   PRIOR_MARRIAGE_STATUSES,
   type CreateProfileRequest,
+  type Lifestyle,
   type PhoneVisibility,
   type ProfileVisibility,
 } from '@nadar-kalyanam/schemas';
@@ -11,8 +13,17 @@ import { visibleProfilesWhere } from '../../common/profile-cards.js';
 import { getRelationshipStates, type RelationshipState } from '../../common/relationship.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-function buildProfileData(input: CreateProfileRequest) {
-  const { fullName, gender, dateOfBirth, religion, casteCommunity, email, personal, location, additional } = input;
+// What an update falls back to for a part the request leaves out, so saving
+// one section never wipes another.
+type Kept = { lifestyle?: CreateProfileRequest['lifestyle']; profileFor?: CreateProfileRequest['profileFor'] };
+
+function buildProfileData(input: CreateProfileRequest, kept: Kept = {}) {
+  const { fullName, gender, dateOfBirth, religion, casteCommunity, email, personal, location } = input;
+  const lifestyle = input.lifestyle ?? kept.lifestyle;
+  const profileFor = input.profileFor ?? kept.profileFor;
+  // Net worth is asked only of rich families; drop it for any other status.
+  const additional =
+    input.additional.familyType === NET_WORTH_FAMILY_STATUS ? input.additional : { ...input.additional, netWorth: undefined };
   const { height, physicalStatus, complexion, maritalStatus, dosham } = personal;
   // The detail fields only mean something while their parent says so; drop
   // them otherwise so no client can leave a stale, hidden value behind.
@@ -29,6 +40,7 @@ function buildProfileData(input: CreateProfileRequest) {
     dateOfBirth: new Date(dateOfBirth),
     // Mother tongue is no longer asked, so a profile saved now has none.
     details: {
+      ...(profileFor ? { profileFor } : {}),
       email,
       height,
       physicalStatus,
@@ -42,6 +54,7 @@ function buildProfileData(input: CreateProfileRequest) {
       location: { city, state, country },
       education: { educationLevel, educationDetail, profession, employedIn, annualIncomeRange, annualIncomeCurrency },
       additional,
+      ...(lifestyle ? { lifestyle } : {}),
     },
   };
 }
@@ -89,12 +102,24 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found for this user');
     }
 
-    const data = await this.withVerifiedIdentity(userId, buildProfileData(input));
+    const kept = (existing.details as Kept | null) ?? {};
+    const data = await this.withVerifiedIdentity(userId, buildProfileData(input, kept));
     const photoCount = await this.prisma.profilePhoto.count({ where: { profileId: existing.id } });
     return this.prisma.profile.update({
       where: { userId },
       data: { ...data, completionScore: computeCompletionScore(data, photoCount) },
     });
+  }
+
+  // Lifestyle & Habits only: merged into the stored details, leaving every
+  // other field (and the completion score, which doesn't count it) untouched.
+  async updateLifestyle(userId: string, lifestyle: Lifestyle) {
+    const existing = await this.prisma.profile.findUnique({ where: { userId } });
+    if (!existing) {
+      throw new NotFoundException('Profile not found for this user');
+    }
+    const details = (existing.details ?? {}) as Record<string, unknown>;
+    return this.prisma.profile.update({ where: { userId }, data: { details: { ...details, lifestyle } } });
   }
 
   async updateVisibility(userId: string, visibility: ProfileVisibility) {

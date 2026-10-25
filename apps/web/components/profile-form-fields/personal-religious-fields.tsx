@@ -3,6 +3,7 @@
 import { COMPLEXIONS, DOSHAM_TYPES, PRIOR_MARRIAGE_STATUSES, type PersonalReligious } from '@nadar-kalyanam/schemas';
 import { Field, Input, Select } from '@nadar-kalyanam/ui';
 import { isRequired } from '../../lib/required-fields';
+import { useSubjectLabels } from './profile-for';
 
 export type PersonalReligiousFormState = Record<keyof PersonalReligious, string>;
 
@@ -28,13 +29,14 @@ export function PersonalReligiousFields({
   errors: Record<string, string>;
   onChange: <K extends keyof PersonalReligiousFormState>(key: K, value: string) => void;
 }) {
+  const subject = useSubjectLabels();
   const showPreviousMarriage = PRIOR_MARRIAGE_STATUSES.includes(form.maritalStatus);
   const showDoshamDetails = form.dosham === 'YES';
 
   return (
     <>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Height" htmlFor="height" required={isRequired('personal', 'height')} error={errors.height}>
+        <Field label={subject.label('Height')} htmlFor="height" required={isRequired('personal', 'height')} error={errors.height}>
           <Select
             id="height"
             invalid={Boolean(errors.height)}
@@ -51,7 +53,7 @@ export function PersonalReligiousFields({
         </Field>
 
         <Field
-          label="Physical status"
+          label={subject.label('Physical status')}
           htmlFor="physicalStatus"
           required={isRequired('personal', 'physicalStatus')}
           error={errors.physicalStatus}
@@ -71,7 +73,7 @@ export function PersonalReligiousFields({
       <div className="grid grid-cols-2 items-start gap-4">
         <div className="flex flex-col gap-4">
           <Field
-            label="Marital status"
+            label={subject.label('Marital status')}
             htmlFor="maritalStatus"
             required={isRequired('personal', 'maritalStatus')}
             error={errors.maritalStatus}
@@ -96,7 +98,7 @@ export function PersonalReligiousFields({
           </Field>
           {showPreviousMarriage && (
             <Field
-              label="Previous marriage details"
+              label={subject.label('Previous marriage details')}
               htmlFor="previousMarriageDetails"
               required={isRequired('personal', 'previousMarriageDetails')}
               error={errors.previousMarriageDetails}
@@ -112,7 +114,7 @@ export function PersonalReligiousFields({
           )}
         </div>
 
-        <Field label="Complexion (optional)" htmlFor="complexion" required={isRequired('personal', 'complexion')} error={errors.complexion}>
+        <Field label={subject.label('Complexion (optional)')} htmlFor="complexion" required={isRequired('personal', 'complexion')} error={errors.complexion}>
           <Select id="complexion" invalid={Boolean(errors.complexion)} value={form.complexion} onChange={(e) => onChange('complexion', e.target.value)}>
             <option value="">Select</option>
             {COMPLEXIONS.map((option) => (
@@ -127,7 +129,7 @@ export function PersonalReligiousFields({
       <div className="grid grid-cols-2 items-start gap-4">
         <div className="flex flex-col gap-4">
           <Field
-            label="Dosham (optional)"
+            label={subject.label('Dosham (optional)')}
             htmlFor="dosham"
             required={isRequired('personal', 'dosham')}
             error={errors.dosham}
@@ -150,7 +152,7 @@ export function PersonalReligiousFields({
           </Field>
           {showDoshamDetails && (
             <Field
-              label="Dosham details"
+              label={subject.label('Dosham details')}
               htmlFor="doshamDetails"
               required={isRequired('personal', 'doshamDetails')}
               error={errors.doshamDetails}

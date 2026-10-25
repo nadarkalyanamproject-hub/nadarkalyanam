@@ -39,7 +39,8 @@ describe('preferences form', () => {
   it('round-trips saved preferences through the form into a valid request', () => {
     const request = toPreferencesRequest(preferencesFormFrom(SAVED));
     const parsed = partnerPreferencesSchema.parse(request);
-    expect({ ...parsed, updatedAt: SAVED.updatedAt }).toEqual(SAVED);
+    // Mother tongue is no longer asked; saving clears an earlier choice.
+    expect({ ...parsed, updatedAt: SAVED.updatedAt }).toEqual({ ...SAVED, motherTongues: [] });
   });
 
   it('an empty form is a valid "no preference" request', () => {
@@ -59,7 +60,6 @@ describe('preferences form', () => {
         value: 'Never married, Divorced',
         mustHave: false,
       },
-      { label: 'Mother tongue', value: 'Tamil', mustHave: false },
       { label: 'Location', value: 'Tamil Nadu, Bengaluru', mustHave: true },
       { label: 'Annual income', value: '₹10 L or more', mustHave: false },
       { label: 'Dosham', value: 'No dosham', mustHave: false },
@@ -108,12 +108,13 @@ describe('Search "Use my preferences"', () => {
       incomeMinLakhs: 10,
       dosham: 'NO',
       maritalStatusIn: 'NEVER_MARRIED,DIVORCED',
-      motherTongueIn: 'Tamil',
       stateIn: 'Tamil Nadu',
       cityIn: 'Bengaluru',
     });
     // The single city box is cleared so it can't contradict the list.
     expect(query.city).toBeUndefined();
+    // Mother tongue is no longer asked, so an earlier choice doesn't filter.
+    expect(query.motherTongueIn).toBeUndefined();
   });
 
   it('with the toggle off, the query is exactly as before (no list params)', () => {

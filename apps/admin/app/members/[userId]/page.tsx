@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { COMPLEXIONS, NADAR_SUBCATEGORIES, RELIGIONS, type CreateProfileRequest } from '@nadar-kalyanam/schemas';
+import { formatDisplayDate, formatDisplayDateTime, COMPLEXIONS, NADAR_SUBCATEGORIES, RELIGIONS, type CreateProfileRequest } from '@nadar-kalyanam/schemas';
 import { Button, Card, Field, Input, Select, Textarea } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../../../components/admin-shell';
 import { StatusBadge } from '../../../components/status-badge';
@@ -207,7 +207,7 @@ export default function MemberDetailPage() {
     try {
       const result = await removeMember(data.accessToken, params.userId, removeReason.trim());
       setActionMessage(
-        `Removal scheduled — account will be anonymized on ${new Date(result.scheduledAnonymizationAt).toLocaleDateString()}.`,
+        `Removal scheduled — account will be anonymized on ${formatDisplayDate(result.scheduledAnonymizationAt)}.`,
       );
       setShowRemoveForm(false);
       reload();
@@ -354,10 +354,10 @@ export default function MemberDetailPage() {
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4">
                   <div className="text-sm">
                     <p className="font-semibold text-destructive">
-                      Scheduled for anonymization on {new Date(member.scheduledAnonymizationAt).toLocaleString()}
+                      Scheduled for anonymization on {formatDisplayDateTime(member.scheduledAnonymizationAt)}
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      Removal requested {new Date(member.deletionRequestedAt!).toLocaleString()}.{' '}
+                      Removal requested {formatDisplayDateTime(member.deletionRequestedAt!)}.{' '}
                       {graceElapsed
                         ? 'The grace period has elapsed — this removal can no longer be cancelled.'
                         : 'Hidden from search and matching until then.'}

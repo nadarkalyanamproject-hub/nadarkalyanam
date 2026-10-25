@@ -2,13 +2,20 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { additionalDetailsSchema } from '@nadar-kalyanam/schemas';
+import { additionalDetailsSchema, lifestyleSchema } from '@nadar-kalyanam/schemas';
 import { Button, FormError } from '@nadar-kalyanam/ui';
 import { OnboardingShell } from '../../../components/onboarding-shell';
 import {
   AdditionalDetailsFields,
   type AdditionalDetailsFormState,
 } from '../../../components/profile-form-fields/additional-details-fields';
+import {
+  LifestyleFields,
+  isLifestyleFormEmpty,
+  lifestyleFormFromDraft,
+  lifestyleFormToDraft,
+  type LifestyleFormState,
+} from '../../../components/profile-form-fields/lifestyle-fields';
 import { ApiError, createProfile } from '../../../lib/api-client';
 import { consumeAuthRedirectClaim } from '../../../lib/auth-events';
 import { getOverallCompletionPercent } from '../../../lib/onboarding-progress';
@@ -43,7 +50,12 @@ function AdditionalDetailsStep() {
     ...(data.additional as unknown as Partial<FormState>),
     ...(data.stepInputs?.additional as Partial<FormState> | undefined),
   }));
+  // Optional Lifestyle & Habits, sent with this step when anything is picked.
+  const [lifestyle, setLifestyle] = useState<LifestyleFormState>(() =>
+    lifestyleFormFromDraft(data.stepInputs?.lifestyle),
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [lifestyleErrors, setLifestyleErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>();
   const [submitting, setSubmitting] = useState(false);
   // A successful submit already knows exactly where to go (/onboarding/success)
@@ -75,6 +87,10 @@ function AdditionalDetailsStep() {
     saveStepInput('additional', form);
   }, [form, saveStepInput]);
 
+  useEffect(() => {
+    saveStepInput('lifestyle', lifestyleFormToDraft(lifestyle));
+  }, [lifestyle, saveStepInput]);
+
   if (!ready || !data.basicDetails || !data.personal || !data.location) return null;
 
   const activePercent = getOverallCompletionPercent(data, 4, form);
@@ -95,20 +111,21 @@ function AdditionalDetailsStep() {
     setFormError(undefined);
 
     const result = additionalDetailsSchema.safeParse(form);
-    if (!result.success) {
-      setErrors(toFieldErrors(result.error));
-      return;
-    }
-    setErrors({});
+    const lifestyleResult = lifestyleSchema.safeParse(lifestyle);
+    setErrors(result.success ? {} : toFieldErrors(result.error));
+    setLifestyleErrors(lifestyleResult.success ? {} : toFieldErrors(lifestyleResult.error));
+    if (!result.success || !lifestyleResult.success) return;
     saveStep('additional', result.data);
 
     setSubmitting(true);
     try {
       await createProfile(data.accessToken!, {
         ...data.basicDetails!,
+        ...(data.profileForPrefill ? { profileFor: data.profileForPrefill } : {}),
         personal: data.personal!,
         location: data.location!,
         additional: result.data,
+        ...(isLifestyleFormEmpty(lifestyle) ? {} : { lifestyle: lifestyleResult.data }),
       });
       skipWizardGuardRef.current = true;
       markProfileCreated();
@@ -128,15 +145,21 @@ function AdditionalDetailsStep() {
       onBack={handleBack}
       backDisabled={submitting}
       title="Additional Details"
-      subtitle="Your family status and a bit about you"
+      subtitle="Your family, a bit about you and your lifestyle"
     >
       <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
         <AdditionalDetailsFields
           form={form}
           errors={errors}
           onChange={update}
-          writeAbout={() => buildAboutDraft({ ...data.basicDetails, ...data.location, familyType: form.familyType })}
+          writeAbout={() => buildAboutDraft({ ...data.basicDetails, ...data.location, familyType: form.familyType, profileFor: data.profileForPrefill })}
         />
+
+        <div className="mt-2 border-t border-nk-line pt-5">
+          <h3 className="text-base font-bold text-nk-ink">Lifestyle &amp; habits</h3>
+          <p className="mt-0.5 text-xs text-nk-muted">Optional. You can add or change these later from My Profile.</p>
+        </div>
+        <LifestyleFields form={lifestyle} errors={lifestyleErrors} onChange={setLifestyle} />
 
         {formError ? <FormError>{formError}</FormError> : null}
 

@@ -220,11 +220,24 @@ export function searchCategoryHref(slug: string): string {
   return `/search?category=${slug}`;
 }
 
-// The Search page's URL for a category and the preferences toggle.
-export function searchHref({ category, usePreferences }: { category: string | null; usePreferences: boolean }): string {
+// The Search page's URL for a category, the preferences toggle and the
+// Lifestyle filters (diet, smoking).
+export function searchHref({
+  category,
+  usePreferences,
+  diet,
+  smoking,
+}: {
+  category: string | null;
+  usePreferences: boolean;
+  diet?: string;
+  smoking?: string;
+}): string {
   const params = new URLSearchParams();
   if (category) params.set('category', category);
   if (usePreferences) params.set('prefs', '1');
+  if (diet) params.set('diet', diet);
+  if (smoking) params.set('smoking', smoking);
   const qs = params.toString();
   return qs ? `/search?${qs}` : '/search';
 }

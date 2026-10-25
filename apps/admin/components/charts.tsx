@@ -1,5 +1,6 @@
 'use client';
 
+import { formatDisplayDate } from '@nadar-kalyanam/schemas';
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 
 // Inline-SVG charts for the admin dashboard — no chart library. Colors come
@@ -107,8 +108,7 @@ function niceMax(max: number): number {
   return 10 * step;
 }
 
-const shortDate = (iso: string) =>
-  new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const shortDate = (iso: string) => formatDisplayDate(iso);
 
 // One series, one y-axis (from 0), hairline grid, 2px line, end marker with a
 // surface ring and an end-value label. A crosshair snaps to the nearest day

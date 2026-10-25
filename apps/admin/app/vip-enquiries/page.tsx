@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import type { VipEnquiryStatus } from '@nadar-kalyanam/schemas';
+import { formatDisplayDateTime, type VipEnquiryStatus } from '@nadar-kalyanam/schemas';
 import { Button, Card, Select, Textarea } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../../components/admin-shell';
 import { GrantDialog } from '../../components/billing-ui';
@@ -31,14 +31,7 @@ const NEXT: Record<VipEnquiryStatus, VipEnquiryStatus[]> = {
 const PAGE = 25;
 
 function dateTime(iso: string): string {
-  return new Date(iso).toLocaleString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: 'Asia/Kolkata',
-  });
+  return formatDisplayDateTime(iso);
 }
 
 function historyLine(h: AdminVipEnquiryDetail['history'][number]): string {

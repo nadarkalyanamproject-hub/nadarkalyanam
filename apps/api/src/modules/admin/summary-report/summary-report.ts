@@ -1,3 +1,4 @@
+import { formatDisplayDate, formatDisplayDateTime } from '@nadar-kalyanam/schemas';
 import type { AdminService } from '../admin.service.js';
 import { A4, buildPdf, type PdfOp } from './pdf-writer.js';
 
@@ -35,14 +36,8 @@ export async function collectSummaryReportData(admin: AdminService, days: number
 }
 
 const n = (value: number) => value.toLocaleString('en-IN');
-const IST_MS = 330 * 60 * 1000;
-const longDate = (iso: string) =>
-  new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
-function istStamp(date: Date): string {
-  const ist = new Date(date.getTime() + IST_MS);
-  const day = ist.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
-  return `${day}, ${ist.toISOString().slice(11, 16)} IST`;
-}
+const longDate = (iso: string) => formatDisplayDate(iso);
+const istStamp = (date: Date) => `${formatDisplayDateTime(date)} IST`;
 
 export function summaryReportFilename(data: SummaryReportData): string {
   return `nadar-kalyanam-summary-${data.windowLastDay}-${data.days}d.pdf`;

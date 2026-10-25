@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { BadgeCheck, Flag, ScrollText, UserPlus } from 'lucide-react';
-import type { RecentActivityItem } from '@nadar-kalyanam/schemas';
+import { formatDisplayDateTime, type RecentActivityItem } from '@nadar-kalyanam/schemas';
 import { Card } from '@nadar-kalyanam/ui';
 import { formatRelativeTime } from '@nadar-kalyanam/ui/relative-time';
 import { ApiError, getRecentActivity } from '../lib/api-client';
@@ -111,7 +111,7 @@ export function RecentActivity({ accessToken }: { accessToken: string }) {
                   <p className="font-semibold text-foreground" data-testid="activity-title">{title}</p>
                   <p className="truncate text-xs">{detail}</p>
                 </div>
-                <time dateTime={item.at} title={new Date(item.at).toLocaleString('en-IN')} className="shrink-0 text-xs text-muted-foreground">
+                <time dateTime={item.at} title={formatDisplayDateTime(item.at)} className="shrink-0 text-xs text-muted-foreground">
                   {formatRelativeTime(item.at)}
                 </time>
               </li>

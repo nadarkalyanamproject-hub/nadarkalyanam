@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { VipEnquiryResponse, VipEnquiryStatus } from '@nadar-kalyanam/schemas';
+import { formatDisplayDate, formatDisplayDateTime, type VipEnquiryResponse, type VipEnquiryStatus } from '@nadar-kalyanam/schemas';
 import { useRegistration } from '../../app/providers/registration-provider';
 import { ApiError, createVipEnquiry, getMyVipEnquiry } from '../../lib/api-client';
 
@@ -72,7 +72,7 @@ export function VipEnquiry({
       <div className="rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-left text-xs text-white/90" data-testid="vip-enquiry-status" role="status">
         {justSent && <p className="font-semibold text-[#FDE59C]">We received your enquiry.</p>}
         <p>Status: {STATUS_TEXT[enquiry!.status]}</p>
-        <p className="text-white/70">Last updated {new Date(enquiry!.updatedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' })}</p>
+        <p className="text-white/70">Last updated {formatDisplayDateTime(enquiry!.updatedAt)}</p>
       </div>
     );
   }
@@ -89,7 +89,7 @@ export function VipEnquiry({
       </button>
       {enquiry && !isOpenEnquiry && (
         <p className="text-[11px] text-white/70" data-testid="vip-last-enquiry">
-          Your last enquiry: {STATUS_TEXT[enquiry.status]} (updated {new Date(enquiry.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })})
+          Your last enquiry: {STATUS_TEXT[enquiry.status]} (updated {formatDisplayDate(enquiry.updatedAt)})
         </p>
       )}
 

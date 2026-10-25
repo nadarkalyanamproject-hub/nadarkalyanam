@@ -1,17 +1,29 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto';
-import { Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import type { AuthTokens, VerifyOtpResponse } from '@nadar-kalyanam/schemas';
+import type { AccountStatusResponse, AuthTokens, LogoutOthersOtpResponse, VerifyOtpResponse } from '@nadar-kalyanam/schemas';
 import type { Redis } from 'ioredis';
 import type { Env } from '../config/env.schema.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { OTP_LIMITS, OtpRateLimiter } from './otp-rate-limiter.js';
 import { revokeSession } from './session.util.js';
 import { REDIS_CLIENT } from '../redis/redis.constants.js';
+import { scheduledAnonymizationDate } from '../admin/member-removal.js';
 
 const OTP_TTL_SECONDS = 300;
+// How long after a refresh token is spent a repeat of it still counts as a
+// lost response rather than theft (see refresh()).
+export const REFRESH_REUSE_GRACE_MS = 2 * 60 * 1000;
 const OTP_REDIS_PREFIX = 'otp:';
+
+function toAccountStatus(user: { status: string; deletionRequestedAt: Date | null }): AccountStatusResponse {
+  const pendingSince = user.status === 'PENDING_DELETION' ? user.deletionRequestedAt : null;
+  return {
+    status: user.status as AccountStatusResponse['status'],
+    deletionScheduledAt: pendingSince ? scheduledAnonymizationDate(pendingSince).toISOString() : null,
+  };
+}
 
 function hashValue(value: string): string {
   return createHash('sha256').update(value).digest('hex');
@@ -19,6 +31,14 @@ function hashValue(value: string): string {
 
 function generateRefreshToken(): string {
   return randomBytes(32).toString('hex');
+}
+
+const logoutOthersOtpKey = (userId: string) => `${OTP_REDIS_PREFIX}logout-others:${userId}`;
+
+// "+919876543201" -> "+91 ******3201"
+export function maskPhone(phoneNumber: string): string {
+  const local = phoneNumber.replace(/^\+91/, '');
+  return `+91 ${'*'.repeat(Math.max(0, local.length - 4))}${local.slice(-4)}`;
 }
 
 function generateOtp(): string {
@@ -38,10 +58,17 @@ export class AuthService {
   ) {}
 
   async requestOtp(phoneNumber: string, ip?: string): Promise<{ expiresInSeconds: number; devOtp?: string }> {
+    return this.issueOtp(`${OTP_REDIS_PREFIX}${phoneNumber}`, phoneNumber, ip);
+  }
+
+  // Creates a code for phoneNumber and stores its hash under `key` (login
+  // and "log out other devices" use different keys, so neither code works
+  // for the other). Shares the per-number and per-IP request limits.
+  private async issueOtp(key: string, phoneNumber: string, ip?: string): Promise<{ expiresInSeconds: number; devOtp?: string }> {
     await this.rateLimiter.assertCanRequest(phoneNumber, ip);
     const otp = generateOtp();
     await this.redis.set(
-      `${OTP_REDIS_PREFIX}${phoneNumber}`,
+      key,
       hashValue(otp),
       'EX',
       OTP_TTL_SECONDS,
@@ -74,18 +101,7 @@ export class AuthService {
     otp: string,
     intent: 'register' | 'login' = 'register',
   ): Promise<VerifyOtpResponse> {
-    const key = `${OTP_REDIS_PREFIX}${phoneNumber}`;
-    await this.rateLimiter.assertCanVerify(phoneNumber);
-    const storedHash = await this.redis.get(key);
-    if (!storedHash || storedHash !== hashValue(otp)) {
-      // Counts toward the wrong-code lockout (throws 429 on the last one).
-      const left = await this.rateLimiter.recordFailedVerify(phoneNumber, key);
-      throw new UnauthorizedException(
-        `Invalid or expired OTP. ${left} attempt${left === 1 ? '' : 's'} left before a ${OTP_LIMITS.verifyLockSeconds / 60}-minute lock.`,
-      );
-    }
-    await this.redis.del(key);
-    await this.rateLimiter.clearFailedVerifies(phoneNumber);
+    await this.consumeOtp(`${OTP_REDIS_PREFIX}${phoneNumber}`, phoneNumber, otp);
 
     const user =
       intent === 'login'
@@ -164,9 +180,17 @@ export class AuthService {
       : (await this.prisma.refreshToken.updateMany({ where: { id: row.id, usedAt: null }, data: { usedAt: new Date() } }))
           .count;
     if (claimed === 0) {
-      await revokeSession(this.prisma, session.userId, session.id);
-      this.logger.warn(`Refresh token reuse detected; revoked session ${session.id} (user ${session.userId})`);
-      throw new UnauthorizedException('This sign-in was ended for your security. Please sign in again.');
+      // A token spent moments ago is almost always a lost response (weak
+      // signal, a tab closed mid-refresh), not theft: issue a fresh token
+      // rather than signing the member out. Reuse after the grace window
+      // still ends the whole session.
+      const spentAt = row.usedAt ?? new Date();
+      if (Date.now() - spentAt.getTime() > REFRESH_REUSE_GRACE_MS) {
+        await revokeSession(this.prisma, session.userId, session.id);
+        this.logger.warn(`Refresh token reuse detected; revoked session ${session.id} (user ${session.userId})`);
+        throw new UnauthorizedException('This sign-in was ended for your security. Please sign in again.');
+      }
+      this.logger.log(`Refresh token re-sent within the grace window; reissued for session ${session.id}`);
     }
 
     if (session.adminUserId) {
@@ -211,6 +235,111 @@ export class AuthService {
   // already-revoked session stays revoked.
   async logout(userId: string, sessionId: string): Promise<void> {
     await revokeSession(this.prisma, userId, sessionId);
+  }
+
+  // The member's own account state, for the apps' account screen.
+  async getAccount(userId: string): Promise<AccountStatusResponse> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { status: true, deletionRequestedAt: true } });
+    if (!user) throw new NotFoundException('Account not found');
+    return toAccountStatus(user);
+  }
+
+  // Self-service account deletion (FR-1.5; required by the App Store and
+  // Play Store). The same mechanism as an admin removal: the account leaves
+  // every list straight away (discovery, matching and messaging only show
+  // ACTIVE members), every sign-in is ended, and the anonymization job
+  // erases it once the 14-day grace period has passed. Until then the
+  // member can sign in and cancel.
+  async requestAccountDeletion(userId: string): Promise<AccountStatusResponse> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { status: true, deletionRequestedAt: true, adminUser: { select: { id: true } } },
+    });
+    if (!user) throw new NotFoundException('Account not found');
+    if (user.adminUser) {
+      throw new ConflictException('This account is linked to a staff login. Please contact support to remove it.');
+    }
+    if (user.status === 'PENDING_DELETION') return toAccountStatus(user);
+    const deletionRequestedAt = new Date();
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { status: 'PENDING_DELETION', deletionRequestedAt, statusBeforeDeletion: user.status },
+        select: { status: true, deletionRequestedAt: true },
+      }),
+      this.prisma.session.updateMany({ where: { userId, adminUserId: null, revokedAt: null }, data: { revokedAt: new Date() } }),
+    ]);
+    return toAccountStatus(updated);
+  }
+
+  // Undo a self-service deletion request, strictly before the scheduled date
+  // (from then on the anonymization job may run).
+  async cancelAccountDeletion(userId: string): Promise<AccountStatusResponse> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { status: true, deletionRequestedAt: true, statusBeforeDeletion: true },
+    });
+    if (!user) throw new NotFoundException('Account not found');
+    if (user.status !== 'PENDING_DELETION' || !user.deletionRequestedAt) return toAccountStatus(user);
+    if (scheduledAnonymizationDate(user.deletionRequestedAt).getTime() <= Date.now()) {
+      throw new ConflictException('The 14 days have passed, so this deletion can no longer be cancelled.');
+    }
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { status: user.statusBeforeDeletion ?? 'ACTIVE', deletionRequestedAt: null, statusBeforeDeletion: null },
+      select: { status: true, deletionRequestedAt: true },
+    });
+    return toAccountStatus(updated);
+  }
+
+  // Checks a code stored by issueOtp and spends it. Wrong codes count toward
+  // the per-number lockout, whichever kind of code it was.
+  private async consumeOtp(key: string, phoneNumber: string, otp: string): Promise<void> {
+    await this.rateLimiter.assertCanVerify(phoneNumber);
+    const storedHash = await this.redis.get(key);
+    if (!storedHash || storedHash !== hashValue(otp)) {
+      // Counts toward the wrong-code lockout (throws 429 on the last one).
+      const left = await this.rateLimiter.recordFailedVerify(phoneNumber, key);
+      throw new UnauthorizedException(
+        `Invalid or expired OTP. ${left} attempt${left === 1 ? '' : 's'} left before a ${OTP_LIMITS.verifyLockSeconds / 60}-minute lock.`,
+      );
+    }
+    await this.redis.del(key);
+    await this.rateLimiter.clearFailedVerifies(phoneNumber);
+  }
+
+  // Member sign-ins still active, this one included. Admin (staff panel)
+  // sessions are separate and never counted or ended from here.
+  async countActiveSessions(userId: string): Promise<number> {
+    return this.prisma.session.count({
+      where: { userId, adminUserId: null, revokedAt: null, expiresAt: { gt: new Date() } },
+    });
+  }
+
+  // Sends the code that "Log out of all other devices" asks for, to the
+  // member's own registered number (never one the client names).
+  async requestLogoutOthersOtp(userId: string, ip?: string): Promise<LogoutOthersOtpResponse> {
+    const phoneNumber = await this.registeredNumber(userId);
+    const sent = await this.issueOtp(logoutOthersOtpKey(userId), phoneNumber, ip);
+    return { ...sent, sentTo: maskPhone(phoneNumber) };
+  }
+
+  // "Log out of all other devices": once the code checks out, ends every
+  // other member sign-in of this user, keeping the one making the request.
+  // Returns how many were ended.
+  async logoutOtherSessions(userId: string, currentSessionId: string, otp: string): Promise<number> {
+    await this.consumeOtp(logoutOthersOtpKey(userId), await this.registeredNumber(userId), otp);
+    const { count } = await this.prisma.session.updateMany({
+      where: { userId, adminUserId: null, revokedAt: null, id: { not: currentSessionId } },
+      data: { revokedAt: new Date() },
+    });
+    return count;
+  }
+
+  private async registeredNumber(userId: string): Promise<string> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { phoneNumber: true } });
+    if (!user) throw new NotFoundException('Account not found');
+    return user.phoneNumber;
   }
 
   private async findUserForLogin(phoneNumber: string) {

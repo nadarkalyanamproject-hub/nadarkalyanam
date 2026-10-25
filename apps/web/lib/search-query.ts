@@ -1,8 +1,9 @@
+import { DIETS, HABIT_FREQUENCIES } from '@nadar-kalyanam/schemas';
 import type { SearchProfilesParams } from './api-client';
 
 // Search page filter state: every field is a string, '' meaning "any"
 // ('true' for a ticked checkbox). Only REAL, searchable profile fields live
-// here — the page's "Coming soon" fields (star, lifestyle habits, profile
+// here — the page's "Coming soon" fields (star, drinking habits, profile
 // created by, …) have no state at all, so they can never reach a query.
 export interface SearchFilters {
   gender: string;
@@ -25,6 +26,9 @@ export interface SearchFilters {
   city: string;
   nearby: string;
   familyType: string;
+  // Lifestyle & Habits (the Search page's Lifestyle filters).
+  diet: string;
+  smoking: string;
   joinedWithinDays: string;
   withPhoto: string;
   excludeShortlisted: string;
@@ -58,6 +62,8 @@ export const EMPTY_SEARCH_FILTERS: SearchFilters = {
   city: '',
   nearby: '',
   familyType: '',
+  diet: '',
+  smoking: '',
   joinedWithinDays: '',
   withPhoto: '',
   excludeShortlisted: '',
@@ -92,6 +98,8 @@ const ENUMS = {
   dosham: ['NO', 'YES', 'DONT_KNOW'],
   familyType: ['Middle Class', 'Upper Middle Class', 'Rich / Affluent (Elite)'],
   joinedWithinDays: ['1', '3', '7', '30'],
+  diet: DIETS,
+  smoking: HABIT_FREQUENCIES,
 } as const;
 
 // Maps form state to GET /search/profiles params: blanks are dropped, free
@@ -125,6 +133,8 @@ export function toSearchQuery(filters: SearchFilters): SearchProfilesParams {
     city: text(filters.city),
     nearby: flag(filters.nearby),
     familyType: oneOf(filters.familyType, ENUMS.familyType),
+    diet: oneOf(filters.diet, ENUMS.diet),
+    smoking: oneOf(filters.smoking, ENUMS.smoking),
     joinedWithinDays: joined ? Number(joined) : undefined,
     withPhoto: flag(filters.withPhoto),
     excludeShortlisted: flag(filters.excludeShortlisted),

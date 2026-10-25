@@ -42,6 +42,8 @@ function detailFilters(query: SearchProfilesQuery): Prisma.ProfileWhereInput[] {
   exact(['dosham'], query.dosham);
   text(['education', 'employedIn'], query.employedIn);
   exact(['additional', 'familyType'], query.familyType);
+  exact(['lifestyle', 'diet'], query.diet);
+  exact(['lifestyle', 'smoking'], query.smoking);
   text(['location', 'country'], query.country);
   // Comma-list filters ("Use my preferences"): any one of the values, each
   // matched by the same rule as its single-value twin.

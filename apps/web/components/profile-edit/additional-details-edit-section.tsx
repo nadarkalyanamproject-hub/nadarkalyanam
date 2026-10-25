@@ -74,6 +74,8 @@ export function AdditionalDetailsEditSection({
             city: profile.details?.location?.city,
             state: profile.details?.location?.state,
             familyType: form.familyType,
+            profileFor: profile.details?.profileFor,
+            gender: profile.gender,
           })
         }
       />

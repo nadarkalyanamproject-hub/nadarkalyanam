@@ -26,10 +26,10 @@ interface Options {
 
 // Calendar date in the given timezone, as a UTC-midnight timestamp, so
 // whole days can be compared and counted without DST getting in the way.
-function calendarDay(date: Date, timeZone: string | undefined): { day: number; year: number } {
+function calendarDay(date: Date, timeZone: string | undefined): { day: number } {
   const parts = new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(date);
   const part = (type: 'year' | 'month' | 'day') => Number(parts.find((p) => p.type === type)?.value);
-  return { day: Date.UTC(part('year'), part('month') - 1, part('day')), year: part('year') };
+  return { day: Date.UTC(part('year'), part('month') - 1, part('day')) };
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -44,14 +44,15 @@ function clockTime(date: Date, { timeZone, locale }: Options): string {
   return date.toLocaleTimeString(locale, { timeZone, hour: 'numeric', minute: '2-digit', hourCycle: 'h12' });
 }
 
-function withDetails(date: Date, label: string, { timeZone, locale }: Options): MessageTimeLabel {
-  return { label, title: date.toLocaleString(locale, { timeZone, dateStyle: 'full', timeStyle: 'short' }), dateTime: date.toISOString() };
+function withDetails(date: Date, label: string, options: Options): MessageTimeLabel {
+  return { label, title: `${numericDate(date, options.timeZone)}, ${clockTime(date, options)}`, dateTime: date.toISOString() };
 }
 
-// "8 Oct", or "8 Oct 2025" from an earlier year: day then short month, as
-// elsewhere in the app (see formatRelativeTime).
-function shortDate(date: Date, sameYear: boolean, timeZone: string | undefined): string {
-  return date.toLocaleDateString('en-IN', { timeZone, day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) });
+// "08-10-2026": dd-mm-yyyy, as everywhere in the app.
+function numericDate(date: Date, timeZone: string | undefined): string {
+  const day = new Date(calendarDay(date, timeZone).day);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(day.getUTCDate())}-${pad(day.getUTCMonth() + 1)}-${day.getUTCFullYear()}`;
 }
 
 export function formatMessageTime(iso: string, now: Date, options: Options = {}): MessageTimeLabel | null {
@@ -66,7 +67,7 @@ export function formatMessageTime(iso: string, now: Date, options: Options = {})
   const today = calendarDay(now, timeZone);
   if (message.day === today.day) return withDetails(date, clockTime(date, options), options);
   if (message.day === today.day - DAY_MS) return withDetails(date, 'Yesterday', options);
-  return withDetails(date, shortDate(date, message.year === today.year, timeZone), options);
+  return withDetails(date, numericDate(date, timeZone), options);
 }
 
 // The clock time only ("10:45 AM"), whatever the day: for a message bubble,
@@ -79,7 +80,7 @@ export function formatClockTime(iso: string | null | undefined, options: Options
 export interface MessageDay {
   // The calendar day, e.g. "2026-10-12", for keys and <time dateTime>.
   key: string;
-  // "Today", "Yesterday", "8 Oct" or "8 Oct 2025".
+  // "Today", "Yesterday" or "08-10-2026".
   label: string;
 }
 
@@ -94,7 +95,7 @@ export function messageDay(iso: string | null | undefined, now: Date, { timeZone
   const key = new Date(message.day).toISOString().slice(0, 10);
   if (message.day >= today.day) return { key, label: 'Today' };
   if (message.day === today.day - DAY_MS) return { key, label: 'Yesterday' };
-  return { key, label: shortDate(date, message.year === today.year, timeZone) };
+  return { key, label: numericDate(date, timeZone) };
 }
 
 // Milliseconds from `now` until the next local midnight. Built from local

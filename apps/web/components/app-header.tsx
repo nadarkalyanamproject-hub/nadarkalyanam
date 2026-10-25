@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useRegistration } from '../app/providers/registration-provider';
 import { getInterestsHasUnread, getUnreadMessageCount, getUnreadNotificationCount, logout } from '../lib/api-client';
 import { claimAuthRedirect } from '../lib/auth-events';
+import { Logo } from './brand/logo';
 import {
   formatBadgeCount,
   INTERESTS_CHANGED_EVENT,
@@ -85,20 +86,6 @@ function CloseIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="m5 5 14 14M19 5 5 19" />
-    </svg>
-  );
-}
-
-export function MandalaEmblem() {
-  return (
-    <svg viewBox="0 0 40 40" fill="none" className="h-7 w-7 text-nk-maroon">
-      <circle cx="20" cy="20" r="18" stroke="#D6A33A" strokeWidth="1.5" strokeDasharray="3 2" />
-      <circle cx="20" cy="20" r="12" stroke="#7A0710" strokeWidth="1.2" />
-      <path d="M20 4L22 14H18L20 4Z" fill="#7A0710" />
-      <path d="M20 36L18 26H22L20 36Z" fill="#7A0710" />
-      <path d="M4 20L14 18V22L4 20Z" fill="#7A0710" />
-      <path d="M36 20L26 22V18L36 20Z" fill="#7A0710" />
-      <circle cx="20" cy="20" r="4" fill="#D6A33A" />
     </svg>
   );
 }
@@ -275,19 +262,11 @@ export function AppHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-nk-line bg-white/95 backdrop-blur-sm transition-shadow">
+    <header className="sticky top-0 z-40 border-b border-nk-turmeric/40 bg-[#FFF7DC]/95 backdrop-blur-sm transition-shadow">
       <div className="mx-auto flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
         {/* Brand Logo */}
-        <Link href="/" className="flex shrink-0 items-center gap-2.5 transition-transform hover:scale-[1.01]">
-          <MandalaEmblem />
-          <div className="flex flex-col">
-            <span className="font-[family-name:var(--font-body)] text-xl font-bold tracking-tight text-nk-maroon sm:text-2xl">
-              Nadar Kalyanam
-            </span>
-            <span className="hidden text-[10px] font-medium tracking-wider text-nk-muted uppercase sm:inline-block">
-              Matrimonial Portal
-            </span>
-          </div>
+        <Link href="/" className="flex shrink-0 items-center transition-transform hover:scale-[1.01]">
+          <Logo className="text-[19px] sm:text-[22px]" />
         </Link>
 
         {isAuthenticated && (
@@ -306,7 +285,7 @@ export function AppHeader() {
                       className={`group relative flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
                         isActive
                           ? 'text-nk-maroon font-semibold'
-                          : 'text-nk-ink hover:bg-nk-ivory hover:text-nk-maroon'
+                          : 'text-nk-ink hover:bg-nk-butter hover:text-nk-maroon'
                       }`}
                     >
                       <Icon
@@ -366,7 +345,7 @@ export function AppHeader() {
                 }}
                 aria-label={menuOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={menuOpen}
-                className="relative flex h-9 w-9 items-center justify-center rounded-lg text-nk-ink transition-colors hover:bg-nk-ivory md:hidden"
+                className="relative flex h-9 w-9 items-center justify-center rounded-lg text-nk-ink transition-colors hover:bg-nk-butter md:hidden"
               >
                 {menuOpen ? <CloseIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
                 {!menuOpen && anyBadge && (

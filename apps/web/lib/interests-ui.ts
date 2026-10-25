@@ -1,4 +1,4 @@
-import type { InterestResponse, InterestStatus } from '@nadar-kalyanam/schemas';
+import { formatDisplayDate, type InterestResponse, type InterestStatus } from '@nadar-kalyanam/schemas';
 
 // Display helpers for the Interests page (kept out of the page file: a
 // Next.js page may only export the page itself).
@@ -18,16 +18,7 @@ export interface DisplayInterest {
 }
 
 export function formatInterestDate(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = d.toLocaleString('en-US', { month: 'short' });
-    const year = d.getFullYear();
-    return `${day} ${month} ${year}`;
-  } catch {
-    return dateStr;
-  }
+  return formatDisplayDate(dateStr) || dateStr;
 }
 
 // Only real profile fields; anything the member hasn't filled in stays null

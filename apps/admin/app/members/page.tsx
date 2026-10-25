@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import type { AccountStatus } from '@nadar-kalyanam/schemas';
+import { formatDisplayDate, type AccountStatus } from '@nadar-kalyanam/schemas';
 import { Button, Card, Input, Select } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../../components/admin-shell';
 import { StatusBadge } from '../../components/status-badge';
@@ -145,7 +145,7 @@ export default function MembersPage() {
                     <td className="px-4 py-3">{member.completionScore ?? '—'}</td>
                     <td className="px-4 py-3">{member.isVerified ? 'Yes' : 'No'}</td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {new Date(member.createdAt).toLocaleDateString()}
+                      {formatDisplayDate(member.createdAt)}
                     </td>
                   </tr>
                 ))}

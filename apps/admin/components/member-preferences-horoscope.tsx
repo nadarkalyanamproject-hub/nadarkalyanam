@@ -136,7 +136,6 @@ export function MemberPreferencesHoroscope({ userId, disabled }: { userId: strin
                   ['Age', withMust(range(p.ageMin, p.ageMax, 'yrs'), p.mustHaveAge)],
                   ['Height', range(p.heightMinCm, p.heightMaxCm, 'cm')],
                   ['Marital status', withMust(p.maritalStatuses.map((m) => MARITAL[m] ?? m).join(', ') || null, p.mustHaveMaritalStatus)],
-                  ['Mother tongue', p.motherTongues.join(', ') || null],
                   ['Location', withMust([...p.states, ...p.cities].join(', ') || null, p.mustHaveLocation)],
                   ['Annual income', range(p.incomeMinLakhs, p.incomeMaxLakhs, 'lakhs')],
                   ['Dosham', p.doshamPreference === 'DOESNT_MATTER' ? null : (DOSHAM_PREF[p.doshamPreference] ?? null)],

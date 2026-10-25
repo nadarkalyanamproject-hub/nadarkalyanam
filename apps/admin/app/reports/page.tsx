@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import type { ReportStatus } from '@nadar-kalyanam/schemas';
+import { formatDisplayDateTime, type ReportStatus } from '@nadar-kalyanam/schemas';
 import { Button, Card, Select, Textarea } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../../components/admin-shell';
 import { StatusBadge } from '../../components/status-badge';
@@ -173,7 +173,7 @@ export default function ReportsPage() {
                     <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       {report.targetType === 'MESSAGE' ? 'Message report' : 'Profile report'}
                     </span>
-                    <span className="text-xs text-muted-foreground">{new Date(report.createdAt).toLocaleString()}</span>
+                    <span className="text-xs text-muted-foreground">{formatDisplayDateTime(report.createdAt)}</span>
                   </div>
                   <p className="text-sm text-foreground">
                     <span className="font-semibold">Reason:</span> {report.reason}

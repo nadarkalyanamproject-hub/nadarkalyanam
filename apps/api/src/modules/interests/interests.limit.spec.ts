@@ -73,7 +73,7 @@ describe('free-tier interest limit', () => {
 
     const body = await limitError(w.service.sendInterest('me', 'p-t6'));
     expect(body).toMatchObject({ statusCode: 403, errorCode: 'PLAN_LIMIT_REACHED', limit: 5, used: 5, resetsAt: '2026-10-31T18:30:00.000Z' });
-    expect(body.message).toBe("You've sent all 5 free interests for this month. More become available on 1 Nov 2026, or upgrade for unlimited interests.");
+    expect(body.message).toBe("You've sent all 5 free interests for this month. More become available on 01-11-2026, or upgrade for unlimited interests.");
     expect(w.interests).toHaveLength(5);
   });
 

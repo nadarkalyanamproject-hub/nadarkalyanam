@@ -1,7 +1,13 @@
+import { formatDisplayDate } from '@nadar-kalyanam/schemas';
+
 // Display text, generated when notifications are READ (not stored), from
 // the type plus the actor's current name — so a renamed member shows their
 // current name, and no name/contact data sits in the notifications table.
 export const SYSTEM_ACTOR_NAME = 'Nadar Kalyanam';
+
+// A plan ending at 00:00 IST covers up to the day before, so show that day
+// (same rule as the web app's formatPlanLastDay).
+const lastPlanDay = (expiresAt: Date) => formatDisplayDate(new Date(expiresAt.getTime() - 1));
 
 export function notificationMessage(type: string, actorName: string, data: Record<string, unknown>): string {
   switch (type) {
@@ -20,7 +26,7 @@ export function notificationMessage(type: string, actorName: string, data: Recor
     case 'REMOVAL_SCHEDULED': {
       const when = typeof data.scheduledAt === 'string' ? new Date(data.scheduledAt) : null;
       return when && !Number.isNaN(when.getTime())
-        ? `Your account is scheduled for removal on ${when.toISOString().slice(0, 10)}`
+        ? `Your account is scheduled for removal on ${formatDisplayDate(when)}`
         : 'Your account is scheduled for removal';
     }
     case 'REMOVAL_CANCELLED':
@@ -29,14 +35,14 @@ export function notificationMessage(type: string, actorName: string, data: Recor
       const plan = typeof data.planName === 'string' ? `Your ${data.planName}` : 'Your';
       const until = typeof data.expiresAt === 'string' ? new Date(data.expiresAt) : null;
       return until && !Number.isNaN(until.getTime())
-        ? `${plan} membership is active until ${until.toISOString().slice(0, 10)}`
+        ? `${plan} membership is active until ${lastPlanDay(until)}`
         : `${plan} membership is active`;
     }
     case 'PLAN_EXPIRING_SOON': {
       const plan = typeof data.planName === 'string' ? `Your ${data.planName}` : 'Your';
       const until = typeof data.expiresAt === 'string' ? new Date(data.expiresAt) : null;
       return until && !Number.isNaN(until.getTime())
-        ? `${plan} membership ends on ${until.toISOString().slice(0, 10)}`
+        ? `${plan} membership ends on ${lastPlanDay(until)}`
         : `${plan} membership ends within 7 days`;
     }
     case 'PLAN_CANCELLED':
