@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../config.dart';
 import '../../data/api.dart';
+import '../../data/reference.dart';
 import '../../state/session.dart';
 import '../../theme.dart';
 import '../../widgets/form.dart';
@@ -162,6 +163,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                     ],
                     orElse: () => const <Widget>[],
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.place_outlined, color: NK.maroon),
+                    title: const Text('Our office'),
+                    subtitle: Text(officeAddress.skip(1).join('\n')),
+                    isThreeLine: true,
+                    onTap: () => launchUrl(
+                      Uri.parse('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(officeAddress.skip(1).join(', '))}'),
+                      mode: LaunchMode.externalApplication,
+                    ),
                   ),
                   ListTile(
                     leading: const Icon(Icons.privacy_tip_outlined, color: NK.maroon),

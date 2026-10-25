@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../../config.dart';
+import '../../data/members.dart';
 import '../../data/models.dart';
 import '../../state/session.dart';
 import '../../theme.dart';
 import '../../widgets/form.dart';
 import '../../widgets/logo.dart';
+import '../../widgets/member.dart';
+import '../../widgets/top_actions.dart';
 
 final membershipProvider = FutureProvider.autoDispose<Membership>((ref) => ref.watch(repoProvider).membership());
 
@@ -25,35 +26,128 @@ class HomeScreen extends ConsumerWidget {
     final membership = ref.watch(membershipProvider);
     final first = (profile?.fullName ?? '').split(' ').first;
 
+    // Matching is open once there's no pre-launch date and the member isn't
+    // locked out for want of a plan.
+    final open = membership.maybeWhen(data: (m) => m.opensAt == null && !m.accessLocked, orElse: () => false);
+
     return Scaffold(
-      appBar: AppBar(title: const Logo(size: 17)),
+      appBar: AppBar(title: const Logo(size: 17), actions: const [TopActions()]),
       body: RefreshIndicator(
         color: NK.maroon,
         onRefresh: () async {
           ref.invalidate(membershipProvider);
+          ref.invalidate(_homeStripsProvider);
           await session.refreshProfile();
         },
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(18, 20, 18, 32),
+          padding: const EdgeInsets.only(top: 20, bottom: 32),
           children: [
-            Text(first.isEmpty ? 'Vanakkam' : 'Vanakkam, $first', style: serif(30, color: NK.ink)),
-            const SizedBox(height: 4),
-            const Text('Here is where your profile stands.', style: TextStyle(color: NK.muted, fontSize: 14.5)),
-            const SizedBox(height: 18),
-            membership.when(
-              loading: () => const Padding(padding: EdgeInsets.all(28), child: Center(child: CircularProgressIndicator(color: NK.maroon))),
-              error: (e, _) => ErrorBanner('$e'),
-              data: (m) => Column(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (m.opensAt != null) _OpensCard(opensAt: m.opensAt!),
-                  if (m.opensAt == null) const _ComingSoonCard(),
-                  if (m.launchOffer != null) ...[const SizedBox(height: 14), _OfferCard(offer: m.launchOffer!)],
+                  Text(first.isEmpty ? 'Vanakkam' : 'Vanakkam, $first', style: serif(30, color: NK.ink)),
+                  const SizedBox(height: 4),
+                  Text(open ? 'Here are members picked for you.' : 'Here is where your profile stands.',
+                      style: const TextStyle(color: NK.muted, fontSize: 14.5)),
+                  const SizedBox(height: 18),
+                  membership.when(
+                    loading: () => const Padding(padding: EdgeInsets.all(28), child: Center(child: CircularProgressIndicator(color: NK.maroon))),
+                    error: (e, _) => ErrorBanner('$e'),
+                    data: (m) => Column(
+                      children: [
+                        if (m.opensAt != null) _OpensCard(opensAt: m.opensAt!),
+                        if (m.opensAt == null && m.accessLocked) const _PlanNeededCard(),
+                        if (m.launchOffer != null) ...[const SizedBox(height: 14), _OfferCard(offer: m.launchOffer!)],
+                      ],
+                    ),
+                  ),
+                  if (profile != null && profile.completionScore < 100) ...[const SizedBox(height: 14), _CompletionCard(profile: profile)],
                 ],
               ),
             ),
-            if (profile != null) ...[const SizedBox(height: 14), _CompletionCard(profile: profile)],
+            if (open) const _HomeStrips(),
+            if (profile != null && profile.completionScore >= 100)
+              Padding(padding: const EdgeInsets.fromLTRB(18, 14, 18, 0), child: _CompletionCard(profile: profile)),
           ],
         ),
+      ),
+    );
+  }
+}
+
+final _homeStripsProvider = FutureProvider.autoDispose((ref) async {
+  final repo = ref.watch(repoProvider);
+  // A strip that fails just isn't shown; the others still load.
+  Future<List<MemberCard>> safe(Future<List<MemberCard>> f) => f.catchError((_) => <MemberCard>[]);
+  final results = await Future.wait([
+    safe(repo.matches(limit: 12).then((m) => m.items.where((c) => c.relationship != Relationship.connected).toList())),
+    safe(repo.category('newly-joined')),
+    safe(repo.category('viewed-me')),
+    safe(repo.category('viewed-by-me')),
+  ]);
+  return results;
+});
+
+// The website's signed-in home sections.
+class _HomeStrips extends ConsumerWidget {
+  const _HomeStrips();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final data = ref.watch(_homeStripsProvider);
+    void reload() => ref.invalidate(_homeStripsProvider);
+    return data.when(
+      loading: () => loadingSpinner,
+      error: (e, _) => LoadError(error: e, onRetry: reload),
+      data: (lists) {
+        final sections = [
+          ('Recommended for you', 'Based on your preferences, location and lifestyle.', lists[0], '/matches', true),
+          ('Newly joined', 'Members who joined in the last 30 days.', lists[1], '/search/category/newly-joined', false),
+          ('Viewed your profile', 'Members who recently opened your profile.', lists[2], '/search/category/viewed-you', false),
+          ('Profiles you viewed', 'Members whose profiles you opened recently.', lists[3], '/search/category/viewed-by-you', false),
+        ];
+        final shown = sections.where((s) => s.$3.isNotEmpty).toList();
+        if (shown.isEmpty) {
+          return const EmptyState(
+            icon: Icons.favorite_border_rounded,
+            title: 'No members to show yet',
+            message: 'Set your partner preferences and check back as new members join.',
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final s in shown) ...[
+              SectionTitle(s.$1, subtitle: s.$2, onMore: () => s.$5 ? context.go(s.$4) : context.push(s.$4)),
+              MemberStrip(members: s.$3.take(10).toList(), onChanged: reload),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _PlanNeededCard extends StatelessWidget {
+  const _PlanNeededCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return NkCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Choose a plan to start matching', style: serif(22, color: NK.maroon)),
+          const SizedBox(height: 8),
+          const Text(
+            'A plan is needed to see profiles, search, send interests and chat. Your profile stays visible to members with a plan.',
+            style: TextStyle(color: NK.muted, height: 1.5),
+          ),
+          const SizedBox(height: 14),
+          FilledButton(onPressed: () => context.push('/membership'), child: const Text('See plans')),
+        ],
       ),
     );
   }
@@ -88,32 +182,6 @@ class _OpensCard extends StatelessWidget {
           Text(
             'Members are joining now, so there will be real profiles to see from the first day. Until then, complete your profile and add photos so the right families can find you.',
             style: TextStyle(color: Colors.white.withValues(alpha: 0.85), height: 1.5, fontSize: 14),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ComingSoonCard extends StatelessWidget {
-  const _ComingSoonCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return NkCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Matches are coming to the app', style: serif(22, color: NK.maroon)),
-          const SizedBox(height: 8),
-          const Text(
-            'Browsing matches, interests and chat arrive in the next app update. Until then you can use them on the website with the same account.',
-            style: TextStyle(color: NK.muted, height: 1.5),
-          ),
-          const SizedBox(height: 14),
-          OutlinedButton(
-            onPressed: () => launchUrl(Uri.parse(AppConfig.webBaseUrl), mode: LaunchMode.externalApplication),
-            child: const Text('Open the website'),
           ),
         ],
       ),
@@ -194,7 +262,7 @@ class _CompletionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final score = profile.completionScore;
     return NkCard(
-      onTap: () => context.go('/profile'),
+      onTap: () => context.push('/me/profile'),
       child: Row(
         children: [
           SizedBox(

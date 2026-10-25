@@ -132,6 +132,17 @@ class Membership {
   DateTime? get expiresAt => DateTime.tryParse(_s(json['expiresAt']));
   DateTime? get opensAt => json['preLaunch'] == null ? null : DateTime.tryParse(_s(_map(json['preLaunch'])['opensAt']));
   LaunchOffer? get launchOffer => json['launchOffer'] == null ? null : LaunchOffer(_map(json['launchOffer']));
+  // A plan is required and the member has none: matching is refused.
+  bool get accessLocked => json['accessLocked'] == true;
+  DateTime? get startedAt => DateTime.tryParse(_s(json['startedAt']));
+  List<String> get planFeatures =>
+      (_map(json['plan'])['features'] as List? ?? []).map((f) => _map(f)).where((f) => f['available'] == true).map((f) => _s(f['label'])).toList();
+  int? get phoneUnlocksUsed => (json['phoneUnlocksUsed'] as num?)?.toInt();
+  int? get phoneUnlocksRemaining => (json['phoneUnlocksRemaining'] as num?)?.toInt();
+  int? get interestsUsedThisMonth => (json['interestsUsedThisMonth'] as num?)?.toInt();
+  int? get interestsLimit => (json['interestsLimit'] as num?)?.toInt();
+  DateTime? get resetsAt => DateTime.tryParse(_s(json['resetsAt']));
+  List<Map<String, dynamic>> get history => (json['history'] as List? ?? []).map((h) => _map(h)).toList();
 }
 
 class IdentityStatus {

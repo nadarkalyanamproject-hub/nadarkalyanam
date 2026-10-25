@@ -46,16 +46,23 @@ String? genderFor(String profileFor) => switch (profileFor) {
 const genders = {'MALE': 'Male', 'FEMALE': 'Female', 'OTHER': 'Other'};
 const religions = ['Hindu', 'Christian'];
 const nadarSubcategories = [
-  'Gramani',
-  'Jaishwal',
-  'Muppar',
-  'Nattathi',
-  'Kodikkal',
-  'Karukku Pattayathar',
-  'Mel Nadar',
-  'Mara Nadar',
   'Shanar',
-  'Other',
+  'Gramani',
+  'Iluvar',
+  'Nattathi',
+  'Nelamaikkarar',
+  'Thiyyas',
+  'Chovan',
+  'Billava',
+  'Gowdas',
+  'Poojary',
+  'Ediga',
+  'Bhandari',
+  'Ahluwalia',
+  'Pasi',
+  'Nayanar',
+  'Nattar',
+  'Moopper',
 ];
 
 // 4'6" to 6'6", saved exactly as the web saves it.
@@ -116,6 +123,62 @@ const hobbies = [
   'Gardening', 'Photography', 'Spiritual activities', 'Social service', 'Pets',
 ];
 const maxHobbies = 8;
+
+// Search and partner preferences: height as cm (4'6" to 6'6"), income in
+// lakhs, ages 18 to 70 (the web's option lists).
+final heightCmOptions = {
+  for (var inches = 54; inches <= 78; inches++)
+    '${(inches * 2.54).round()}': '${inches ~/ 12}\'${inches % 12}" (${(inches * 2.54).round()} cm)',
+};
+final incomeLakhOptions = {
+  for (final l in [1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 40, 50, 75, 100]) '$l': l >= 100 ? '₹${l ~/ 100} Cr' : '₹$l L',
+};
+final ageOptions = {for (var a = 18; a <= 70; a++) '$a': '$a yrs'};
+
+const doshamPreferences = {
+  'DOESNT_MATTER': "Doesn't matter",
+  'WITHOUT_DOSHAM': 'Without dosham',
+  'WITH_DOSHAM': 'With dosham',
+};
+
+const horoscopeVisibilities = {
+  'HIDDEN': 'Hidden (only you)',
+  'CONNECTED': "Members I'm connected with",
+  'EVERYONE': 'Visible to all members',
+};
+
+// packages/schemas/src/horoscope.ts
+const rasis = {
+  'MESHAM': 'Mesham (Aries)',
+  'RISHABAM': 'Rishabam (Taurus)',
+  'MITHUNAM': 'Mithunam (Gemini)',
+  'KADAGAM': 'Kadagam (Cancer)',
+  'SIMMAM': 'Simmam (Leo)',
+  'KANNI': 'Kanni (Virgo)',
+  'THULAM': 'Thulam (Libra)',
+  'VIRUCHIGAM': 'Viruchigam (Scorpio)',
+  'DHANUSU': 'Dhanusu (Sagittarius)',
+  'MAGARAM': 'Magaram (Capricorn)',
+  'KUMBAM': 'Kumbam (Aquarius)',
+  'MEENAM': 'Meenam (Pisces)',
+};
+const nakshatras = {
+  'ASHWINI': 'Ashwini', 'BHARANI': 'Bharani', 'KARTHIGAI': 'Karthigai', 'ROHINI': 'Rohini',
+  'MIRUGASIRISHAM': 'Mirugasirisham', 'THIRUVATHIRAI': 'Thiruvathirai', 'PUNARPOOSAM': 'Punarpoosam',
+  'POOSAM': 'Poosam', 'AYILYAM': 'Ayilyam', 'MAGAM': 'Magam', 'POORAM': 'Pooram', 'UTHIRAM': 'Uthiram',
+  'HASTHAM': 'Hastham', 'CHITHIRAI': 'Chithirai', 'SWATHI': 'Swathi', 'VISAKAM': 'Visakam',
+  'ANUSHAM': 'Anusham', 'KETTAI': 'Kettai', 'MOOLAM': 'Moolam', 'POORADAM': 'Pooradam',
+  'UTHIRADAM': 'Uthiradam', 'THIRUVONAM': 'Thiruvonam', 'AVITTAM': 'Avittam', 'SADHAYAM': 'Sadhayam',
+  'POORATTATHI': 'Poorattathi', 'UTHIRATTATHI': 'Uthirattathi', 'REVATHI': 'Revathi',
+};
+
+// packages/schemas OFFICE_ADDRESS
+const officeAddress = [
+  'Nadar Kalyanam',
+  'Old No. 18/20, New No. 23, 29th Street, Thirunagar',
+  'Villivakkam',
+  'Chennai - 600 049',
+];
 
 const profileVisibilities = {
   'PUBLIC': 'Visible to members',

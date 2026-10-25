@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import type { SupportContactResponse } from '@nadar-kalyanam/schemas';
-import { Mail, MessageCircle } from 'lucide-react';
+import { OFFICE_ADDRESS, type SupportContactResponse } from '@nadar-kalyanam/schemas';
+import { Mail, MapPin, MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { AppHeader } from '../../components/app-header';
 import { getSupportContact } from '../../lib/api-client';
@@ -73,6 +73,18 @@ export default function ContactPage() {
               ))}
             </ul>
           )}
+          <address
+            className="mt-3 flex items-start gap-3 rounded-xl border border-[#EEDFCD] bg-[#FDF9F3] px-4 py-3 not-italic text-nk-ink"
+            data-testid="contact-address"
+          >
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-nk-maroon" />
+            <span className="flex flex-col">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-nk-subtle">Office</span>
+              {OFFICE_ADDRESS.map((line) => (
+                <span key={line}>{line}</span>
+              ))}
+            </span>
+          </address>
         </Card>
 
         <p className="mt-6 text-center text-xs text-nk-subtle">

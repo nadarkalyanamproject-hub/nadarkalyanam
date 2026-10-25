@@ -48,20 +48,35 @@ export const RELIGIONS = ['Hindu', 'Christian'] as const;
 export type Religion = (typeof RELIGIONS)[number];
 
 // The Nadar sub-community picker at registration (step 1), stored as the
-// profile's casteCommunity. To be confirmed with the client.
+// profile's casteCommunity. The client's list, in their order (25-10-2026).
 export const NADAR_SUBCATEGORIES = [
-  'Gramani',
-  'Jaishwal',
-  'Muppar',
-  'Nattathi',
-  'Kodikkal',
-  'Karukku Pattayathar',
-  'Mel Nadar',
-  'Mara Nadar',
   'Shanar',
-  'Other',
+  'Gramani',
+  'Iluvar',
+  'Nattathi',
+  'Nelamaikkarar',
+  'Thiyyas',
+  'Chovan',
+  'Billava',
+  'Gowdas',
+  'Poojary',
+  'Ediga',
+  'Bhandari',
+  'Ahluwalia',
+  'Pasi',
+  'Nayanar',
+  'Nattar',
+  'Moopper',
 ] as const;
 export type NadarSubcategory = (typeof NADAR_SUBCATEGORIES)[number];
+
+// The office address, one line per entry (Contact page and footer).
+export const OFFICE_ADDRESS = [
+  'Nadar Kalyanam',
+  'Old No. 18/20, New No. 23, 29th Street, Thirunagar',
+  'Villivakkam',
+  'Chennai - 600 049',
+] as const;
 
 // Complexion (optional, step 2), saved as the label itself.
 export const COMPLEXIONS = ['Fair', 'Wheatish', 'Wheatish Brown', 'Dusky'] as const;

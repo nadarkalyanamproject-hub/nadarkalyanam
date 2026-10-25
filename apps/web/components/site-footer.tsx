@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { SupportContactResponse } from '@nadar-kalyanam/schemas';
+import { OFFICE_ADDRESS, type SupportContactResponse } from '@nadar-kalyanam/schemas';
 import { useRegistration } from '../app/providers/registration-provider';
 import { getSupportContact } from '../lib/api-client';
 import { supportContactLinks } from '../lib/membership';
-import { Mail, MessageCircle } from 'lucide-react';
+import { Mail, MapPin, MessageCircle } from 'lucide-react';
 import { Logo } from './brand/logo';
 
 // Pages that fill the screen on their own (the step-by-step sign-up, an
@@ -141,6 +141,18 @@ export function SiteFooter() {
                   </li>
                 );
               })}
+              <li>
+                <address className={`${linkClass} inline-flex items-start gap-2 not-italic`}>
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#E9C77A]" strokeWidth={1.75} aria-hidden="true" />
+                  <span>
+                    {OFFICE_ADDRESS.slice(1).map((line) => (
+                      <span key={line} className="block">
+                        {line}
+                      </span>
+                    ))}
+                  </span>
+                </address>
+              </li>
             </ul>
           </nav>
         </div>
