@@ -1,0 +1,72 @@
+# Cloud builds for the Flutter app (apps/mobile). Codemagic builds the iOS
+# app on its Macs, so it can be released from Windows.
+#
+# One-time setup in the Codemagic dashboard (Team settings):
+#  - Integrations > App Store Connect: add an App Store Connect API key,
+#    named "nadar_kalyanam_asc".
+#  - Code signing identities: let Codemagic fetch the iOS distribution
+#    certificate and App Store profile for com.nadarkalyanam.app.
+#  - Environment variable group "production" with API_BASE_URL and
+#    WEB_BASE_URL (e.g. https://api.nadarkalyanam.com/api/v1).
+#  - For Android: upload the release keystore as "nadar_kalyanam_upload".
+workflows:
+  ios-testflight:
+    name: iOS to TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    working_directory: apps/mobile
+    integrations:
+      app_store_connect: nadar_kalyanam_asc
+    environment:
+      flutter: stable
+      xcode: latest
+      groups:
+        - production
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.nadarkalyanam.app
+    scripts:
+      - name: Set up signing
+        script: xcode-project use-profiles
+      - name: Get packages
+        script: flutter pub get
+      - name: Tests
+        script: flutter test
+      - name: Build the iOS app
+        script: |
+          flutter build ipa --release \
+            --build-number=$BUILD_NUMBER \
+            --dart-define=API_BASE_URL=$API_BASE_URL \
+            --dart-define=WEB_BASE_URL=$WEB_BASE_URL \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+
+  android-release:
+    name: Android app bundle
+    instance_type: linux_x2
+    max_build_duration: 45
+    working_directory: apps/mobile
+    environment:
+      flutter: stable
+      groups:
+        - production
+      android_signing:
+        - nadar_kalyanam_upload
+    scripts:
+      - name: Get packages
+        script: flutter pub get
+      - name: Tests
+        script: flutter test
+      - name: Build the Android app bundle
+        script: |
+          flutter build appbundle --release \
+            --build-number=$BUILD_NUMBER \
+            --dart-define=API_BASE_URL=$API_BASE_URL \
+            --dart-define=WEB_BASE_URL=$WEB_BASE_URL
+    artifacts:
+      - build/app/outputs/bundle/release/*.aab
