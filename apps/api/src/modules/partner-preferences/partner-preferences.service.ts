@@ -48,6 +48,22 @@ export class PartnerPreferencesService {
     return { preferences: null };
   }
 
+  // The profile owner's preferences and how the viewer's own profile fits
+  // them ("You match N/M of her preferences"). Null if the owner has set
+  // none, or the viewer has no profile.
+  async theirPreferencesFor(
+    ownerUserId: string,
+    viewerUserId: string,
+  ): Promise<{ preferences: SavedPartnerPreferences; fit: PreferenceFit } | null> {
+    const [preferences, viewer] = await Promise.all([
+      this.findForUser(ownerUserId),
+      this.prisma.profile.findUnique({ where: { userId: viewerUserId }, select: { dateOfBirth: true, details: true } }),
+    ]);
+    if (!preferences || !viewer) return null;
+    const fit = preferenceFit(preferences, viewer);
+    return fit.total > 0 ? { preferences, fit } : null;
+  }
+
   // "N of M of your preferences match" for the viewing member only. Null if
   // the viewer has no preferences set.
   async fitForViewer(viewerUserId: string, profile: Pick<Profile, 'dateOfBirth' | 'details'>): Promise<PreferenceFit | null> {

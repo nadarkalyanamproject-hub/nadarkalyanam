@@ -8,8 +8,9 @@ import { ProfileCard } from '../../components/browse/profile-card';
 import { ApiError, listProfiles } from '../../lib/api-client';
 import { useRegistration } from '../providers/registration-provider';
 import { useRequireAuth } from '../../lib/use-require-auth';
+import { PlanGate } from '../../components/plan/plan-gate';
 
-export default function BrowsePage() {
+function BrowsePageContent() {
   const { ready } = useRequireAuth();
   const { data } = useRegistration();
   const [profiles, setProfiles] = useState<PublicProfileSummary[] | null>(null);
@@ -74,5 +75,14 @@ export default function BrowsePage() {
         </div>
       </main>
     </>
+  );
+}
+
+// Needs a membership plan when the server requires one (see PlanGate).
+export default function BrowsePage() {
+  return (
+    <PlanGate>
+      <BrowsePageContent />
+    </PlanGate>
   );
 }

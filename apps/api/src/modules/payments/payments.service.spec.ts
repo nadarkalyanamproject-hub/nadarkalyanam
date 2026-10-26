@@ -7,7 +7,7 @@ import { StubPaymentGatewayAdapter } from './adapters/stub-payment-gateway.adapt
 import { SubscriptionService } from '../membership/subscription.service.js';
 import { PaymentsService, type PaymentWebhookEvent } from './payments.service.js';
 
-function buildService(overrides?: { nodeEnv?: string; gatewayIsStub?: boolean; freeInterests?: number }) {
+function buildService(overrides?: { nodeEnv?: string; gatewayIsStub?: boolean; freeInterests?: number; requirePaidPlan?: boolean }) {
   const prisma = {
     membershipPlan: {
       findUnique: vi.fn().mockResolvedValue({
@@ -41,8 +41,13 @@ function buildService(overrides?: { nodeEnv?: string; gatewayIsStub?: boolean; f
     verifyWebhookSignature: vi.fn(),
   };
   const configService = {
-    get: vi.fn((key: string) =>
-      key === 'NODE_ENV' ? (overrides?.nodeEnv ?? 'test') : key === 'FREE_INTERESTS_PER_MONTH' ? (overrides?.freeInterests ?? 5) : undefined,
+    get: vi.fn(
+      (key: string) =>
+        ({
+          NODE_ENV: overrides?.nodeEnv ?? 'test',
+          FREE_INTERESTS_PER_MONTH: overrides?.freeInterests ?? 5,
+          REQUIRE_PAID_PLAN: overrides?.requirePaidPlan ?? false,
+        })[key],
     ),
   };
 
@@ -114,6 +119,7 @@ describe('PaymentsService', () => {
         name: 'Gold',
         description: 'For families ready to talk',
         priceInPaise: 149900,
+        originalPriceInPaise: 249900,
         durationDays: 90,
         sortOrder: 1,
         phoneUnlockLimit: 50,
@@ -132,6 +138,7 @@ describe('PaymentsService', () => {
         name: 'Gold',
         description: 'For families ready to talk',
         priceInPaise: 149900,
+        originalPriceInPaise: 249900,
         durationDays: 90,
         sortOrder: 1,
         phoneUnlockLimit: 50,
@@ -146,6 +153,16 @@ describe('PaymentsService', () => {
     const { service, prisma } = buildService({ freeInterests: 12 });
     prisma.membershipPlan.findMany.mockResolvedValue([]);
     expect((await service.listPlans()).freeInterestsPerMonth).toBe(12);
+  });
+
+  it('listPlans reports whether a plan is required, so the public Membership page can say so', async () => {
+    const off = buildService();
+    off.prisma.membershipPlan.findMany.mockResolvedValue([]);
+    expect((await off.service.listPlans()).requirePaidPlan).toBe(false);
+
+    const on = buildService({ requirePaidPlan: true });
+    on.prisma.membershipPlan.findMany.mockResolvedValue([]);
+    expect((await on.service.listPlans()).requirePaidPlan).toBe(true);
   });
 });
 

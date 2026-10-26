@@ -38,6 +38,8 @@ import { BlockMemberButton } from '../../../components/block/block-member-button
 import { PhoneUnlockCard } from '../../../components/phone/phone-unlock-card';
 import { useBackNavigation } from '../../../lib/navigation-history';
 import { HoroscopeCard, PreferenceFitNote } from '../../../components/profile-view/horoscope-card';
+import { TheirPreferencesCard } from '../../../components/profile-view/their-preferences-card';
+import { PlanGate } from '../../../components/plan/plan-gate';
 
 const MARITAL_STATUS_LABELS: Record<string, string> = {
   NEVER_MARRIED: 'Never Married',
@@ -79,23 +81,23 @@ function DataTile({
     <div
       className={`group flex items-start gap-3.5 rounded-xl border p-3.5 transition-all duration-200 ${
         highlight
-          ? 'border-[#F1DFBA] bg-gradient-to-br from-[#FFFDF9] to-[#FFF8EE] shadow-2xs'
+          ? 'border-[#F1DFBA] bg-gradient-to-br from-nk-ivory to-[#FFF8EE] shadow-2xs'
           : 'border-[#F0EAE1] bg-[#FCFAF6]/60 hover:border-[#E5DDD0] hover:bg-white hover:shadow-2xs'
       }`}
     >
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-[#EBE3D5] text-[#7A1C32] shadow-2xs transition-colors group-hover:border-[#DECDBB]">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-[#EBE3D5] text-nk-maroon shadow-2xs transition-colors group-hover:border-nk-line-strong">
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-[#7E6F65]">{itemLabel}</p>
-        <div className="mt-0.5 text-sm font-semibold text-[#241C1A] break-words">{value || '—'}</div>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-nk-muted">{itemLabel}</p>
+        <div className="mt-0.5 text-sm font-semibold text-nk-ink break-words">{value || '—'}</div>
         {subvalue ? <p className="mt-0.5 text-xs text-[#8A796E]">{subvalue}</p> : null}
       </div>
     </div>
   );
 }
 
-export default function ViewProfilePage() {
+function ViewProfilePageContent() {
   const { ready } = useRequireAuth();
   const params = useParams<{ profileId: string }>();
   const { data } = useRegistration();
@@ -164,7 +166,7 @@ export default function ViewProfilePage() {
   return (
     <>
       <AppHeader />
-      <main className="min-h-screen bg-[#FAF7F2] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <main className="min-h-screen bg-nk-paper px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
           {/* Back Navigation Breadcrumb */}
           <div className="flex items-center justify-between">
@@ -178,7 +180,7 @@ export default function ViewProfilePage() {
                 goBack();
               }}
               data-testid="profile-back"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#7E6F65] hover:text-[#7A1C32] transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-nk-muted hover:text-nk-maroon transition-colors"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               <span>{hasHistory ? 'Back' : 'Back to Browse'}</span>
@@ -187,8 +189,8 @@ export default function ViewProfilePage() {
 
           {loading && (
             <div className="rounded-2xl border border-[#EDE6DB] bg-white p-12 text-center shadow-xs">
-              <div className="mx-auto flex h-10 w-10 animate-spin items-center justify-center rounded-full border-2 border-[#7A1C32] border-t-transparent" />
-              <p className="mt-4 text-sm font-medium text-[#7E6F65]">Loading profile details…</p>
+              <div className="mx-auto flex h-10 w-10 animate-spin items-center justify-center rounded-full border-2 border-nk-maroon border-t-transparent" />
+              <p className="mt-4 text-sm font-medium text-nk-muted">Loading profile details…</p>
             </div>
           )}
 
@@ -200,11 +202,11 @@ export default function ViewProfilePage() {
 
           {blockedName && (
             <Card className="rounded-2xl p-8 text-center" data-testid="profile-blocked">
-              <p className="text-sm font-semibold text-[#241C1A]">You blocked {blockedName}.</p>
-              <p className="mt-1 text-sm text-[#7E6F65]">
+              <p className="text-sm font-semibold text-nk-ink">You blocked {blockedName}.</p>
+              <p className="mt-1 text-sm text-nk-muted">
                 They no longer appear in your lists, and neither of you can message the other.
               </p>
-              <Link href="/profile#blocked-members" className="mt-3 inline-block text-sm font-semibold text-[#7A1C32] hover:underline">
+              <Link href="/profile#blocked-members" className="mt-3 inline-block text-sm font-semibold text-nk-maroon hover:underline">
                 Manage blocked members
               </Link>
             </Card>
@@ -213,11 +215,11 @@ export default function ViewProfilePage() {
           {profile && !blockedName && (
             <>
               {/* HERO PROFILE CARD - Matching Reference Mockup */}
-              <div className="overflow-hidden rounded-3xl border border-[#EFEAE2] bg-white p-6 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.03)]">
+              <div className="overflow-hidden rounded-3xl border border-nk-line-soft bg-white p-6 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.03)]">
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
                   {/* Avatar with Heart Badge */}
                   <div className="relative self-start sm:self-center shrink-0">
-                    <div className="flex h-20 w-20 sm:h-24 sm:w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white ring-2 ring-[#EADBBD]/80 bg-[#FAF7F2] text-[#8A796E] shadow-xs">
+                    <div className="flex h-20 w-20 sm:h-24 sm:w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white ring-2 ring-nk-line-gold/80 bg-nk-paper text-[#8A796E] shadow-xs">
                       {profile.primaryPhotoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={profile.primaryPhotoUrl} alt={profile.fullName} className="h-full w-full object-cover" />
@@ -226,8 +228,8 @@ export default function ViewProfilePage() {
                       )}
                     </div>
                     {/* Floating Heart Badge */}
-                    <div className="absolute -bottom-1 -right-1 flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-[#F2D6DC] bg-[#FFF8F8] text-[#7A1C32] shadow-xs">
-                      <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-[#7A1C32]/20 stroke-[2] text-[#7A1C32]" />
+                    <div className="absolute -bottom-1 -right-1 flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-[#F2D6DC] bg-[#FFF8F8] text-nk-maroon shadow-xs">
+                      <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-nk-maroon/20 stroke-[2] text-nk-maroon" />
                     </div>
                   </div>
 
@@ -249,7 +251,7 @@ export default function ViewProfilePage() {
                 </div>
 
                 {/* Hairline Divider */}
-                <hr className="my-5 border-t border-[#F1EBE1]" />
+                <hr className="my-5 border-t border-nk-line-soft" />
 
                 {/* Action Buttons Row */}
                 <div className="flex flex-wrap items-center gap-3">
@@ -264,14 +266,14 @@ export default function ViewProfilePage() {
                     <button
                       type="button"
                       onClick={() => setShowReportForm((open) => !open)}
-                      className="inline-flex items-center justify-center gap-2 rounded-full border border-[#E2E8F0] bg-white px-5 py-2.5 text-sm font-semibold text-[#64748B] hover:bg-[#FAF8F5] hover:border-[#CBD5E1] hover:text-[#475569] transition-all active:scale-[0.98]"
+                      className="inline-flex items-center justify-center gap-2 rounded-md border border-[#E2E8F0] bg-white px-5 py-2.5 text-sm font-semibold text-[#64748B] hover:bg-[#FAF8F5] hover:border-[#CBD5E1] hover:text-[#475569] transition-all active:scale-[0.98]"
                     >
                       <AlertTriangle className="h-4 w-4 text-[#8C6B6B]" />
                       <span>Report</span>
                     </button>
                   )}
                   {reportSubmitted && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F0FDF4] border border-[#86EFAC] px-4 py-2 text-xs font-semibold text-[#16A34A]">
+                    <span className="inline-flex items-center gap-1.5 rounded-md bg-[#F0FDF4] border border-[#86EFAC] px-4 py-2 text-xs font-semibold text-[#15803D]">
                       <Check className="h-3.5 w-3.5" /> Report submitted — thank you
                     </span>
                   )}
@@ -285,7 +287,7 @@ export default function ViewProfilePage() {
                 {/* Inline Report Form */}
                 {showReportForm && (
                   <div className="mt-5 rounded-2xl border border-[#F2D6DC] bg-[#FFF8F8] p-5">
-                    <div className="flex items-center gap-2 text-[#7A1C32]">
+                    <div className="flex items-center gap-2 text-nk-maroon">
                       <ShieldAlert className="h-5 w-5" />
                       <h3 className="text-sm font-bold">Why are you reporting this profile?</h3>
                     </div>
@@ -297,7 +299,7 @@ export default function ViewProfilePage() {
                       value={reportReason}
                       onChange={(e) => setReportReason(e.target.value)}
                       rows={3}
-                      className="mt-3 w-full rounded-xl border border-[#EADBD5] bg-white px-3.5 py-2.5 text-sm text-[#241C1A] placeholder:text-[#A8988C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1C32]"
+                      className="mt-3 w-full rounded-xl border border-[#EADBD5] bg-white px-3.5 py-2.5 text-sm text-nk-ink placeholder:text-[#A8988C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nk-maroon"
                       placeholder="Please share any details that help us understand the concern…"
                     />
                     {reportError ? <p className="mt-2 text-xs font-semibold text-destructive">{reportError}</p> : null}
@@ -306,14 +308,14 @@ export default function ViewProfilePage() {
                         type="button"
                         disabled={!reportReason.trim() || reporting}
                         onClick={() => void handleSubmitReport()}
-                        className="rounded-full bg-[#7A1C32] hover:bg-[#681427] active:scale-[0.98] px-5 py-2 text-xs font-semibold text-white shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="rounded-md bg-nk-maroon hover:bg-[#681427] active:scale-[0.98] px-5 py-2 text-xs font-semibold text-white shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {reporting ? 'Submitting…' : 'Submit Report'}
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowReportForm(false)}
-                        className="rounded-full border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#FAF8F5]"
+                        className="rounded-md border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#FAF8F5]"
                       >
                         Cancel
                       </button>
@@ -327,42 +329,42 @@ export default function ViewProfilePage() {
               {/* QUICK SNAPSHOT CHIPS BAR */}
               <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#EDE6DB] bg-white/80 p-3.5 shadow-2xs backdrop-blur-xs">
                 {/* Chips show only values the member actually entered — no fallbacks. */}
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-nk-paper border border-nk-line-gold px-3 py-1 text-xs font-semibold text-nk-ink-soft">
                   <span>🎂</span> {profile.age} yrs{profile.height ? ` • ${profile.height}` : ''}
                 </span>
                 {profile.education?.profession && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
-                    <Briefcase className="h-3 w-3 text-[#7A1C32]" /> {profile.education.profession}
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-nk-paper border border-nk-line-gold px-3 py-1 text-xs font-semibold text-nk-ink-soft">
+                    <Briefcase className="h-3 w-3 text-nk-maroon" /> {profile.education.profession}
                   </span>
                 )}
                 {profile.education?.educationLevel && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
-                    <GraduationCap className="h-3 w-3 text-[#7A1C32]" /> {profile.education.educationLevel}
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-nk-paper border border-nk-line-gold px-3 py-1 text-xs font-semibold text-nk-ink-soft">
+                    <GraduationCap className="h-3 w-3 text-nk-maroon" /> {profile.education.educationLevel}
                   </span>
                 )}
                 {profile.location?.city && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
-                    <MapPin className="h-3 w-3 text-[#7A1C32]" /> {profile.location.city}
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-nk-paper border border-nk-line-gold px-3 py-1 text-xs font-semibold text-nk-ink-soft">
+                    <MapPin className="h-3 w-3 text-nk-maroon" /> {profile.location.city}
                   </span>
                 )}
                 {(profile.casteCommunity || profile.religion) && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
-                    <Sparkles className="h-3 w-3 text-[#C49746]" />{' '}
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-nk-paper border border-nk-line-gold px-3 py-1 text-xs font-semibold text-nk-ink-soft">
+                    <Sparkles className="h-3 w-3 text-nk-gold" />{' '}
                     {[profile.casteCommunity, profile.religion].filter(Boolean).join(', ')}
                   </span>
                 )}
                 {profile.maritalStatus && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-nk-paper border border-nk-line-gold px-3 py-1 text-xs font-semibold text-nk-ink-soft">
                     <span>💍</span> {MARITAL_STATUS_LABELS[profile.maritalStatus] ?? profile.maritalStatus}
                   </span>
                 )}
                 {profile.motherTongue && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#5A493E]">
-                    <Languages className="h-3 w-3 text-[#7A1C32]" /> {profile.motherTongue}
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-nk-paper border border-nk-line-gold px-3 py-1 text-xs font-semibold text-nk-ink-soft">
+                    <Languages className="h-3 w-3 text-nk-maroon" /> {profile.motherTongue}
                   </span>
                 )}
                 {profile.dosham === 'NO' && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800">
                     <Check className="h-3 w-3 text-emerald-600" /> No Dosham
                   </span>
                 )}
@@ -376,13 +378,13 @@ export default function ViewProfilePage() {
                 <div className="flex flex-col gap-6 lg:col-span-4">
                   {/* Photo Gallery Card */}
                   {profile.photos.length > 0 && (
-                    <div className="overflow-hidden rounded-3xl border border-[#EFEAE2] bg-white p-5 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+                    <div className="overflow-hidden rounded-3xl border border-nk-line-soft bg-white p-5 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
                       <div className="mb-4 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Camera className="h-4 w-4 text-[#7A1C32]" />
-                          <h2 className="text-sm font-bold text-[#241C1A]">Photos</h2>
+                          <Camera className="h-4 w-4 text-nk-maroon" />
+                          <h2 className="text-sm font-bold text-nk-ink">Photos</h2>
                         </div>
-                        <span className="rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-2.5 py-0.5 text-[11px] font-bold text-[#7E6F65]">
+                        <span className="rounded-md bg-nk-paper border border-nk-line-gold px-2.5 py-0.5 text-[11px] font-bold text-nk-muted">
                           {profile.photos.length} {profile.photos.length === 1 ? 'Photo' : 'Photos'}
                         </span>
                       </div>
@@ -391,7 +393,7 @@ export default function ViewProfilePage() {
                       {profile.photos[activePhotoIndex] && (
                         <div
                           onClick={() => setEnlargedPhotoUrl(profile.photos[activePhotoIndex].url)}
-                          className="group relative aspect-[4/5] w-full cursor-pointer overflow-hidden rounded-2xl border border-[#EDE6DB] bg-[#FAF7F2]"
+                          className="group relative aspect-[4/5] w-full cursor-pointer overflow-hidden rounded-2xl border border-[#EDE6DB] bg-nk-paper"
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
@@ -400,7 +402,7 @@ export default function ViewProfilePage() {
                             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100 flex items-end p-3">
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-xs px-3 py-1 text-xs font-semibold text-white">
+                            <span className="inline-flex items-center gap-1.5 rounded-md bg-black/60 backdrop-blur-xs px-3 py-1 text-xs font-semibold text-white">
                               <Maximize2 className="h-3 w-3" /> Click to enlarge
                             </span>
                           </div>
@@ -419,8 +421,8 @@ export default function ViewProfilePage() {
                               }}
                               className={`aspect-square overflow-hidden rounded-xl border-2 transition-all ${
                                 activePhotoIndex === idx
-                                  ? 'border-[#7A1C32] shadow-xs scale-95'
-                                  : 'border-[#EDE6DB] hover:border-[#DECDBB] opacity-80 hover:opacity-100'
+                                  ? 'border-nk-maroon shadow-xs scale-95'
+                                  : 'border-[#EDE6DB] hover:border-nk-line-strong opacity-80 hover:opacity-100'
                               }`}
                             >
                               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -433,20 +435,20 @@ export default function ViewProfilePage() {
                   )}
 
                   {/* Verification & Trust Badge Card */}
-                  <div className="rounded-3xl border border-[#EFEAE2] bg-white p-5 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
-                    <div className="flex items-center gap-2.5 pb-3 border-b border-[#F1EBE1]">
+                  <div className="rounded-3xl border border-nk-line-soft bg-white p-5 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+                    <div className="flex items-center gap-2.5 pb-3 border-b border-nk-line-soft">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FEF3C7] text-[#92400E]">
                         <ShieldCheck className="h-4 w-4" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-[#241C1A]">Trust & Verification</h3>
-                        <p className="text-[11px] text-[#7E6F65]">Platform member safety</p>
+                        <h3 className="text-sm font-bold text-nk-ink">Trust & Verification</h3>
+                        <p className="text-[11px] text-nk-muted">Platform member safety</p>
                       </div>
                     </div>
 
                     {/* Only facts that are true for this member. There is no photo or
                         profile screening yet, and community isn't verified. */}
-                    <ul className="mt-4 space-y-2.5 text-xs text-[#5A493E]">
+                    <ul className="mt-4 space-y-2.5 text-xs text-nk-ink-soft">
                       <li className="flex items-center gap-2">
                         <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 text-[10px]">✓</span>
                         <span>Mobile number confirmed with OTP</span>
@@ -457,9 +459,9 @@ export default function ViewProfilePage() {
                       </li>
                     </ul>
 
-                    <div className="mt-4 rounded-xl bg-[#FAF7F2] p-3 text-[11px] leading-relaxed text-[#7E6F65] border border-[#EADBBD]/70">
-                      <div className="flex items-center gap-1 font-semibold text-[#5A493E]">
-                        <Info className="h-3.5 w-3.5 text-[#7A1C32]" />
+                    <div className="mt-4 rounded-xl bg-nk-paper p-3 text-[11px] leading-relaxed text-nk-muted border border-nk-line-gold/70">
+                      <div className="flex items-center gap-1 font-semibold text-nk-ink-soft">
+                        <Info className="h-3.5 w-3.5 text-nk-maroon" />
                         <span>Safety Tip</span>
                       </div>
                       <p className="mt-1">
@@ -472,10 +474,10 @@ export default function ViewProfilePage() {
                 {/* RIGHT MAIN DETAILS SECTION */}
                 <div className="flex flex-col gap-6 lg:col-span-8">
                   {/* "About Me" Editorial Card */}
-                  <div className="overflow-hidden rounded-3xl border border-[#EFEAE2] bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
-                    <div className="flex items-center justify-between gap-3 border-b border-[#F1EBE1] pb-4">
+                  <div className="overflow-hidden rounded-3xl border border-nk-line-soft bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+                    <div className="flex items-center justify-between gap-3 border-b border-nk-line-soft pb-4">
                       <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FAF5F6] text-[#7A1C32] border border-[#F2D6DC]">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FAF5F6] text-nk-maroon border border-[#F2D6DC]">
                           <Quote className="h-4 w-4" />
                         </div>
                         <h2 className="font-[family-name:var(--font-playfair)] font-serif text-lg sm:text-xl font-bold text-[#1E293B]">
@@ -483,7 +485,7 @@ export default function ViewProfilePage() {
                         </h2>
                       </div>
                       {profile.additional?.familyType && (
-                        <span className="rounded-full bg-[#FAF7F2] border border-[#EADBBD] px-3 py-1 text-xs font-semibold text-[#7A1C32]">
+                        <span className="rounded-md bg-nk-paper border border-nk-line-gold px-3 py-1 text-xs font-semibold text-nk-maroon">
                           {profile.additional.familyType}
                         </span>
                       )}
@@ -501,16 +503,16 @@ export default function ViewProfilePage() {
                   </div>
 
                   {/* Personal & Cultural Details */}
-                  <div className="rounded-3xl border border-[#EFEAE2] bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
-                    <div className="flex items-center gap-2.5 border-b border-[#F1EBE1] pb-4">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFF9ED] text-[#C49746] border border-[#F1DFBA]">
+                  <div className="rounded-3xl border border-nk-line-soft bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+                    <div className="flex items-center gap-2.5 border-b border-nk-line-soft pb-4">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-nk-cream text-nk-gold border border-[#F1DFBA]">
                         <Sparkles className="h-4 w-4" />
                       </div>
                       <div>
                         <h2 className="font-[family-name:var(--font-playfair)] font-serif text-lg sm:text-xl font-bold text-[#1E293B]">
                           Personal & Cultural Details
                         </h2>
-                        <p className="text-xs text-[#7E6F65]">Community, traditions, and physical attributes</p>
+                        <p className="text-xs text-nk-muted">Community, traditions, and physical attributes</p>
                       </div>
                     </div>
 
@@ -547,7 +549,7 @@ export default function ViewProfilePage() {
                       />
                       <div className="sm:col-span-2">
                         <DataTile
-                          icon={<Sparkles className="h-4 w-4 text-[#C49746]" />}
+                          icon={<Sparkles className="h-4 w-4 text-nk-gold" />}
                           label="Dosham"
                           value={
                             profile.dosham === 'NO' ? (
@@ -572,41 +574,41 @@ export default function ViewProfilePage() {
                   <HoroscopeCard view={profile.horoscope} />
 
                   {/* Education & Career Details */}
-                  <div className="rounded-3xl border border-[#EFEAE2] bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
-                    <div className="flex items-center gap-2.5 border-b border-[#F1EBE1] pb-4">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FAF5F6] text-[#7A1C32] border border-[#F2D6DC]">
+                  <div className="rounded-3xl border border-nk-line-soft bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+                    <div className="flex items-center gap-2.5 border-b border-nk-line-soft pb-4">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FAF5F6] text-nk-maroon border border-[#F2D6DC]">
                         <GraduationCap className="h-4 w-4" />
                       </div>
                       <div>
                         <h2 className="font-[family-name:var(--font-playfair)] font-serif text-lg sm:text-xl font-bold text-[#1E293B]">
                           Education & Career
                         </h2>
-                        <p className="text-xs text-[#7E6F65]">Professional background and qualifications</p>
+                        <p className="text-xs text-nk-muted">Professional background and qualifications</p>
                       </div>
                     </div>
 
                     {/* Prominent Profession Banner */}
-                    <div className="mt-5 rounded-2xl bg-gradient-to-r from-[#FFFDF9] via-[#FAF7F2] to-[#FFF9ED] border border-[#EADBBD] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="mt-5 rounded-2xl bg-gradient-to-r from-nk-ivory via-nk-paper to-nk-cream border border-nk-line-gold p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="flex items-center gap-3.5">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white border border-[#EADBBD] text-[#7A1C32] shadow-xs">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white border border-nk-line-gold text-nk-maroon shadow-xs">
                           <Briefcase className="h-6 w-6" />
                         </div>
                         <div>
                           <p className="text-xs font-bold uppercase tracking-wider text-[#8A796E]">Designation</p>
-                          <h3 className="text-base sm:text-lg font-bold text-[#241C1A]">
+                          <h3 className="text-base sm:text-lg font-bold text-nk-ink">
                             {profile.education?.profession || '—'}
                           </h3>
                           {profile.education.employedIn && (
-                            <p className="text-xs text-[#7E6F65]">{profile.education.employedIn}</p>
+                            <p className="text-xs text-nk-muted">{profile.education.employedIn}</p>
                           )}
                         </div>
                       </div>
 
                       {/* Annual Income Badge */}
                       {profile.education.annualIncomeRange && (
-                        <div className="rounded-xl bg-white/90 border border-[#EADBBD] px-4 py-2.5 sm:text-right shadow-2xs">
-                          <p className="text-[11px] font-bold uppercase tracking-wider text-[#7E6F65]">Annual Income</p>
-                          <p className="text-sm font-bold text-[#7A1C32]">
+                        <div className="rounded-xl bg-white/90 border border-nk-line-gold px-4 py-2.5 sm:text-right shadow-2xs">
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-nk-muted">Annual Income</p>
+                          <p className="text-sm font-bold text-nk-maroon">
                             {profile.education.annualIncomeCurrency || 'INR'} {profile.education.annualIncomeRange}
                           </p>
                         </div>
@@ -642,16 +644,16 @@ export default function ViewProfilePage() {
                   </div>
 
                   {/* Location & Family Details */}
-                  <div className="rounded-3xl border border-[#EFEAE2] bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
-                    <div className="flex items-center gap-2.5 border-b border-[#F1EBE1] pb-4">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FAF5F6] text-[#7A1C32] border border-[#F2D6DC]">
+                  <div className="rounded-3xl border border-nk-line-soft bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">
+                    <div className="flex items-center gap-2.5 border-b border-nk-line-soft pb-4">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FAF5F6] text-nk-maroon border border-[#F2D6DC]">
                         <Home className="h-4 w-4" />
                       </div>
                       <div>
                         <h2 className="font-[family-name:var(--font-playfair)] font-serif text-lg sm:text-xl font-bold text-[#1E293B]">
                           Location & Family Background
                         </h2>
-                        <p className="text-xs text-[#7E6F65]">Current residence and family background</p>
+                        <p className="text-xs text-nk-muted">Current residence and family background</p>
                       </div>
                     </div>
 
@@ -674,6 +676,8 @@ export default function ViewProfilePage() {
 
                     </div>
                   </div>
+
+                  <TheirPreferencesCard profile={profile} />
                 </div>
               </div>
             </>
@@ -685,5 +689,14 @@ export default function ViewProfilePage() {
         <PhotoLightbox url={enlargedPhotoUrl} onClose={() => setEnlargedPhotoUrl(null)} />
       )}
     </>
+  );
+}
+
+// Needs a membership plan when the server requires one (see PlanGate).
+export default function ViewProfilePage() {
+  return (
+    <PlanGate>
+      <ViewProfilePageContent />
+    </PlanGate>
   );
 }

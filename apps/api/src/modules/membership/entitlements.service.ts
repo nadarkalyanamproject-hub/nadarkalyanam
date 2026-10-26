@@ -105,6 +105,7 @@ export class EntitlementsService {
       return {
         plan: null,
         status: 'FREE',
+        accessLocked: this.configService.get('REQUIRE_PAID_PLAN', { infer: true }),
         startedAt: null,
         expiresAt: null,
         paidThroughAt: null,
@@ -132,6 +133,7 @@ export class EntitlementsService {
         searchTier: searchBoostForPlanCode(current.plan.code),
       },
       status: 'ACTIVE',
+      accessLocked: false,
       startedAt: current.startedAt.toISOString(),
       expiresAt: current.expiresAt.toISOString(),
       paidThroughAt: active.paidThroughAt.toISOString(),

@@ -93,9 +93,9 @@ export async function seedEssential(prisma: PrismaClient, log: (message: string)
     {
       id: 'plan-vip-assisted-6m',
       code: 'VIP_ASSISTED',
-      name: 'VIP Assisted',
-      priceInPaise: 1499900,
-      durationDays: 180,
+      name: 'VIP Gold Plus',
+      priceInPaise: 1299900,
+      durationDays: 90,
       sortOrder: 4,
       phoneUnlockLimit: 75,
       isAssisted: true,

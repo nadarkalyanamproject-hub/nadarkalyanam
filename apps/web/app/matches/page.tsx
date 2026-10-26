@@ -2,594 +2,212 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import type { MatchResult } from '@nadar-kalyanam/schemas';
+import type { Connection, ListMatchesResponse } from '@nadar-kalyanam/schemas';
+import { ArrowRight, Heart } from 'lucide-react';
 import { AppHeader } from '../../components/app-header';
-import { ApiError, listMatches, sendInterest } from '../../lib/api-client';
+import { MatchProfileCard, type MatchProfileCardData } from '../../components/matches/match-profile-card';
+import { PlanGate } from '../../components/plan/plan-gate';
+import { PageShell, SectionCard } from '../../components/ui/page-shell';
+import { ApiError, listConnections, listMatches } from '../../lib/api-client';
+import { connectionCard, topMatchCards } from '../../lib/matches-page';
 import { mustHaveNotice } from '../../lib/partner-preferences';
-import { useRegistration } from '../providers/registration-provider';
+import { PREFERENCES_EDITOR_HREF, searchCategoryHref } from '../../lib/search-categories';
 import { useRequireAuth } from '../../lib/use-require-auth';
-import { matchCategoryHref } from '../../lib/match-categories';
-import { BotanicalSprig, LotusEmblem } from '../../components/search/partner-search-bar';
-import {
-  ArrowRight,
-  Bookmark,
-  Briefcase,
-  Calendar,
-  Check,
-  ChevronRight,
-  Compass,
-  Eye,
-  GraduationCap,
-  Heart,
-  Image as ImageIcon,
-  MapPin,
-  MoreVertical,
-  Plane,
-  Search,
-  Sparkles,
-  Star,
-  Target,
-  Users,
-} from 'lucide-react';
+import { useRegistration } from '../providers/registration-provider';
 
-// Only real GET /matches fields. /matches carries no state or education, so
-// the card shows city and profession when present and omits a line otherwise.
-interface TopMatchItem {
-  profileId: string;
-  fullName: string;
-  age: number;
-  city: string | null;
-  profession: string | null;
-  score: number;
-  primaryPhotoUrl: string | null;
-  interestSent?: boolean;
-}
+// Connected members load a page at a time (the API allows up to 50 per page).
+const CONNECTIONS_PAGE_SIZE = 12;
+// The matching engine is asked for a few extra so the row stays full after
+// connected members (shown in their own section) are left out.
+const TOP_MATCHES_FETCH = 24;
+const TOP_MATCHES_SHOWN = 8;
 
-interface HubTileProps {
-  href: string;
-  title: string;
-  subtitle: string;
-  icon: React.ReactNode;
-  iconBg: string;
-  iconColor: string;
-}
+const GRID = 'grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+const errorText = (err: unknown, fallback: string) => (err instanceof ApiError ? err.message : fallback);
 
-function HubTile({ href, title, subtitle, icon, iconBg, iconColor }: HubTileProps) {
-  return (
-    <Link
-      href={href}
-      className="bg-white rounded-2xl border border-[#EADBBD]/80 hover:border-[#C4B2A0] p-3.5 sm:p-4 flex items-center justify-between gap-3 group transition-all shadow-2xs hover:shadow-xs"
-    >
-      <div className="flex items-center gap-3 min-w-0">
-        <div
-          className={`h-10 w-10 sm:h-11 sm:w-11 rounded-xl flex items-center justify-center shrink-0 ${iconBg} ${iconColor}`}
-        >
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <h3 className="text-xs sm:text-sm font-bold text-[#241C1A] group-hover:text-[#7A1118] transition-colors truncate">
-            {title}
-          </h3>
-          <p className="text-[11px] sm:text-xs text-[#73645C] truncate">{subtitle}</p>
-        </div>
-      </div>
-      <ChevronRight className="h-4 w-4 text-[#A88C78] group-hover:text-[#7A1118] group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
-    </Link>
-  );
-}
-
-function SectionHeading({ title, viewAllHref }: { title: string; viewAllHref?: string }) {
-  return (
-    <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-2">
-        <span className="w-1 h-3.5 rounded-full bg-[#7A1118] shrink-0" />
-        <h2 className="text-xs sm:text-sm font-bold text-[#241C1A] tracking-tight">{title}</h2>
-      </div>
-      {viewAllHref && (
-        <Link
-          href={viewAllHref}
-          className="text-xs font-semibold text-[#7A1118] hover:underline flex items-center gap-1"
-        >
-          <span>View all</span>
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      )}
-    </div>
-  );
-}
-
-export default function MatchesPage() {
+function MatchesPageContent() {
   const { ready } = useRequireAuth();
   const { data } = useRegistration();
-  const router = useRouter();
+  const accessToken = data.accessToken;
 
-  // null while loading. Only real matches ever go in here.
-  const [topMatches, setTopMatches] = useState<TopMatchItem[] | null>(null);
-  const [topMatchesError, setTopMatchesError] = useState<string | null>(null);
-  const [mustHaveNote, setMustHaveNote] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sendingId, setSendingId] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [toastUpgrade, setToastUpgrade] = useState(false);
+  const [connections, setConnections] = useState<Connection[] | null>(null);
+  const [connectionsTotal, setConnectionsTotal] = useState(0);
+  const [nextOffset, setNextOffset] = useState<number | null>(null);
+  const [connectionsError, setConnectionsError] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const [matches, setMatches] = useState<ListMatchesResponse | null>(null);
+  const [matchesError, setMatchesError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!ready || !data.accessToken) return;
+    if (!ready || !accessToken) return;
     let cancelled = false;
-
-    listMatches(data.accessToken, 3)
-      .then((result) => {
+    listConnections(accessToken, { limit: CONNECTIONS_PAGE_SIZE })
+      .then((page) => {
         if (cancelled) return;
-        setMustHaveNote(mustHaveNotice(result.preferences, result.items.length));
-        setTopMatches(
-          result.items.map((m: MatchResult) => ({
-            profileId: m.profileId,
-            fullName: m.fullName.split(' ')[0] || m.fullName,
-            age: m.age,
-            city: m.city,
-            profession: m.profession,
-            // Never more than 100% (preference fit and listing bonus can push the raw score past it).
-            score: Math.min(100, Math.round(m.score)),
-            primaryPhotoUrl: m.primaryPhotoUrl,
-            interestSent: m.relationshipStatus === 'INTEREST_SENT' || m.relationshipStatus === 'CONNECTED',
-          })),
-        );
+        setConnections(page.items);
+        setConnectionsTotal(page.total);
+        setNextOffset(page.nextOffset);
       })
       .catch((err: unknown) => {
-        if (cancelled) return;
-        setTopMatchesError(err instanceof ApiError ? err.message : 'Could not load your top matches. Please try again.');
+        if (!cancelled) setConnectionsError(errorText(err, 'Could not load your connections. Please try again.'));
       });
-
+    listMatches(accessToken, TOP_MATCHES_FETCH)
+      .then((result) => {
+        if (!cancelled) setMatches(result);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setMatchesError(errorText(err, 'Could not load your matches. Please try again.'));
+      });
     return () => {
       cancelled = true;
     };
-  }, [ready, data.accessToken]);
+  }, [ready, accessToken]);
 
-  async function handleSendInterest(match: TopMatchItem) {
-    if (match.interestSent) return;
-    setSendingId(match.profileId);
+  async function handleViewMore() {
+    if (!accessToken || nextOffset === null) return;
+    setLoadingMore(true);
     try {
-      if (!data.accessToken) return;
-      await sendInterest(data.accessToken, { targetProfileId: match.profileId });
-      setToastUpgrade(false);
-      setTopMatches((prev) =>
-        (prev ?? []).map((m) => (m.profileId === match.profileId ? { ...m, interestSent: true } : m)),
-      );
-      setToastMessage(`Interest sent to ${match.fullName}!`);
-      setTimeout(() => setToastMessage(null), 3500);
+      const page = await listConnections(accessToken, { offset: nextOffset, limit: CONNECTIONS_PAGE_SIZE });
+      setConnections((prev) => [...(prev ?? []), ...page.items]);
+      setConnectionsTotal(page.total);
+      setNextOffset(page.nextOffset);
     } catch (err) {
-      // The free monthly limit gets a link to the plans and stays up longer.
-      const limit = err instanceof ApiError && err.code === 'PLAN_LIMIT_REACHED';
-      setToastUpgrade(limit);
-      setToastMessage(err instanceof ApiError ? err.message : 'Could not send interest. Please try again.');
-      setTimeout(() => setToastMessage(null), limit ? 8000 : 3500);
+      setConnectionsError(errorText(err, 'Could not load more connections. Please try again.'));
     } finally {
-      setSendingId(null);
-    }
-  }
-
-  function handleSearchSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/search?city=${encodeURIComponent(searchQuery.trim())}`);
-    } else {
-      router.push('/search');
+      setLoadingMore(false);
     }
   }
 
   if (!ready) return null;
 
-  const query = searchQuery.trim().toLowerCase();
-  const filteredTopMatches = (topMatches ?? []).filter(
-    (m) =>
-      !query ||
-      [m.fullName, m.city, m.profession].some((field) => field?.toLowerCase().includes(query)),
-  );
-
   return (
     <>
       <AppHeader />
-      <main className="relative min-h-screen bg-[#FAF7F2] text-[#241C1A] overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
-        {/* Decorative corner foliage flourishes matching design system */}
-        <BotanicalSprig className="pointer-events-none absolute -top-4 -right-4 w-44 h-44 sm:w-64 sm:h-64 text-[#C4A882] opacity-40 z-0" />
-        <BotanicalSprig className="pointer-events-none absolute -bottom-4 -left-4 w-44 h-44 sm:w-64 sm:h-64 text-[#C4A882] opacity-35 rotate-180 z-0" />
-
-        <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col gap-6">
-          {/* Header Row: Title & Subtitle + Search Input */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-full bg-[#FDF2F2] border border-[#F8D7DA] flex items-center justify-center text-[#7A1118] shrink-0 shadow-2xs">
-                <Heart className="h-5 w-5 sm:h-6 sm:w-6 fill-[#7A1118] text-[#7A1118]" />
-              </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-[#241C1A] font-[family-name:var(--font-heading,serif)] tracking-tight">
-                  Matches
-                </h1>
-                <p className="text-xs sm:text-sm text-[#73645C] mt-0.5">
-                  Find your perfect match with personalized recommendations.
-                </p>
-              </div>
-            </div>
-
-            {/* Search Input */}
-            <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-72">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8C7B73] pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search matches..."
-                className="w-full pl-9 pr-4 py-2 bg-white/95 border border-[#EADBBD] hover:border-[#C4B2A0] focus:border-[#7A1118] focus:ring-1 focus:ring-[#7A1118] rounded-full text-xs text-[#241C1A] placeholder-[#9C8E82] transition-colors outline-none shadow-2xs"
-              />
-            </form>
-          </div>
-
-          {/* Toast Notification */}
-          {toastMessage && (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/90 p-3.5 text-xs sm:text-sm font-medium text-emerald-800 flex items-center justify-between shadow-2xs">
-              <span>
-                {toastMessage}
-                {toastUpgrade && (
-                  <>
-                    {' '}
-                    <Link href="/membership" className="font-semibold underline">
-                      Upgrade
-                    </Link>
-                  </>
-                )}
-              </span>
-              <button
-                type="button"
-                onClick={() => setToastMessage(null)}
-                className="text-emerald-700 hover:text-emerald-900 cursor-pointer font-bold ml-2"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-
-          {/* =========================================================================
-              MATCH HUB MAIN CARD (CATEGORIZED SECTIONS)
-              ========================================================================= */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EADBBD]/80 p-5 sm:p-7 lg:p-8 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)] space-y-6">
-            {/* 1. All Matches */}
-            <div>
-              <SectionHeading title="All Matches" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                <HubTile
-                  href={matchCategoryHref('your-matches')}
-                  title="Your Matches"
-                  subtitle="View all the profiles that match your preferences"
-                  icon={<Users className="h-5 w-5" />}
-                  iconBg="bg-[#FDF2F2]"
-                  iconColor="text-[#7A1118]"
-                />
-              </div>
-            </div>
-
-            {/* 2. Based on activity */}
-            <div>
-              <SectionHeading title="Based on activity" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                <HubTile
-                  href={matchCategoryHref('shortlisted-by-you')}
-                  title="Shortlisted by you"
-                  subtitle="Matches you have shortlisted"
-                  icon={<Bookmark className="h-5 w-5" />}
-                  iconBg="bg-[#FEF3C7]"
-                  iconColor="text-[#D97706]"
-                />
-                <HubTile
-                  href={matchCategoryHref('viewed-you')}
-                  title="Viewed you"
-                  subtitle="Matches who have viewed your profile"
-                  icon={<Eye className="h-5 w-5" />}
-                  iconBg="bg-[#EDE9FE]"
-                  iconColor="text-[#7C3AED]"
-                />
-                <HubTile
-                  href={matchCategoryHref('shortlisted-you')}
-                  title="Shortlisted you"
-                  subtitle="Matches who have shortlisted your profile"
-                  icon={<Star className="h-5 w-5" />}
-                  iconBg="bg-[#ECFDF5]"
-                  iconColor="text-[#059669]"
-                />
-                <HubTile
-                  href={matchCategoryHref('viewed-by-you')}
-                  title="Viewed by you"
-                  subtitle="Matches you have viewed"
-                  icon={<Target className="h-5 w-5" />}
-                  iconBg="bg-[#FFE4E6]"
-                  iconColor="text-[#E11D48]"
-                />
-              </div>
-            </div>
-
-            {/* 3. Recently joined & nearby matches + Based on profile details */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Recently joined & nearby */}
-              <div>
-                <SectionHeading title="Recently joined & nearby matches" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <HubTile
-                    href={matchCategoryHref('newly-joined')}
-                    title="Newly Joined"
-                    subtitle="Matches who joined within the last 30 days"
-                    icon={<Calendar className="h-5 w-5" />}
-                    iconBg="bg-[#E0F2FE]"
-                    iconColor="text-[#0284C7]"
-                  />
-                  <HubTile
-                    href={matchCategoryHref('nearby')}
-                    title="Nearby matches"
-                    subtitle="Matches near your location"
-                    icon={<MapPin className="h-5 w-5" />}
-                    iconBg="bg-[#F3E8FF]"
-                    iconColor="text-[#9333EA]"
-                  />
-                </div>
-              </div>
-
-              {/* Based on profile details */}
-              <div>
-                <SectionHeading title="Based on profile details" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <HubTile
-                    href={matchCategoryHref('with-photos')}
-                    title="Matches with photos"
-                    subtitle="Matches that have added photos"
-                    icon={<ImageIcon className="h-5 w-5" />}
-                    iconBg="bg-[#FFEDD5]"
-                    iconColor="text-[#EA580C]"
-                  />
-                  <HubTile
-                    href={matchCategoryHref('with-horoscope')}
-                    title="Matches with horoscope"
-                    subtitle="Matches that have added horoscope"
-                    icon={<Compass className="h-5 w-5" />}
-                    iconBg="bg-[#EEF2FF]"
-                    iconColor="text-[#4F46E5]"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 4. Astrological compatibility + Looking for someone like you */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Astrological compatibility */}
-              <div>
-                <SectionHeading title="Based on astrological compatibility" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <HubTile
-                    href={matchCategoryHref('star-matches')}
-                    title="Star matches"
-                    subtitle="Matches with compatible star sign"
-                    icon={<Sparkles className="h-5 w-5" />}
-                    iconBg="bg-[#D1FAE5]"
-                    iconColor="text-[#10B981]"
-                  />
-                  <HubTile
-                    href={matchCategoryHref('horoscope-matches')}
-                    title="Horoscope matches"
-                    subtitle="Matches with horoscope matching yours"
-                    icon={<LotusEmblem className="h-5 w-5" />}
-                    iconBg="bg-[#FFE4E6]"
-                    iconColor="text-[#E11D48]"
-                  />
-                </div>
-              </div>
-
-              {/* Looking for someone like you */}
-              <div>
-                <SectionHeading title="Members who are looking for someone like you" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <HubTile
-                    href={matchCategoryHref('mutual-matches')}
-                    title="Mutual matches"
-                    subtitle="Matches whose profile match your preferences and vice versa"
-                    icon={<Users className="h-5 w-5" />}
-                    iconBg="bg-[#FFEDD5]"
-                    iconColor="text-[#EA580C]"
-                  />
-                  <HubTile
-                    href={matchCategoryHref('looking-for-you')}
-                    title="Looking for you"
-                    subtitle="Matches whose preferences match your profile"
-                    icon={<Target className="h-5 w-5" />}
-                    iconBg="bg-[#EDE9FE]"
-                    iconColor="text-[#7C3AED]"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 5. Based on preferences */}
-            <div>
-              <SectionHeading title="Based on preferences" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                <HubTile
-                  href={matchCategoryHref('education-preference')}
-                  title="Education preference"
-                  subtitle="Matches based on your preferred education"
-                  icon={<GraduationCap className="h-5 w-5" />}
-                  iconBg="bg-[#E0F2FE]"
-                  iconColor="text-[#0284C7]"
-                />
-                <HubTile
-                  href={matchCategoryHref('professional-preference')}
-                  title="Professional preference"
-                  subtitle="Matches based on your preferred profession"
-                  icon={<Briefcase className="h-5 w-5" />}
-                  iconBg="bg-[#FEF3C7]"
-                  iconColor="text-[#D97706]"
-                />
-                <HubTile
-                  href={matchCategoryHref('location-preference')}
-                  title="City/location preference"
-                  subtitle="Matches based on your preferred city/location"
-                  icon={<MapPin className="h-5 w-5" />}
-                  iconBg="bg-[#CCFBF1]"
-                  iconColor="text-[#0D9488]"
-                />
-                <HubTile
-                  href={matchCategoryHref('nri-matches')}
-                  title="NRI matches"
-                  subtitle="Matches from outside India"
-                  icon={<Plane className="h-5 w-5" />}
-                  iconBg="bg-[#DBEAFE]"
-                  iconColor="text-[#2563EB]"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* =========================================================================
-              YOUR TOP MATCHES SECTION (RECOMMENDED PROFILES)
-              ========================================================================= */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EADBBD]/80 p-5 sm:p-7 lg:p-8 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)]">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2.5">
-                <Sparkles className="h-5 w-5 text-[#7A1118]" />
-                <div>
-                  <h2 className="text-base sm:text-lg font-bold text-[#241C1A] font-[family-name:var(--font-heading,serif)]">
-                    Your Top Matches
-                  </h2>
-                  <p className="text-xs text-[#73645C]">
-                    Recommended based on your profile and preferences.
-                  </p>
-                </div>
-              </div>
-
-              <Link
-                href={matchCategoryHref('your-matches')}
-                className="px-4 py-2 rounded-full border border-[#7A1118]/30 hover:border-[#7A1118] hover:bg-[#7A1118]/5 text-[#7A1118] text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap"
-              >
-                <span>View All Matches</span>
-                <ArrowRight className="h-3.5 w-3.5" />
+      <PageShell
+        icon={<Heart className="h-5 w-5 fill-nk-maroon text-nk-maroon sm:h-6 sm:w-6" />}
+        title="Matches"
+        subtitle="The members you're connected with, and your best matches."
+      >
+        <SectionCard
+          title={connections && connectionsTotal > 0 ? `Connected Members (${connectionsTotal})` : 'Connected Members'}
+          testId="connected-members"
+        >
+          {connectionsError && !connections ? (
+            <ErrorNote text={connectionsError} testId="connections-error" />
+          ) : !connections ? (
+            <Loading />
+          ) : connections.length === 0 ? (
+            <div className="py-4 text-center" data-testid="connections-empty">
+              <p className="text-sm text-nk-muted">You haven&apos;t connected with anyone yet. Send or accept an interest to get started.</p>
+              <Link href="/interests" className="mt-3 inline-flex rounded-md bg-nk-maroon px-4 py-2 text-xs font-semibold text-white hover:bg-[#620D13]">
+                Go to Interests
               </Link>
             </div>
-
-            {topMatchesError && (
-              <p className="mt-5 rounded-2xl border border-red-200 bg-red-50/80 p-6 text-center text-sm font-medium text-[#7A1118]" data-testid="top-matches-error">
-                {topMatchesError}
-              </p>
-            )}
-            {!topMatchesError && topMatches === null && (
-              <p className="mt-5 py-6 text-center text-sm text-[#73645C]">Loading your top matches…</p>
-            )}
-            {!topMatchesError && topMatches !== null && filteredTopMatches.length === 0 && (
-              <p className="mt-5 py-6 text-center text-sm text-[#73645C]" data-testid="top-matches-empty">
-                {topMatches.length === 0
-                  ? (mustHaveNote ?? 'No matches are available for your profile right now. Check back as new members join.')
-                  : 'None of your top matches match that search.'}
-              </p>
-            )}
-            {!topMatchesError && mustHaveNote && (
-              <p className="mt-2 text-center text-xs text-[#73645C]" data-testid="must-have-note">
-                {topMatches && topMatches.length > 0 ? `${mustHaveNote} ` : ''}
-                <Link href="/profile#section-preferences" className="font-semibold text-[#7A1118] underline">
-                  Relax your must-have preferences
-                </Link>
-              </p>
-            )}
-
-            {/* Match Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5" data-testid="top-matches-grid">
-              {filteredTopMatches.map((match) => (
-                <div
-                  key={match.profileId}
-                  data-profile-id={match.profileId}
-                  className="bg-white rounded-2xl border border-[#F0E8DD] hover:border-[#DECDBB] p-4 flex flex-col justify-between gap-4 transition-all shadow-2xs hover:shadow-xs"
+          ) : (
+            <div className="flex flex-col gap-4">
+              <CardGrid cards={connections.map(connectionCard)} />
+              {connectionsError && <ErrorNote text={connectionsError} />}
+              {nextOffset !== null && (
+                <button
+                  type="button"
+                  onClick={() => void handleViewMore()}
+                  disabled={loadingMore}
+                  data-testid="connections-more"
+                  className="self-center cursor-pointer rounded-xl border border-nk-line-strong bg-white px-6 py-2.5 text-xs font-semibold text-nk-maroon transition-colors hover:bg-nk-paper disabled:opacity-60 sm:text-sm"
                 >
-                  {/* Top Part: Avatar + Info + Score Pill */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full overflow-hidden border border-[#EADBBD] shrink-0 bg-[#FAF7F2]">
-                        {match.primaryPhotoUrl ? (
-                          <img
-                            src={match.primaryPhotoUrl}
-                            alt={match.fullName}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-full w-full flex items-center justify-center text-[#A88C78]">
-                            <Users className="h-6 w-6" />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="min-w-0">
-                        <h3 className="text-sm sm:text-base font-bold text-[#241C1A] truncate">
-                          {match.fullName}, {match.age}
-                        </h3>
-                        {match.city && (
-                          <p className="flex items-center gap-1 text-xs text-[#73645C] mt-1 truncate">
-                            <MapPin className="h-3 w-3 text-[#A88C78] shrink-0" />
-                            <span className="truncate">{match.city}</span>
-                          </p>
-                        )}
-                        {match.profession && (
-                          <p className="flex items-center gap-1 text-xs text-[#73645C] mt-0.5 truncate">
-                            <Briefcase className="h-3 w-3 text-[#A88C78] shrink-0" />
-                            <span className="truncate">{match.profession}</span>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="bg-[#FDF2F2] border border-[#F8D7DA] text-[#C53030] text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
-                        {match.score}% match
-                      </span>
-                      <button
-                        type="button"
-                        aria-label="More options"
-                        onClick={() => router.push(`/browse/${match.profileId}`)}
-                        className="text-[#8C7B73] hover:text-[#241C1A] p-0.5"
-                      >
-                        <MoreVertical className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Bottom Action Buttons */}
-                  <div className="flex items-center gap-2 pt-1">
-                    <Link
-                      href={`/browse/${match.profileId}`}
-                      className="border border-[#C49746] text-[#C49746] hover:bg-[#C49746]/10 active:scale-[0.98] text-xs font-semibold py-1.5 px-3 rounded-full flex-1 text-center transition-colors whitespace-nowrap"
-                    >
-                      View Profile
-                    </Link>
-
-                    <button
-                      type="button"
-                      disabled={match.interestSent || sendingId === match.profileId}
-                      onClick={() => void handleSendInterest(match)}
-                      className={`text-xs font-semibold py-1.5 px-3 rounded-full flex-1 text-center transition-all whitespace-nowrap flex items-center justify-center gap-1 cursor-pointer ${
-                        match.interestSent
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
-                          : 'bg-[#7A1118] hover:bg-[#620D13] active:scale-[0.98] text-white shadow-xs'
-                      }`}
-                    >
-                      {match.interestSent ? (
-                        <>
-                          <Check className="h-3.5 w-3.5" />
-                          <span>Sent</span>
-                        </>
-                      ) : sendingId === match.profileId ? (
-                        <span>Sending…</span>
-                      ) : (
-                        <span>Send Interest</span>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ))}
+                  {loadingMore ? 'Loading…' : 'View more'}
+                </button>
+              )}
             </div>
-          </div>
-        </div>
-      </main>
+          )}
+        </SectionCard>
+
+        <SectionCard
+          title="Your Top Matches"
+          testId="top-matches"
+          action={
+            matches?.preferences.hasPreferences ? (
+              <Link href={searchCategoryHref('your-matches')} className="flex items-center gap-1 text-xs font-semibold text-nk-maroon hover:underline">
+                View all <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            ) : undefined
+          }
+        >
+          <TopMatches matches={matches} error={matchesError} />
+        </SectionCard>
+      </PageShell>
     </>
+  );
+}
+
+function TopMatches({ matches, error }: { matches: ListMatchesResponse | null; error: string | null }) {
+  if (error) return <ErrorNote text={error} testId="top-matches-error" />;
+  if (!matches) return <Loading />;
+
+  // Ranked by partner preferences: with none set there's nothing to rank by,
+  // so ask for them instead of showing an unrelated list.
+  if (!matches.preferences.hasPreferences) {
+    return (
+      <div className="py-4 text-center" data-testid="top-matches-no-preferences">
+        <p className="text-sm text-nk-muted">Tell us who you&apos;re looking for, and your top matches will appear here.</p>
+        <Link href={PREFERENCES_EDITOR_HREF} className="mt-3 inline-flex rounded-md bg-nk-maroon px-4 py-2 text-xs font-semibold text-white hover:bg-[#620D13]">
+          Set your preferences
+        </Link>
+      </div>
+    );
+  }
+
+  const cards = topMatchCards(matches.items, TOP_MATCHES_SHOWN);
+  const notice = mustHaveNotice(matches.preferences, cards.length);
+  return (
+    <div className="flex flex-col gap-3">
+      {notice && (
+        <p className="text-xs text-nk-muted" data-testid="must-have-note">
+          {notice}{' '}
+          <Link href={PREFERENCES_EDITOR_HREF} className="font-semibold text-nk-maroon underline">
+            Relax your must-have preferences
+          </Link>
+        </p>
+      )}
+      {cards.length === 0 ? (
+        <p className="py-4 text-center text-sm text-nk-muted" data-testid="top-matches-empty">
+          No new matches for your preferences right now. Check back as new members join.
+        </p>
+      ) : (
+        <CardGrid cards={cards} testId="top-matches-grid" />
+      )}
+    </div>
+  );
+}
+
+function CardGrid({ cards, testId }: { cards: MatchProfileCardData[]; testId?: string }) {
+  return (
+    <div className={GRID} data-testid={testId}>
+      {cards.map((card) => (
+        <MatchProfileCard key={card.profileId} profile={card} />
+      ))}
+    </div>
+  );
+}
+
+function Loading() {
+  return <p className="py-6 text-center text-sm text-nk-muted">Loading…</p>;
+}
+
+function ErrorNote({ text, testId }: { text: string; testId?: string }) {
+  return (
+    <p className="rounded-2xl border border-red-200 bg-red-50/80 p-4 text-center text-sm font-medium text-nk-maroon" data-testid={testId} role="alert">
+      {text}
+    </p>
+  );
+}
+
+// Needs a membership plan when the server requires one (see PlanGate).
+export default function MatchesPage() {
+  return (
+    <PlanGate>
+      <MatchesPageContent />
+    </PlanGate>
   );
 }

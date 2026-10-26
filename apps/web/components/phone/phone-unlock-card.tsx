@@ -73,17 +73,17 @@ export function PhoneUnlockCard({ profileId, memberName }: { profileId: string; 
     <div className="mt-5 rounded-2xl border border-[#EDE6DB] bg-[#FCFAF6] p-4" data-testid="phone-unlock" data-state={status.state}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#EBE3D5] bg-white text-[#7A1C32]">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#EBE3D5] bg-white text-nk-maroon">
             <Phone className="h-4 w-4" />
           </span>
           <div>
-            <p className="text-sm font-semibold text-[#241C1A]">Phone number</p>
+            <p className="text-sm font-semibold text-nk-ink">Phone number</p>
             {phoneNumber ? (
-              <p className="font-mono text-sm text-[#241C1A]" data-testid="phone-number">
+              <p className="font-mono text-sm text-nk-ink" data-testid="phone-number">
                 {phoneNumber}
               </p>
             ) : (
-              <p className="text-xs text-[#7E6F65]" data-testid="phone-message">
+              <p className="text-xs text-nk-muted" data-testid="phone-message">
                 {view.message}
               </p>
             )}
@@ -94,7 +94,7 @@ export function PhoneUnlockCard({ profileId, memberName }: { profileId: string; 
           <button
             type="button"
             onClick={() => void copy()}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#FAF8F5]"
+            className="inline-flex items-center gap-1.5 rounded-md border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#FAF8F5]"
           >
             {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
             {copied ? 'Copied' : 'Copy'}
@@ -105,7 +105,7 @@ export function PhoneUnlockCard({ profileId, memberName }: { profileId: string; 
             data-testid="phone-unlock-button"
             disabled={working}
             onClick={() => (view.confirm ? setConfirming(true) : void reveal())}
-            className="rounded-full bg-[#7A1C32] px-5 py-2 text-xs font-semibold text-white hover:bg-[#681427] disabled:opacity-50"
+            className="rounded-md bg-nk-maroon px-5 py-2 text-xs font-semibold text-white hover:bg-[#681427] disabled:opacity-50"
           >
             {working ? 'Unlocking…' : view.buttonLabel}
           </button>
@@ -113,7 +113,7 @@ export function PhoneUnlockCard({ profileId, memberName }: { profileId: string; 
           <Link
             href="/membership"
             data-testid="phone-upgrade"
-            className="rounded-full border border-[#DFC392] bg-[#FDF9F3] px-5 py-2 text-xs font-semibold text-[#680A0E] hover:bg-[#F7EBDC]"
+            className="rounded-md border border-[#DFC392] bg-[#FDF9F3] px-5 py-2 text-xs font-semibold text-nk-maroon-deep hover:bg-[#F7EBDC]"
           >
             See plans
           </Link>
@@ -129,16 +129,16 @@ export function PhoneUnlockCard({ profileId, memberName }: { profileId: string; 
       {confirming && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" data-testid="phone-unlock-confirm">
           <div role="dialog" aria-modal="true" aria-labelledby="phone-unlock-title" className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
-            <h2 id="phone-unlock-title" className="text-base font-bold text-[#241C1A]">
+            <h2 id="phone-unlock-title" className="text-base font-bold text-nk-ink">
               Unlock {memberName}&apos;s phone number?
             </h2>
-            <p className="mt-2 text-sm text-[#5A493E]">{view.confirm}</p>
+            <p className="mt-2 text-sm text-nk-ink-soft">{view.confirm}</p>
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setConfirming(false)}
                 disabled={working}
-                className="rounded-full border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#FAF8F5]"
+                className="rounded-md border border-[#E2E8F0] bg-white px-4 py-2 text-xs font-semibold text-[#64748B] hover:bg-[#FAF8F5]"
               >
                 Cancel
               </button>
@@ -146,7 +146,7 @@ export function PhoneUnlockCard({ profileId, memberName }: { profileId: string; 
                 type="button"
                 onClick={() => void reveal()}
                 disabled={working}
-                className="rounded-full bg-[#7A1C32] px-5 py-2 text-xs font-semibold text-white hover:bg-[#681427] disabled:opacity-50"
+                className="rounded-md bg-nk-maroon px-5 py-2 text-xs font-semibold text-white hover:bg-[#681427] disabled:opacity-50"
               >
                 {working ? 'Unlocking…' : 'Unlock'}
               </button>

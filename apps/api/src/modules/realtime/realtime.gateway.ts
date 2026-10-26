@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import {
   type OnGatewayConnection,
@@ -9,7 +10,9 @@ import {
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
 import { parseCorsOrigins } from '../../common/cors-origins.js';
+import { hasPlanAccess, PLAN_REQUIRED_MESSAGE } from '../../common/plan-required.guard.js';
 import { assertActiveSession } from '../auth/session.util.js';
+import type { Env } from '../config/env.schema.js';
 import { MessagesService } from '../messages/messages.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -45,6 +48,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     private readonly jwtService: JwtService,
     private readonly messagesService: MessagesService,
     private readonly prisma: PrismaService,
+    private readonly config: ConfigService<Env, true>,
   ) {}
 
   async handleConnection(client: AuthenticatedSocket): Promise<void> {
@@ -81,6 +85,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     payload: { conversationId: string; body: string },
   ): Promise<void> {
     const senderId = this.requireUserId(client);
+    await this.requirePlan(senderId);
     const message = await this.messagesService.sendMessage(senderId, payload.conversationId, payload.body);
 
     const participant = await this.prisma.conversationParticipant.findFirst({
@@ -103,7 +108,15 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   @SubscribeMessage('message_read')
   async handleMessageRead(client: AuthenticatedSocket, payload: { conversationId: string }): Promise<void> {
     const userId = this.requireUserId(client);
+    await this.requirePlan(userId);
     await this.messagesService.markRead(userId, payload.conversationId);
+  }
+
+  // Chat needs a plan when REQUIRE_PAID_PLAN is on, same as the REST routes.
+  private async requirePlan(userId: string): Promise<void> {
+    if (!(await hasPlanAccess(this.prisma, this.config, userId))) {
+      throw new Error(PLAN_REQUIRED_MESSAGE);
+    }
   }
 
   private requireUserId(client: AuthenticatedSocket): string {

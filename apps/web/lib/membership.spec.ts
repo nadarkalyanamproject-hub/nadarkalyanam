@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { daysLeft, daysLeftLabel, durationLabel, formatPrice, freeInterestsCopy, membershipBanner, supportContactLinks, whatsappHref } from './membership';
+import {
+  daysLeft,
+  daysLeftLabel,
+  discountPercent,
+  durationLabel,
+  formatPrice,
+  membershipBanner,
+  supportContactLinks,
+  whatsappHref,
+} from './membership';
 
 describe('membership display helpers', () => {
   it('formats paise as rupees', () => {
@@ -57,13 +66,13 @@ describe('daysLeft and membershipBanner (India time)', () => {
   });
 });
 
-describe('free-limit copy', () => {
-  it('follows the configured limit and never hardcodes one', () => {
-    expect(freeInterestsCopy(5)).toMatch(/^Send up to 5 interests a month\./);
-    expect(freeInterestsCopy(12)).toMatch(/^Send up to 12 interests a month\./);
-    expect(freeInterestsCopy(1)).toMatch(/^Send up to 1 interest a month\./);
-    expect(freeInterestsCopy(null)).toMatch(/^Send a limited number of interests each month\./);
-    expect(freeInterestsCopy(undefined)).not.toMatch(/\d/);
+describe('plan card pricing', () => {
+  it('shows a discount only when the original price is really higher', () => {
+    expect(discountPercent(340000, 550000)).toBe(38);
+    expect(discountPercent(460000, 790000)).toBe(42);
+    expect(discountPercent(149900, null)).toBeNull();
+    expect(discountPercent(149900, 149900)).toBeNull();
+    expect(discountPercent(149900, 100000)).toBeNull();
   });
 });
 

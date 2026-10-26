@@ -46,20 +46,20 @@ export function HoroscopeOwnerView({ saved, onChanged }: { saved: MyHoroscope | 
     : [];
   return (
     <div className="space-y-4" data-testid="horoscope-owner-view">
-      <p className="rounded-lg bg-[#FFF9ED] px-3 py-2 text-xs text-[#5A493E]" data-testid="horoscope-visibility">
-        <span className="font-semibold text-[#7A0710]">Who can see this — </span>
+      <p className="rounded-lg bg-nk-cream px-3 py-2 text-xs text-nk-ink-soft" data-testid="horoscope-visibility">
+        <span className="font-semibold text-nk-maroon">Who can see this — </span>
         {visibilityLabel(saved)}
       </p>
       {rows.length === 0 ? (
-        <p className="text-sm text-[#776B62]" data-testid="horoscope-empty">
+        <p className="text-sm text-nk-muted" data-testid="horoscope-empty">
           You haven&apos;t added horoscope details.
         </p>
       ) : (
         <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
           {rows.map((row) => (
             <div key={row.label}>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-[#776B62]">{row.label}</dt>
-              <dd className="mt-0.5 text-sm font-medium text-[#2B211C]">{row.value}</dd>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-nk-muted">{row.label}</dt>
+              <dd className="mt-0.5 text-sm font-medium text-nk-ink">{row.value}</dd>
             </div>
           ))}
         </dl>
@@ -113,13 +113,13 @@ function HoroscopeChartCard({ saved, onChanged }: { saved: MyHoroscope | null; o
   }
 
   return (
-    <div className="rounded-xl border border-[#E8DCC8] p-4" data-testid="horoscope-chart">
-      <p className="text-sm font-semibold text-[#2B211C]">Jathagam chart image (optional)</p>
-      <p className="mt-0.5 text-xs text-[#776B62]">Shown to the same members as your horoscope, and only after our team has reviewed it.</p>
+    <div className="rounded-xl border border-nk-line p-4" data-testid="horoscope-chart">
+      <p className="text-sm font-semibold text-nk-ink">Jathagam chart image (optional)</p>
+      <p className="mt-0.5 text-xs text-nk-muted">Shown to the same members as your horoscope, and only after our team has reviewed it.</p>
       {chart && (
         <div className="mt-3 flex flex-wrap items-start gap-4">
           {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL */}
-          <img src={chart.url} alt="Your jathagam chart" className="h-40 w-auto max-w-full rounded-lg border border-[#E8DCC8] object-contain" />
+          <img src={chart.url} alt="Your jathagam chart" className="h-40 w-auto max-w-full rounded-lg border border-nk-line object-contain" />
           <div className="text-xs">
             <p data-testid="chart-status" className="font-semibold">
               {chart.status === 'APPROVED'
@@ -128,12 +128,12 @@ function HoroscopeChartCard({ saved, onChanged }: { saved: MyHoroscope | null; o
                   ? 'Waiting for review — not shown to anyone yet'
                   : 'Not approved'}
             </p>
-            {chart.status === 'REJECTED' && chart.rejectionReason && <p className="mt-1 text-[#94151C]">Reason: {chart.rejectionReason}</p>}
+            {chart.status === 'REJECTED' && chart.rejectionReason && <p className="mt-1 text-nk-maroon-bright">Reason: {chart.rejectionReason}</p>}
           </div>
         </div>
       )}
       {error && (
-        <p className="mt-2 text-xs font-semibold text-[#94151C]" role="alert">
+        <p className="mt-2 text-xs font-semibold text-nk-maroon-bright" role="alert">
           {error}
         </p>
       )}
@@ -210,8 +210,8 @@ export function HoroscopeEditor({
 
   return (
     <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate data-testid="horoscope-form">
-      <fieldset className="rounded-xl border border-[#E8DCC8] p-4">
-        <legend className="px-1 text-sm font-semibold text-[#7A0710]">Who can see your horoscope</legend>
+      <fieldset className="rounded-xl border border-nk-line p-4">
+        <legend className="px-1 text-sm font-semibold text-nk-maroon">Who can see your horoscope</legend>
         <div className="space-y-2">
           {HOROSCOPE_VISIBILITY_OPTIONS.map((o) => (
             <label key={o.value} className="flex items-start gap-2 text-sm">
@@ -221,11 +221,11 @@ export function HoroscopeEditor({
                 value={o.value}
                 checked={form.visibility === o.value}
                 onChange={() => set('visibility', o.value)}
-                className="mt-1 h-4 w-4 accent-[#7A0710]"
+                className="mt-1 h-4 w-4 accent-nk-maroon"
               />
               <span>
-                <span className="font-semibold text-[#2B211C]">{o.label}</span>
-                <span className="block text-xs text-[#776B62]">{o.help}</span>
+                <span className="font-semibold text-nk-ink">{o.label}</span>
+                <span className="block text-xs text-nk-muted">{o.help}</span>
               </span>
             </label>
           ))}
@@ -235,19 +235,19 @@ export function HoroscopeEditor({
             type="checkbox"
             checked={form.shareBirthDetails}
             onChange={(e) => set('shareBirthDetails', e.target.checked)}
-            className="mt-1 h-4 w-4 accent-[#7A0710]"
+            className="mt-1 h-4 w-4 accent-nk-maroon"
             data-testid="share-birth-details"
           />
           <span>
-            <span className="font-semibold text-[#2B211C]">Also show my birth time and place</span>
-            <span className="block text-xs text-[#776B62]">
+            <span className="font-semibold text-nk-ink">Also show my birth time and place</span>
+            <span className="block text-xs text-nk-muted">
               Off by default. Only shown to the members chosen above, never in search results or lists.
             </span>
           </span>
         </label>
       </fieldset>
 
-      <p className="text-xs text-[#776B62]">Your date of birth comes from your basic details. Leave anything you don&apos;t know blank.</p>
+      <p className="text-xs text-nk-muted">Your date of birth comes from your basic details. Leave anything you don&apos;t know blank.</p>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Birth time (24-hour)" htmlFor="h-time" error={errors.birthTime}>

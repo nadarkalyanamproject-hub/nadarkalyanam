@@ -17,6 +17,7 @@ export interface AdminPlan {
   code: string;
   name: string;
   priceInPaise: number;
+  originalPriceInPaise: number | null;
   durationDays: number;
   phoneUnlockLimit: number | null;
   isAssisted: boolean;

@@ -357,6 +357,15 @@ export function declineInterest(accessToken: string, interestId: string): Promis
   });
 }
 
+// Withdraws a pending interest the caller sent (DELETE /interests/:id; the row
+// is kept with status WITHDRAWN).
+export function withdrawInterest(accessToken: string, interestId: string): Promise<{ id: string; status: string }> {
+  return request(`/interests/${interestId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
 export function listConversations(accessToken: string): Promise<ConversationListResponse> {
   return request<ConversationListResponse>('/conversations', {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -536,8 +545,9 @@ export function markAllNotificationsRead(accessToken: string): Promise<{ updated
   });
 }
 
-// Active plans, plus the free monthly interest limit (so copy follows the
-// FREE_INTERESTS_PER_MONTH setting).
+// Active plans, the monthly interest limit without a plan, and whether a plan
+// is required at all (so copy follows FREE_INTERESTS_PER_MONTH and
+// REQUIRE_PAID_PLAN).
 export function listMembershipPlans(): Promise<MembershipPlansResponse> {
   return request('/membership-plans');
 }

@@ -31,11 +31,11 @@ import {
 
 const TYPE_STYLE: Record<string, { icon: typeof Eye; className: string; label: string }> = {
   PROFILE_VIEWED: { icon: Eye, className: 'bg-[#FEF3C7] text-[#B45309]', label: 'Profile view' },
-  INTEREST_RECEIVED: { icon: Star, className: 'bg-[#FDF2F2] text-[#7A1118]', label: 'Interest received' },
-  INTEREST_ACCEPTED: { icon: Heart, className: 'bg-[#F0FDF4] text-[#16A34A]', label: 'Interest accepted' },
+  INTEREST_RECEIVED: { icon: Star, className: 'bg-[#FDF2F2] text-nk-maroon', label: 'Interest received' },
+  INTEREST_ACCEPTED: { icon: Heart, className: 'bg-[#F0FDF4] text-[#15803D]', label: 'Interest accepted' },
   NEW_MESSAGE: { icon: MessageSquare, className: 'bg-amber-50 text-[#92400E]', label: 'Message' },
 };
-const SYSTEM_STYLE = { icon: Bell, className: 'bg-[#FAF7F2] text-[#73645C]', label: 'Account update' };
+const SYSTEM_STYLE = { icon: Bell, className: 'bg-nk-paper text-nk-muted', label: 'Account update' };
 
 const PAGE_SIZE = 20;
 
@@ -51,7 +51,7 @@ function MessageText({ notification }: { notification: NotificationResponse }) {
   if (actor.name && message.startsWith(actor.name)) {
     return (
       <>
-        <span className="font-bold text-[#241C1A]">{actor.name}</span>
+        <span className="font-bold text-nk-ink">{actor.name}</span>
         {message.slice(actor.name.length)}
       </>
     );
@@ -201,7 +201,7 @@ export default function NotificationsPage() {
   return (
     <>
       <AppHeader />
-      <main className="relative min-h-screen bg-[#FAF7F2] text-[#241C1A] overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
+      <main className="relative min-h-screen bg-nk-paper text-nk-ink overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-12 2xl:px-16">
         {/* Decorative corner foliage flourishes matching design theme */}
         <BotanicalSprig className="pointer-events-none absolute -top-4 -right-4 w-44 h-44 sm:w-64 sm:h-64 text-[#C4A882] opacity-40 z-0" />
         <BotanicalSprig className="pointer-events-none absolute -bottom-4 -left-4 w-44 h-44 sm:w-64 sm:h-64 text-[#C4A882] opacity-35 rotate-180 z-0" />
@@ -210,14 +210,14 @@ export default function NotificationsPage() {
           {/* Header row: Bell Icon + Title & Subtitle on Left | Action Buttons on Right */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
-              <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-full bg-[#FDF2F2] border border-[#F8D7DA] flex items-center justify-center text-[#7A1118] shrink-0 shadow-2xs">
-                <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-[#7A1118]" />
+              <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-full bg-[#FDF2F2] border border-[#F8D7DA] flex items-center justify-center text-nk-maroon shrink-0 shadow-2xs">
+                <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-nk-maroon" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-[#241C1A] font-[family-name:var(--font-heading,serif)] tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-bold text-nk-ink font-[family-name:var(--font-heading,serif)] tracking-tight">
                   Notifications
                 </h1>
-                <p className="text-xs sm:text-sm text-[#73645C] mt-0.5">
+                <p className="text-xs sm:text-sm text-nk-muted mt-0.5">
                   {unread > 0 ? 'Stay up to date with who’s interested in you.' : 'You’re all caught up.'}
                 </p>
               </div>
@@ -229,7 +229,7 @@ export default function NotificationsPage() {
                 type="button"
                 disabled={busy !== null || unread === 0}
                 onClick={() => void handleMarkAll()}
-                className="px-4 py-2 rounded-full bg-white hover:bg-[#FAF7F2] active:scale-[0.99] border border-[#DECDBB] text-[#4A3D36] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-md bg-white hover:bg-nk-paper active:scale-[0.99] border border-nk-line-strong text-[#4A3D36] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Check className="h-3.5 w-3.5 text-[#4A3D36]" />
                 <span>{busy === 'mark' ? 'Marking…' : 'Mark all as read'}</span>
@@ -239,7 +239,7 @@ export default function NotificationsPage() {
                 type="button"
                 disabled={busy !== null || (list !== null && list.total === 0 && tab === 'all')}
                 onClick={() => void handleClearAll()}
-                className="px-4 py-2 rounded-full bg-[#7A1118] hover:bg-[#620D13] active:scale-[0.99] text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-md bg-nk-maroon hover:bg-[#620D13] active:scale-[0.99] text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Trash2 className="h-3.5 w-3.5 text-white" />
                 <span>{busy === 'clear' ? 'Clearing…' : 'Clear all'}</span>
@@ -256,10 +256,10 @@ export default function NotificationsPage() {
                   key={key}
                   type="button"
                   onClick={() => selectTab(key)}
-                  className={`px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer shadow-2xs ${
+                  className={`px-4 py-2 rounded-md text-xs font-medium flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer shadow-2xs ${
                     isActive
-                      ? 'bg-[#7A1118] text-white border border-[#7A1118] shadow-xs'
-                      : 'bg-white text-[#4A3D36] border border-[#EADBBD] hover:border-[#C4B2A0] hover:bg-[#FAF7F2]'
+                      ? 'bg-nk-maroon text-white border border-nk-maroon shadow-xs'
+                      : 'bg-white text-[#4A3D36] border border-nk-line-gold hover:border-[#C4B2A0] hover:bg-nk-paper'
                   }`}
                 >
                   <TabIcon className="h-3.5 w-3.5" />
@@ -278,14 +278,14 @@ export default function NotificationsPage() {
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-2xl border border-red-200 bg-red-50/90 p-4 text-xs sm:text-sm font-medium text-[#7A1118]">
+            <div className="rounded-2xl border border-red-200 bg-red-50/90 p-4 text-xs sm:text-sm font-medium text-nk-maroon">
               {error}
             </div>
           )}
 
           {/* Empty State Card matching the reference design */}
           {notifications && notifications.length === 0 && (
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#EADBBD]/80 p-12 sm:p-16 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)] flex flex-col items-center justify-center text-center w-full min-h-[300px]">
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-nk-line-gold/80 p-12 sm:p-16 shadow-[0_4px_24px_-4px_rgba(43,21,21,0.05)] flex flex-col items-center justify-center text-center w-full min-h-[300px]">
               {/* Emblem with delicate burst/sparkle doodle around bell */}
               <div className="relative mb-5 flex items-center justify-center">
                 <svg
@@ -315,14 +315,14 @@ export default function NotificationsPage() {
                 </svg>
 
                 <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-[#FFF5F5] border border-[#FADBD8] flex items-center justify-center shadow-xs">
-                  <Bell className="h-7 w-7 sm:h-8 sm:w-8 text-[#7A1118]" />
+                  <Bell className="h-7 w-7 sm:h-8 sm:w-8 text-nk-maroon" />
                 </div>
               </div>
 
-              <h2 className="text-base sm:text-lg font-bold text-[#241C1A] font-[family-name:var(--font-heading,serif)]">
+              <h2 className="text-base sm:text-lg font-bold text-nk-ink font-[family-name:var(--font-heading,serif)]">
                 {tab === 'unread' ? 'No unread notifications.' : tab === 'all' ? 'No notifications yet.' : 'Nothing here yet.'}
               </h2>
-              <p className="text-xs sm:text-sm text-[#73645C] mt-1.5 max-w-sm">
+              <p className="text-xs sm:text-sm text-nk-muted mt-1.5 max-w-sm">
                 We&apos;ll let you know when something new arrives.
               </p>
             </div>
@@ -349,7 +349,7 @@ export default function NotificationsPage() {
                         void handleOpen(notification);
                       }
                     }}
-                    className={`bg-white rounded-2xl border border-[#F0E8DD] hover:border-[#DECDBB] p-4 flex items-center gap-3.5 sm:gap-4 transition-all shadow-2xs hover:shadow-xs cursor-pointer ${
+                    className={`bg-white rounded-2xl border border-nk-line-soft hover:border-nk-line-strong p-4 flex items-center gap-3.5 sm:gap-4 transition-all shadow-2xs hover:shadow-xs cursor-pointer ${
                       notification.isRead ? '' : 'bg-[#FFFDFB] border-[#FADBD8]'
                     }`}
                   >
@@ -362,7 +362,7 @@ export default function NotificationsPage() {
                     </span>
 
                     {/* Actor Photo */}
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#EADBBD] bg-[#FAF7F2] text-[#73645C]">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-nk-line-gold bg-nk-paper text-nk-muted">
                       {notification.actor.photoUrl ? (
                         <img
                           src={notification.actor.photoUrl}
@@ -376,10 +376,10 @@ export default function NotificationsPage() {
 
                     {/* Text Details */}
                     <div className="min-w-0 flex-1">
-                      <p className={`text-xs sm:text-sm ${notification.isRead ? 'text-[#73645C]' : 'text-[#241C1A] font-medium'}`}>
+                      <p className={`text-xs sm:text-sm ${notification.isRead ? 'text-nk-muted' : 'text-nk-ink font-medium'}`}>
                         <MessageText notification={notification} />
                       </p>
-                      <p className="mt-0.5 truncate text-[11px] sm:text-xs text-[#8C7B73]">
+                      <p className="mt-0.5 truncate text-[11px] sm:text-xs text-nk-subtle">
                         {notification.actor.name} ·{' '}
                         <time dateTime={notification.createdAt} title={fullDate}>
                           {time}
@@ -389,13 +389,13 @@ export default function NotificationsPage() {
 
                     {/* Right side relative time & unread indicator */}
                     <div className="flex shrink-0 items-center gap-2.5">
-                      <time dateTime={notification.createdAt} title={fullDate} className="hidden text-xs text-[#8C7B73] sm:inline">
+                      <time dateTime={notification.createdAt} title={fullDate} className="hidden text-xs text-nk-subtle sm:inline">
                         {time}
                       </time>
                       {!notification.isRead && (
-                        <span className="h-2.5 w-2.5 rounded-full bg-[#7A1118]" aria-label="Unread" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-nk-maroon" aria-label="Unread" />
                       )}
-                      <ChevronRight className="h-4 w-4 text-[#8C7B73]" />
+                      <ChevronRight className="h-4 w-4 text-nk-subtle" />
                     </div>
                   </div>
                 );
@@ -406,7 +406,7 @@ export default function NotificationsPage() {
                   type="button"
                   disabled={loadingMore}
                   onClick={() => void handleLoadMore()}
-                  className="self-center px-5 py-2 mt-2 rounded-full border border-[#DECDBB] bg-white text-xs font-semibold text-[#4A3D36] hover:bg-[#FAF7F2] transition-colors cursor-pointer"
+                  className="self-center px-5 py-2 mt-2 rounded-md border border-nk-line-strong bg-white text-xs font-semibold text-[#4A3D36] hover:bg-nk-paper transition-colors cursor-pointer"
                 >
                   {loadingMore ? 'Loading…' : 'Load more'}
                 </button>

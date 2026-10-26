@@ -41,6 +41,8 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: AdminPlan; onSave: (p: P
   const [name, setName] = useState(plan.name);
   const [description, setDescription] = useState(plan.description ?? '');
   const [price, setPrice] = useState(String(plan.priceInPaise / 100));
+  // Blank = no discount shown.
+  const [originalPrice, setOriginalPrice] = useState(plan.originalPriceInPaise === null ? '' : String(plan.originalPriceInPaise / 100));
   const [sortOrder, setSortOrder] = useState(String(plan.sortOrder));
   const [lines, setLines] = useState<FeatureLine[]>(() => toLines(plan));
   const [errors, setErrors] = useState<string[]>([]);
@@ -70,6 +72,16 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: AdminPlan; onSave: (p: P
       change.priceInPaise = priceInPaise;
       summary.push(`Price: ${rupees(plan.priceInPaise)} → ${Number.isFinite(priceInPaise) ? rupees(priceInPaise) : price} (new orders only)`);
     }
+    const originalPriceInPaise = originalPrice.trim() === '' ? null : Math.round(Number(originalPrice) * 100);
+    if (originalPriceInPaise !== plan.originalPriceInPaise) {
+      change.originalPriceInPaise = originalPriceInPaise;
+      const shown = (p: number | null) => (p === null ? 'none' : Number.isFinite(p) ? rupees(p) : originalPrice);
+      summary.push(`Original (struck-out) price: ${shown(plan.originalPriceInPaise)} → ${shown(originalPriceInPaise)}`);
+    }
+    if (originalPriceInPaise !== null && Number.isFinite(priceInPaise) && originalPriceInPaise <= priceInPaise) {
+      setErrors(['Original price must be more than the price, or leave it blank.']);
+      return;
+    }
     if (Number(sortOrder) !== plan.sortOrder) {
       change.sortOrder = Number(sortOrder);
       summary.push(`Display order: ${plan.sortOrder} → ${sortOrder}`);
@@ -97,7 +109,7 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: AdminPlan; onSave: (p: P
 
   return (
     <div className="mt-4 border-t border-border pt-4" data-testid="plan-editor">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="text-xs text-muted-foreground">
           Display name
           <Input value={name} maxLength={60} onChange={(e) => setName(e.target.value)} aria-label={`${plan.code} name`} />
@@ -105,6 +117,18 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: AdminPlan; onSave: (p: P
         <label className="text-xs text-muted-foreground">
           Price (₹, incl. taxes)
           <Input type="number" min={1} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} aria-label={`${plan.code} price`} />
+        </label>
+        <label className="text-xs text-muted-foreground">
+          Original price (₹, optional)
+          <Input
+            type="number"
+            min={1}
+            step="0.01"
+            value={originalPrice}
+            placeholder="No discount"
+            onChange={(e) => setOriginalPrice(e.target.value)}
+            aria-label={`${plan.code} original price`}
+          />
         </label>
         <label className="text-xs text-muted-foreground">
           Display order
@@ -118,6 +142,9 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: AdminPlan; onSave: (p: P
           />
         </label>
       </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        When an original price is set, the plan card shows it struck out with the % off. Members are always charged the price.
+      </p>
       <label className="mt-3 block text-xs text-muted-foreground">
         Short description (optional, shown on the plan card)
         <Input value={description} maxLength={160} onChange={(e) => setDescription(e.target.value)} aria-label={`${plan.code} description`} />
@@ -217,6 +244,9 @@ function PlanRow({ plan, onSave }: { plan: AdminPlan; onSave: (p: Pending) => vo
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{plan.code}</p>
           <p className="text-base font-semibold text-foreground">
             {plan.name} · {rupees(plan.priceInPaise)}
+            {plan.originalPriceInPaise !== null && (
+              <span className="ml-1.5 text-sm font-normal text-muted-foreground line-through">{rupees(plan.originalPriceInPaise)}</span>
+            )}
           </p>
           {plan.description && <p className="text-sm text-muted-foreground">{plan.description}</p>}
           <p className="text-sm text-muted-foreground">
@@ -306,7 +336,7 @@ export default function PlansPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Plans</h1>
           <p className="text-sm text-muted-foreground">
-            Edit a plan&apos;s name, description, feature list, price, display order and whether it&apos;s offered. Price applies to new orders only.
+            Edit a plan&apos;s name, description, feature list, price, original (struck-out) price, display order and whether it&apos;s offered. Price applies to new orders only.
             Duration, phone-unlock limit and tier are fixed so existing members keep exactly what they hold.
           </p>
         </div>

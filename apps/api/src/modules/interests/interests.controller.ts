@@ -6,6 +6,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard.js';
 import { InterestsService } from './interests.service.js';
+import { PlanRequiredGuard } from '../../common/plan-required.guard.js';
 
 @Controller('interests')
 @UseGuards(JwtAuthGuard)
@@ -13,6 +14,7 @@ export class InterestsController {
   constructor(private readonly interestsService: InterestsService) {}
 
   @Post()
+  @UseGuards(PlanRequiredGuard)
   send(
     @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodValidationPipe(sendInterestRequestSchema)) body: SendInterestRequest,
@@ -21,6 +23,7 @@ export class InterestsController {
   }
 
   @Get()
+  @UseGuards(PlanRequiredGuard)
   list(@CurrentUser() user: AuthenticatedUser) {
     return this.interestsService.listForUser(user.userId);
   }
@@ -28,6 +31,7 @@ export class InterestsController {
   // Connected members (ACCEPTED interest in either direction). Registered
   // as its own path segment, so it never collides with the :id routes.
   @Get('connections')
+  @UseGuards(PlanRequiredGuard)
   connections(
     @CurrentUser() user: AuthenticatedUser,
     @Query('offset') offsetParam?: string,
@@ -45,21 +49,25 @@ export class InterestsController {
 
   // Called by the Interests page on open; clears the dot.
   @Post('viewed')
+  @UseGuards(PlanRequiredGuard)
   markViewed(@CurrentUser() user: AuthenticatedUser) {
     return this.interestsService.markViewed(user.userId);
   }
 
   @Patch(':id/accept')
+  @UseGuards(PlanRequiredGuard)
   accept(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.interestsService.accept(user.userId, id);
   }
 
   @Patch(':id/decline')
+  @UseGuards(PlanRequiredGuard)
   decline(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.interestsService.decline(user.userId, id);
   }
 
   @Delete(':id')
+  @UseGuards(PlanRequiredGuard)
   withdraw(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.interestsService.withdraw(user.userId, id);
   }

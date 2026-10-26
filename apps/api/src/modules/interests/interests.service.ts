@@ -13,6 +13,7 @@ import { getRelationshipStates } from '../../common/relationship.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { EntitlementsService } from '../membership/entitlements.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { canSeeGender } from '../../common/profile-cards.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProfilesService } from '../profiles/profiles.service.js';
@@ -27,6 +28,10 @@ interface InterestParty {
   fullName: string;
   age: number;
   primaryPhotoUrl: string | null;
+  city: string | null;
+  state: string | null;
+  educationLevel: string | null;
+  profession: string | null;
 }
 
 @Injectable()
@@ -43,7 +48,8 @@ export class InterestsService {
     const callerProfile = await this.profilesService.getOwnProfileOrThrow(callerUserId);
 
     const targetProfile = await this.prisma.profile.findUnique({ where: { id: targetProfileId } });
-    if (!targetProfile || targetProfile.visibility === 'HIDDEN') {
+    // Same-gender profiles are never shown, so they look like a missing one.
+    if (!targetProfile || targetProfile.visibility === 'HIDDEN' || !canSeeGender(callerProfile.gender, targetProfile.gender)) {
       throw new NotFoundException('Profile not found');
     }
 
@@ -385,11 +391,21 @@ export class InterestsService {
     for (const profile of profiles) {
       const photos = await this.photosService.getPhotosForProfile(profile.id);
       const primaryPhotoUrl = photos.find((photo) => photo.isPrimary)?.url ?? photos[0]?.url ?? null;
+      // Same public card fields (and the same reads) as toProfileCards;
+      // explicitly picked, never contact details. Blank values become null.
+      const details = profile.details as {
+        location?: { city?: string; state?: string };
+        education?: { educationLevel?: string; profession?: string };
+      } | null;
       result.set(profile.userId, {
         profileId: profile.id,
         fullName: profile.fullName,
         age: calculateAge(profile.dateOfBirth),
         primaryPhotoUrl,
+        city: details?.location?.city || null,
+        state: details?.location?.state || null,
+        educationLevel: details?.education?.educationLevel || null,
+        profession: details?.education?.profession || null,
       });
     }
     return result;
@@ -397,5 +413,14 @@ export class InterestsService {
 }
 
 function unknownParty(): InterestParty {
-  return { profileId: '', fullName: 'Unknown', age: 0, primaryPhotoUrl: null };
+  return {
+    profileId: '',
+    fullName: 'Unknown',
+    age: 0,
+    primaryPhotoUrl: null,
+    city: null,
+    state: null,
+    educationLevel: null,
+    profession: null,
+  };
 }

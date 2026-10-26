@@ -3,9 +3,10 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard.js';
 import { MatchCategoriesService } from './match-categories.service.js';
+import { PlanRequiredGuard } from '../../common/plan-required.guard.js';
 
 @Controller('match-categories')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PlanRequiredGuard)
 export class MatchCategoriesController {
   constructor(private readonly service: MatchCategoriesService) {}
 

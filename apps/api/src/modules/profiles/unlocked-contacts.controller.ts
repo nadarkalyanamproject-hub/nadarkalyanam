@@ -4,9 +4,10 @@ import { parseOffsetLimit } from '../../common/pagination.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard, type AuthenticatedUser } from '../auth/guards/jwt-auth.guard.js';
 import { UnlockedContactsService } from './unlocked-contacts.service.js';
+import { PlanRequiredGuard } from '../../common/plan-required.guard.js';
 
 @Controller('me')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PlanRequiredGuard)
 export class UnlockedContactsController {
   constructor(private readonly contacts: UnlockedContactsService) {}
 

@@ -16,13 +16,17 @@ export const planFeatureInputSchema = z.object({
 // active subscriptions read the limit and tier from the plan live, and an
 // order paid after a change would take the new duration — so changing them
 // would silently change what members already hold. (strict: sending any of
-// them is rejected.) Price is safe: every order stores its own amount.
+// them is rejected.) Price is safe: every order stores its own amount; the
+// original price is display only.
 export const updatePlanRequestSchema = z
   .object({
     name: z.string().trim().min(1, 'Name is required').max(60).optional(),
     description: z.string().trim().max(160).nullable().optional(),
     features: z.array(planFeatureInputSchema).min(1, 'Keep at least one feature line').max(15).optional(),
     priceInPaise: z.number().int('Price must be whole paise').positive('Price must be more than 0').optional(),
+    // null removes the discount. Must end up above the price (checked by the
+    // API against the plan's stored price when only one of them is sent).
+    originalPriceInPaise: z.number().int('Original price must be whole paise').positive().nullable().optional(),
     isActive: z.boolean().optional(),
     sortOrder: z.number().int().min(0).max(1000).optional(),
   })

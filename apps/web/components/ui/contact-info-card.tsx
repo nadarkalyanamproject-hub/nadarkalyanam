@@ -44,19 +44,19 @@ export function ContactInfoCard({ phoneUnlockLimit, position = 'bottom', align =
           e.preventDefault();
           setIsOpen((open) => !open);
         }}
-        className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[#A88C78] hover:text-[#680A0E]"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[#A88C78] hover:text-nk-maroon-deep"
       >
         <Info className="h-3.5 w-3.5" />
       </button>
       {isOpen && (
         <div
           role="dialog"
-          className={`absolute z-30 w-64 max-w-[80vw] rounded-xl border border-[#E8DCCF] bg-white p-3 text-left text-[11px] leading-relaxed text-[#5A493E] shadow-lg ${positionClass} ${alignmentClass}`}
+          className={`absolute z-30 w-64 max-w-[80vw] rounded-xl border border-nk-line bg-white p-3 text-left text-[11px] leading-relaxed text-nk-ink-soft shadow-lg ${positionClass} ${alignmentClass}`}
           data-testid="phone-info"
         >
           <div className="mb-1 flex items-center justify-between">
-            <span className="font-bold text-[#680A0E]">Phone number unlocks</span>
-            <button type="button" aria-label="Close" onClick={() => setIsOpen(false)} className="text-[#A88C78] hover:text-[#2B1515]">
+            <span className="font-bold text-nk-maroon-deep">Phone number unlocks</span>
+            <button type="button" aria-label="Close" onClick={() => setIsOpen(false)} className="text-[#A88C78] hover:text-nk-ink">
               <X className="h-3 w-3" />
             </button>
           </div>

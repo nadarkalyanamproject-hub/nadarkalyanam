@@ -129,7 +129,7 @@ export function PhotosSection({
             >
               <div className="relative aspect-square w-full">
                 {photo.isPrimary && (
-                  <span className="absolute left-2 top-2 z-10 rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
+                  <span className="absolute left-2 top-2 z-10 rounded-md bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
                     Primary
                   </span>
                 )}

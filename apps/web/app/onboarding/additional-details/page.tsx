@@ -111,7 +111,8 @@ function AdditionalDetailsStep() {
       skipWizardGuardRef.current = true;
       markProfileCreated();
       clearWizardDraft();
-      router.push('/onboarding/success');
+      // replace: Back from the welcome screen / Home never reopens the wizard.
+      router.replace('/onboarding/success');
     } catch (error) {
       setFormError(error instanceof ApiError ? error.message : 'Could not save your profile. Please try again.');
       setSubmitting(false);

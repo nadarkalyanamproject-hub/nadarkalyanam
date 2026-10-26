@@ -6,11 +6,13 @@ import {
   horoscopeViewRows,
   mustHaveNotice,
   parseCityList,
+  formatHeightCm,
   preferenceFitLine,
   preferenceSummary,
   preferencesFormFrom,
   searchFiltersFromPreferences,
   toHoroscopeRequest,
+  theirPreferenceRows,
   toPreferencesRequest,
 } from './partner-preferences';
 import { EMPTY_SEARCH_FILTERS, toSearchQuery } from './search-query';
@@ -161,5 +163,32 @@ describe('horoscope form and display', () => {
 
   it('a "not shared" view has no rows at all', () => {
     expect(horoscopeViewRows({ shared: false })).toEqual([]);
+  });
+});
+
+describe('their partner preferences', () => {
+  it('formats heights in feet and inches', () => {
+    expect(formatHeightCm(168)).toBe(`5'6"`);
+    expect(formatHeightCm(152)).toBe(`5'0"`);
+  });
+
+  it('builds one row per preference the API checked, with the viewer match', () => {
+    const rows = theirPreferenceRows(SAVED, {
+      matched: 2,
+      total: 4,
+      unknown: 1,
+      fields: [
+        { key: 'age', matched: true },
+        { key: 'height', matched: false },
+        { key: 'location', matched: true },
+        { key: 'income', matched: null },
+      ],
+    });
+    expect(rows).toEqual([
+      { key: 'age', label: 'Age', value: '25 yrs – 31 yrs', mustHave: true, matched: true },
+      { key: 'height', label: 'Height', value: `Up to 5'9"`, mustHave: false, matched: false },
+      { key: 'location', label: 'Location', value: 'Bengaluru, Tamil Nadu', mustHave: true, matched: true },
+      { key: 'income', label: 'Annual income', value: '₹10 L or more', mustHave: false, matched: null },
+    ]);
   });
 });

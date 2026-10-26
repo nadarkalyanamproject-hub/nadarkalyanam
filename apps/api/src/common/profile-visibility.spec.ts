@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isVisibleToOtherMembers, photoStatus } from './photo-visibility.js';
-import { NO_PROFILES, profileVisibilityWhere, visibleProfilesWhere } from './profile-cards.js';
+import { canSeeGender, NO_PROFILES, profileVisibilityWhere, visibleProfilesWhere } from './profile-cards.js';
 import { WITH_PHOTO_WHERE } from './profile-filters.js';
 import { type FakeState, fakePrisma, makeProfile, matchesProfileWhere } from './testing/fake-profile-store.js';
 
@@ -104,5 +104,43 @@ describe('photo visibility', () => {
     expect(WITH_PHOTO_WHERE).toEqual({ photos: { some: { isModerated: true, isApproved: true } } });
     expect(matchesProfileWhere(state, pendingOnly, WITH_PHOTO_WHERE)).toBe(false);
     expect(matchesProfileWhere(state, approved, WITH_PHOTO_WHERE)).toBe(true);
+  });
+});
+
+describe('opposite-gender rule', () => {
+  const state: FakeState = {
+    profiles: [
+      makeProfile({ userId: 'man', gender: 'MALE' }),
+      makeProfile({ userId: 'woman', gender: 'FEMALE' }),
+      makeProfile({ userId: 'other', gender: 'OTHER' }),
+    ],
+    userStatus: { man: 'ACTIVE', woman: 'ACTIVE', other: 'ACTIVE' },
+    photos: [],
+    blocks: [],
+    shortlists: [],
+    notifications: [],
+  };
+  const seenBy = (userId: string, gender: string) =>
+    state.profiles
+      .filter((p) => matchesProfileWhere(state, p, profileVisibilityWhere({ userId, isActiveMember: true, gender }, [])))
+      .map((p) => p.userId);
+
+  it('shows a man only women', () => {
+    expect(seenBy('viewer-m', 'MALE')).toEqual(['woman']);
+  });
+
+  it('shows a woman only men', () => {
+    expect(seenBy('viewer-f', 'FEMALE')).toEqual(['man']);
+  });
+
+  it('does not narrow a viewer whose gender is OTHER', () => {
+    expect(seenBy('viewer-o', 'OTHER')).toEqual(['man', 'woman', 'other']);
+  });
+
+  it('applies the same rule to a single profile', () => {
+    expect(canSeeGender('MALE', 'FEMALE')).toBe(true);
+    expect(canSeeGender('MALE', 'MALE')).toBe(false);
+    expect(canSeeGender('FEMALE', 'FEMALE')).toBe(false);
+    expect(canSeeGender('OTHER', 'MALE')).toBe(true);
   });
 });

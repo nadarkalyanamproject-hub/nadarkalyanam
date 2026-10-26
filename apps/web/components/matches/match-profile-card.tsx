@@ -26,13 +26,13 @@ export function MatchProfileCard({ profile }: { profile: MatchProfileCardData })
   const location = [profile.city, profile.state].filter(Boolean).join(', ');
   return (
     <div
-      className="bg-white rounded-2xl border border-[#F0E8DD] hover:border-[#DECDBB] p-4 flex flex-col justify-between gap-4 transition-all shadow-2xs hover:shadow-xs"
+      className="bg-white rounded-2xl border border-nk-line-soft hover:border-nk-line-strong p-3.5 flex flex-col justify-between gap-3 transition-all shadow-2xs hover:shadow-xs"
       data-testid="match-card"
       data-profile-id={profile.profileId}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full overflow-hidden border border-[#EADBBD] shrink-0 bg-[#FAF7F2]">
+          <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full overflow-hidden border border-nk-line-gold shrink-0 bg-nk-paper">
             {profile.primaryPhotoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={profile.primaryPhotoUrl} alt={profile.fullName} className="h-full w-full object-cover" />
@@ -44,23 +44,23 @@ export function MatchProfileCard({ profile }: { profile: MatchProfileCardData })
           </div>
 
           <div className="min-w-0">
-            <h3 className="text-sm sm:text-base font-bold text-[#241C1A] truncate">
+            <h3 className="text-sm sm:text-base font-bold text-nk-ink truncate">
               {profile.fullName}, {profile.age}
             </h3>
             {location && (
-              <p className="flex items-center gap-1 text-xs text-[#73645C] mt-1 truncate">
+              <p className="flex items-center gap-1 text-xs text-nk-muted mt-1 truncate">
                 <MapPin className="h-3 w-3 text-[#A88C78] shrink-0" />
                 <span className="truncate">{location}</span>
               </p>
             )}
             {profile.educationLevel && (
-              <p className="flex items-center gap-1 text-xs text-[#73645C] mt-0.5 truncate">
+              <p className="flex items-center gap-1 text-xs text-nk-muted mt-0.5 truncate">
                 <GraduationCap className="h-3 w-3 text-[#A88C78] shrink-0" />
                 <span className="truncate">{profile.educationLevel}</span>
               </p>
             )}
             {profile.profession && (
-              <p className="flex items-center gap-1 text-xs text-[#73645C] mt-0.5 truncate">
+              <p className="flex items-center gap-1 text-xs text-nk-muted mt-0.5 truncate">
                 <Briefcase className="h-3 w-3 text-[#A88C78] shrink-0" />
                 <span className="truncate">{profile.profession}</span>
               </p>
@@ -70,7 +70,7 @@ export function MatchProfileCard({ profile }: { profile: MatchProfileCardData })
         </div>
 
         {profile.score !== undefined && (
-          <span className="bg-[#FDF2F2] border border-[#F8D7DA] text-[#C53030] text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
+          <span className="bg-[#FDF2F2] border border-[#F8D7DA] text-[#C53030] text-[10px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap shrink-0">
             {/* The score can exceed 100 (preference fit and listing bonus are added on top); never show more than 100%. */}
             {Math.min(100, Math.round(profile.score))}% match
           </span>
@@ -80,7 +80,7 @@ export function MatchProfileCard({ profile }: { profile: MatchProfileCardData })
       <div className="flex items-start gap-2 pt-1">
         <Link
           href={`/browse/${profile.profileId}`}
-          className="border border-[#C49746] text-[#C49746] hover:bg-[#C49746]/10 active:scale-[0.98] text-xs font-semibold py-1.5 px-3 rounded-full flex-1 text-center transition-colors whitespace-nowrap"
+          className="border border-nk-gold text-nk-gold-text hover:bg-nk-gold/10 active:scale-[0.98] text-xs font-semibold py-1.5 px-3 rounded-md flex-1 text-center transition-colors whitespace-nowrap"
         >
           View Profile
         </Link>

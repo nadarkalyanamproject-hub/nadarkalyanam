@@ -11,6 +11,9 @@ import { announceMessagesChanged } from '../../../lib/notifications';
 import { useRegistration } from '../../providers/registration-provider';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { BlockMemberButton } from '../../../components/block/block-member-button';
+import { PlanGate } from '../../../components/plan/plan-gate';
+import { ThreadMessages } from '../../../components/messages/thread-messages';
+import { useNow } from '../../../lib/use-now';
 
 // Plain interval-based refetch — deliberately not WebSocket-backed, per this
 // task's explicit scope decision to stay polling-based for now.
@@ -20,27 +23,7 @@ const POLL_INTERVAL_MS = 4000;
 // scrolled up to read older messages, polling leaves their position alone.
 const STICK_TO_BOTTOM_PX = 80;
 
-// Two states only: sent (muted, the bubble's own text colour at low opacity)
-// and read (the theme's accent colour — there is no blue token, and accent
-// stays legible on the primary-coloured own-message bubble). The status
-// comes from the regular message poll, so a flip to READ shows up on the
-// next refresh without any extra request.
-function ReadTicks({ read }: { read: boolean }) {
-  return (
-    <span
-      className={`ml-1.5 inline-flex translate-y-[3px] align-baseline ${read ? 'text-accent' : 'text-primary-foreground/55'}`}
-      data-receipt={read ? 'read' : 'sent'}
-    >
-      <svg viewBox="0 0 18 12" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-3 w-4" aria-hidden="true">
-        <path d="M1 6.5 4.5 10 11 2.5" />
-        <path d="M7.5 9 8.5 10 15 2.5" />
-      </svg>
-      <span className="sr-only">{read ? 'Read' : 'Sent'}</span>
-    </span>
-  );
-}
-
-export default function ConversationThreadPage() {
+function ConversationThreadPageContent() {
   const { ready } = useRequireAuth();
   const params = useParams<{ conversationId: string }>();
   const { data } = useRegistration();
@@ -55,6 +38,8 @@ export default function ConversationThreadPage() {
   const stickToBottomRef = useRef(true);
   const accessToken = data.accessToken;
   const conversationId = params.conversationId;
+  // Keeps the "Today" / "Yesterday" separators right across midnight.
+  const now = useNow();
 
   // Who we're talking to — fetched once for the header.
   useEffect(() => {
@@ -219,25 +204,7 @@ export default function ConversationThreadPage() {
             )}
 
             {!blocked && messages && messages.length > 0 && (
-              <div className="flex flex-col gap-2">
-                {messages.map((message) => {
-                  const isOwn = message.senderId === data.userId;
-                  return (
-                    <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                      <div
-                        className={`max-w-[75%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2 text-sm ${
-                          isOwn ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
-                        }`}
-                      >
-                        {message.body}
-                        {/* Read receipt: only on the current user's own
-                            messages, never on the other person's. */}
-                        {isOwn && <ReadTicks read={message.status === 'READ'} />}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <ThreadMessages messages={messages} ownUserId={data.userId} now={now} />
             )}
           </div>
 
@@ -258,5 +225,14 @@ export default function ConversationThreadPage() {
         </Card>
       </main>
     </div>
+  );
+}
+
+// Needs a membership plan when the server requires one (see PlanGate).
+export default function ConversationThreadPage() {
+  return (
+    <PlanGate>
+      <ConversationThreadPageContent />
+    </PlanGate>
   );
 }

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { additionalDetailsSchema, doshamEnum, genderEnum, maritalStatusEnum, physicalStatusEnum } from './profile.js';
 import { horoscopeViewSchema } from './horoscope.js';
-import { preferenceFitSchema } from './partner-preferences.js';
+import { partnerPreferencesResponseSchema, preferenceFitSchema } from './partner-preferences.js';
 import { photoResponseSchema } from './photo.js';
 import { relationshipFieldsSchema } from './relationship.js';
 
@@ -49,9 +49,17 @@ export const publicProfileDetailSchema = publicProfileSummarySchema.extend({
   additional: additionalDetailsSchema,
   photos: z.array(photoResponseSchema),
   // Only on the single profile view, never in lists. Computed for the
-  // viewing member from their OWN preferences (null if they have none);
-  // the profile owner's preferences are never involved or exposed.
+  // viewing member from their OWN preferences (null if they have none).
   preferenceFit: preferenceFitSchema.nullable(),
+  // The profile owner's own partner preferences ("Her/His Partner
+  // Preferences") and how the VIEWER's profile fits them. Null when the
+  // owner has set none.
+  theirPreferences: z
+    .object({
+      preferences: partnerPreferencesResponseSchema.shape.preferences.unwrap(),
+      fit: preferenceFitSchema,
+    })
+    .nullable(),
   // What the owner's horoscope setting lets this viewer see.
   horoscope: horoscopeViewSchema,
 });

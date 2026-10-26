@@ -366,6 +366,10 @@ model MembershipPlan {
   // One short line under the plan name (admin-edited, optional).
   description      String?
   priceInPaise     Int
+  // Optional "was" price shown struck out on the plan card, with the % off.
+  // Display only: orders are always charged priceInPaise. When set it must
+  // be more than priceInPaise (enforced by AdminBillingService.updatePlan).
+  originalPriceInPaise Int?
   durationDays     Int
   sortOrder        Int      @default(0)
   // Phone number unlocks per subscription; null = unlimited. Not enforced

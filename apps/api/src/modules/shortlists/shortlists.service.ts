@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { ProfileCardListResponse, ShortlistResponse, ShortlistStatusResponse } from '@nadar-kalyanam/schemas';
 import { isBlockedEitherDirection } from '../../common/blocks.util.js';
-import { inKeyOrder, toProfileCards, visibleProfilesWhere } from '../../common/profile-cards.js';
+import { canSeeGender, inKeyOrder, toProfileCards, visibleProfilesWhere } from '../../common/profile-cards.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -31,8 +31,10 @@ export class ShortlistsService {
     }
     // Hidden, deactivated and blocked profiles look identical to a missing
     // one — never confirm *why* a profile can't be shortlisted.
+    const caller = await this.prisma.profile.findUnique({ where: { userId: callerUserId }, select: { gender: true } });
     if (
       target.visibility === 'HIDDEN' ||
+      !canSeeGender(caller?.gender, target.gender) ||
       target.user.status !== 'ACTIVE' ||
       (await isBlockedEitherDirection(this.prisma, callerUserId, target.userId))
     ) {

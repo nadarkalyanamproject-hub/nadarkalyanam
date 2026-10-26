@@ -24,7 +24,7 @@ export function CulturalDivider({ className = '' }: { className?: string }) {
 
 export function LotusOrnament({ className = 'h-5 w-5' }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" className={`text-[#D6A33A] ${className}`} aria-hidden="true">
+    <svg viewBox="0 0 32 32" fill="none" className={`text-nk-gold-light ${className}`} aria-hidden="true">
       {/* Central petal */}
       <path
         d="M16 4C14 9 13 14 16 23C19 14 18 9 16 4Z"

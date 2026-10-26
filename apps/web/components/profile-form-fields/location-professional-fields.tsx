@@ -137,7 +137,7 @@ export function LocationProfessionalFields({
 
       {form.profession.trim() !== '' && (
         <fieldset data-testid="income-details">
-          <legend className="mb-3 text-sm font-semibold text-[#8E1B24]">Income details</legend>
+          <legend className="mb-3 text-sm font-semibold text-nk-maroon-bright">Income details</legend>
           <div className="grid grid-cols-2 gap-4">
             <Field
               label="Annual income"

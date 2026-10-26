@@ -122,11 +122,11 @@ export function OTPInputGroup({
                 isDark
                   ? `bg-white/10 text-white placeholder-white/40 border border-white/20
                      focus:bg-white/20 focus:border-[#FFD54F] focus:ring-2 focus:ring-[#FFD54F]/40 shadow-lg`
-                  : `bg-[#FFFDF8] text-[#2B1515] border border-[#EADBCA]
-                     focus:border-[#8E1B24] focus:ring-2 focus:ring-[#F59E0B]/40 focus:bg-white shadow-sm`
+                  : `bg-[#FFFDF8] text-nk-ink border border-[#EADBCA]
+                     focus:border-nk-maroon-bright focus:ring-2 focus:ring-[#F59E0B]/40 focus:bg-white shadow-sm`
               }
               ${hasError ? "!border-[#C22020] !bg-red-50/50 !text-[#C22020] focus:!ring-red-200" : ""}
-              ${isFilled && !hasError && !isDark ? "border-[#8E1B24] bg-white text-[#8E1B24]" : ""}
+              ${isFilled && !hasError && !isDark ? "border-nk-maroon-bright bg-white text-nk-maroon-bright" : ""}
               ${disabled ? "opacity-50 cursor-not-allowed" : ""}
             `}
             aria-label={`Digit ${index + 1} of ${length}`}
@@ -257,7 +257,7 @@ export function OTPVerification({
         <button
           type="submit"
           disabled={!isComplete || activeLoading}
-          className="w-full h-12 flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#8E1B24] to-[#6C1118] text-white font-semibold text-sm shadow-md transition-all hover:from-[#A8242F] hover:to-[#8E1B24] hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full h-12 flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-nk-maroon-bright to-[#6C1118] text-white font-semibold text-sm shadow-md transition-all hover:from-[#A8242F] hover:to-nk-maroon-bright hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {activeLoading ? (
             <>
@@ -278,7 +278,7 @@ export function OTPVerification({
               type="button"
               disabled={activeLoading}
               onClick={onChangeNumber}
-              className="text-[#5E3D3D] hover:text-[#8E1B24] font-medium transition-colors"
+              className="text-[#5E3D3D] hover:text-nk-maroon-bright font-medium transition-colors"
             >
               ← Change number
             </button>
@@ -288,7 +288,7 @@ export function OTPVerification({
             type="button"
             disabled={resending || resendCooldown > 0 || activeLoading}
             onClick={handleResendClick}
-            className="ml-auto flex items-center gap-1 font-semibold text-[#8E1B24] hover:text-[#6C1118] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="ml-auto flex items-center gap-1 font-semibold text-nk-maroon-bright hover:text-[#6C1118] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {resending ? (
               <Loader2 className="w-3 h-3 animate-spin" />
@@ -315,7 +315,7 @@ export function OTPVerification({
             alt="Traditional Nadar wedding atmosphere"
             className="w-full h-full object-cover opacity-40 scale-105 transition-transform duration-1000"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#6C1118]/85 via-[#8E1B24]/90 to-[#2B1515]/98" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#6C1118]/85 via-nk-maroon-bright/90 to-[#2B1515]/98" />
         </div>
 
         <div className="relative z-10 p-6 sm:p-10 py-10 sm:py-12 flex flex-col items-center">
@@ -366,17 +366,17 @@ export function OTPVerification({
             <button
               type="submit"
               disabled={!isComplete || activeLoading}
-              className="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FFD54F] via-[#F59E0B] to-[#D97706] text-[#680A0E] font-bold text-sm sm:text-base shadow-lg transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#FFD54F] via-[#F59E0B] to-[#D97706] text-nk-maroon-deep font-bold text-sm sm:text-base shadow-lg transition-all hover:brightness-105 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {activeLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin text-[#680A0E]" />
+                  <Loader2 className="w-4 h-4 animate-spin text-nk-maroon-deep" />
                   <span>Verifying…</span>
                 </>
               ) : (
                 <>
                   <span>{buttonLabel}</span>
-                  <ArrowRight className="w-4 h-4 text-[#680A0E]" />
+                  <ArrowRight className="w-4 h-4 text-nk-maroon-deep" />
                 </>
               )}
             </button>

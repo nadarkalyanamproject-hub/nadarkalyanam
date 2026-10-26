@@ -143,6 +143,46 @@ export function preferenceSummary(saved: SavedPartnerPreferences): { label: stri
   return lines;
 }
 
+// 168 -> 5'5"
+export function formatHeightCm(cm: number): string {
+  const inches = Math.round(cm / 2.54);
+  return `${Math.floor(inches / 12)}'${inches % 12}"`;
+}
+
+export interface TheirPreferenceRow {
+  key: PreferenceFitKey;
+  label: string;
+  value: string;
+  mustHave: boolean;
+  // true / false, or null when the viewer's profile doesn't state it.
+  matched: boolean | null;
+}
+
+// "Her/His Partner Preferences": one row per preference the owner has set,
+// in the API's order, with whether the VIEWER matches it.
+export function theirPreferenceRows(prefs: SavedPartnerPreferences, fit: PreferenceFit): TheirPreferenceRow[] {
+  const values: Record<PreferenceFitKey, { label: string; value: string | null; mustHave: boolean }> = {
+    age: { label: 'Age', value: range(prefs.ageMin, prefs.ageMax, (n) => `${n} yrs`), mustHave: prefs.mustHaveAge },
+    height: { label: 'Height', value: range(prefs.heightMinCm, prefs.heightMaxCm, formatHeightCm), mustHave: false },
+    maritalStatus: {
+      label: 'Marital status',
+      value: prefs.maritalStatuses.map((m) => MARITAL_LABELS[m] ?? m).join(', ') || null,
+      mustHave: prefs.mustHaveMaritalStatus,
+    },
+    motherTongue: { label: 'Mother tongue', value: prefs.motherTongues.join(', ') || null, mustHave: false },
+    location: { label: 'Location', value: [...prefs.cities, ...prefs.states].join(', ') || null, mustHave: prefs.mustHaveLocation },
+    income: { label: 'Annual income', value: range(prefs.incomeMinLakhs, prefs.incomeMaxLakhs, formatLakhs), mustHave: false },
+    dosham: { label: 'Dosham', value: DOSHAM_PREFERENCE_LABELS[prefs.doshamPreference], mustHave: false },
+  };
+  return fit.fields.map(({ key, matched }) => ({
+    key,
+    label: values[key].label,
+    value: values[key].value ?? '—',
+    mustHave: values[key].mustHave,
+    matched,
+  }));
+}
+
 // "3 of 5 of your preferences match" (+ how many couldn't be checked).
 export function preferenceFitLine(fit: PreferenceFit): string {
   const base = `${fit.matched} of ${fit.total} of your preferences match`;

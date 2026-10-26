@@ -6,6 +6,14 @@ export function formatPrice(priceInPaise: number): string {
   return `₹${(priceInPaise / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 }
 
+// Whole-percent saving against the plan's original (struck-out) price, or
+// null when there's no real discount to show.
+export function discountPercent(priceInPaise: number, originalPriceInPaise: number | null): number | null {
+  if (originalPriceInPaise === null || originalPriceInPaise <= priceInPaise) return null;
+  const percent = Math.round(((originalPriceInPaise - priceInPaise) / originalPriceInPaise) * 100);
+  return percent > 0 ? percent : null;
+}
+
 // 90 -> "3 months", 365 -> "12 months", 45 -> "45 days".
 export function durationLabel(days: number): string {
   if (days === 365) return '12 months';
@@ -70,17 +78,6 @@ export function membershipBanner(
 export function daysLeftLabel(days: number): string {
   if (days === 0) return 'ends today';
   return `${days} day${days === 1 ? '' : 's'} left`;
-}
-
-// The free plan's monthly interest allowance as member-facing copy. The
-// number comes from the API (FREE_INTERESTS_PER_MONTH); until it has loaded
-// the copy states no number rather than guessing one.
-export function freeInterestsCopy(limit: number | null | undefined): string {
-  const allowance =
-    typeof limit === 'number' && limit > 0
-      ? `Send up to ${limit} interest${limit === 1 ? '' : 's'} a month`
-      : 'Send a limited number of interests each month';
-  return `${allowance}. Once one is accepted you can message each other, with no limit.`;
 }
 
 // Links for the Contact page, built only from what GET /support/contact
