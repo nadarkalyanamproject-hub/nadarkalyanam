@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import type {
   AdminOrdersQuery,
   AdminSubscriptionsQuery,
@@ -13,6 +13,7 @@ import type { Prisma, Subscription } from '../../../generated/prisma/client.js';
 import { SubscriptionService } from '../../membership/subscription.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditLogService } from '../audit-log.service.js';
+import { PAYMENT_GATEWAY_ADAPTER, type PaymentGatewayAdapter } from '../../payments/adapters/payment-gateway.adapter.js';
 
 const IST_OFFSET_MS = 330 * 60 * 1000;
 const STALE_CREATED_ORDER_MS = 30 * 60 * 1000;
@@ -85,6 +86,7 @@ export class AdminBillingService {
     private readonly prisma: PrismaService,
     private readonly subscriptions: SubscriptionService,
     private readonly auditLog: AuditLogService,
+    @Optional() @Inject(PAYMENT_GATEWAY_ADAPTER) private readonly gateway?: PaymentGatewayAdapter,
   ) {}
 
   private async adminEmails(ids: (string | null | undefined)[]): Promise<Map<string, string>> {
@@ -326,7 +328,7 @@ export class AdminBillingService {
           amountInPaise: typeof payload.amountInPaise === 'number' ? payload.amountInPaise : null,
           currency: typeof payload.currency === 'string' ? payload.currency : null,
           signatureValid: true,
-          processedAt: p.createdAt.toISOString(),
+          processedAt: p.createdAt ? p.createdAt.toISOString() : new Date().toISOString(),
         };
       }),
     };
@@ -371,11 +373,22 @@ export class AdminBillingService {
   }
 
   // Records a refund here (PAID -> REFUNDED only) and ends that order's plan;
-  // the member's queued plans move up with no gap. No money moves: the admin
-  // returns it in the payment gateway. Phone unlocks already made stay.
+  // the member's queued plans move up with no gap. If connected to a real
+  // gateway (Razorpay), dispatches the refund request via the gateway API.
   async refund(adminId: string, orderId: string, reason: string, now: Date = new Date()) {
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { payments: { where: { status: 'PAID' }, orderBy: { createdAt: 'desc' } } },
+    });
     if (!order) throw new NotFoundException('Order not found');
+    if (order.status !== 'PAID') throw new ConflictException('Only a paid order can be refunded');
+
+    if (this.gateway && !this.gateway.isStub && typeof this.gateway.refund === 'function') {
+      const payment = order.payments?.find((p) => p.providerReference);
+      if (payment?.providerReference) {
+        await this.gateway.refund(payment.providerReference, order.amountInPaise, reason, order.id);
+      }
+    }
 
     const cancelled = await this.prisma.$transaction(async (tx) => {
       await this.subscriptions.lockMember(tx, order.userId);

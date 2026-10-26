@@ -140,10 +140,22 @@ export class PaymentsService {
     if (!order && typeof this.prisma.order.findFirst === 'function') {
       order = await this.prisma.order.findFirst({
         where: {
-          OR: [{ id: event.orderId }, { providerOrderId: event.orderId }],
+          OR: [
+            { id: event.orderId },
+            { providerOrderId: event.orderId },
+            { payments: { some: { providerReference: event.orderId } } },
+          ],
         },
         include: { plan: true },
       });
+    }
+    if (!order && typeof this.prisma.payment?.findFirst === 'function') {
+      const payment = await this.prisma.payment.findFirst({
+        where: { providerReference: event.orderId },
+      });
+      if (payment) {
+        order = await this.prisma.order.findUnique({ where: { id: payment.orderId }, include: { plan: true } });
+      }
     }
     if (!order) {
       throw new BadRequestException('Unknown order');

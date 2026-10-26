@@ -28,8 +28,29 @@ type OrderState =
   | { kind: 'idle' }
   | { kind: 'creating'; planId: string }
   | { kind: 'created'; order: OrderResponse; planName: string }
+  | { kind: 'paid'; order: OrderResponse; planName: string }
+  | { kind: 'dismissed'; order: OrderResponse; planName: string }
   | { kind: 'unavailable' }
   | { kind: 'error'; message: string };
+
+function loadRazorpayCheckoutScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') return resolve(false);
+    if ((window as unknown as { Razorpay?: unknown }).Razorpay) return resolve(true);
+    const existing = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(true));
+      existing.addEventListener('error', () => resolve(false));
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
 
 // One feature line. Features the product can't deliver yet are shown as
 // Coming Soon, never with a checkmark.
@@ -109,7 +130,35 @@ export default function MembershipPage() {
     setOrderState({ kind: 'creating', planId: plan.id });
     try {
       const order = await createOrder(accessToken, { planId: plan.id });
-      setOrderState({ kind: 'created', order, planName: plan.name });
+      if (order.checkoutParams) {
+        const loaded = await loadRazorpayCheckoutScript();
+        if (!loaded) {
+          setOrderState({ kind: 'error', message: 'Unable to load payment gateway. Please check your internet connection and try again.' });
+          return;
+        }
+
+        const RazorpayClass = (window as unknown as { Razorpay: new (options: Record<string, unknown>) => { open: () => void } }).Razorpay;
+        const rzp = new RazorpayClass({
+          ...order.checkoutParams,
+          handler: async () => {
+            setOrderState({ kind: 'paid', order, planName: plan.name });
+            try {
+              const updated = await getMyMembership(accessToken);
+              setMembership(updated);
+            } catch {
+              // Non-blocking
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              setOrderState({ kind: 'dismissed', order, planName: plan.name });
+            },
+          },
+        });
+        rzp.open();
+      } else {
+        setOrderState({ kind: 'created', order, planName: plan.name });
+      }
     } catch (err) {
       if (err instanceof ApiError && err.status === 503) setOrderState({ kind: 'unavailable' });
       else setOrderState({ kind: 'error', message: err instanceof ApiError ? err.message : 'Could not start your order. Please try again.' });
@@ -170,6 +219,22 @@ export default function MembershipPage() {
         {orderState.kind === 'error' && (
           <Card className="mx-auto max-w-2xl rounded-xl border border-red-200 bg-red-50 p-4 text-xs sm:text-sm text-[#94151C]" role="alert">
             {orderState.message}
+          </Card>
+        )}
+        {orderState.kind === 'paid' && (
+          <Card className="mx-auto max-w-2xl rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-xs sm:text-sm" data-testid="order-paid" role="status">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-emerald-600 shrink-0" />
+              <p className="font-bold text-emerald-900">Payment Successful! You are now subscribed to {orderState.planName}.</p>
+            </div>
+            <p className="mt-1 text-emerald-700">
+              Order <code className="font-mono">{orderState.order.id}</code> · {formatPrice(orderState.order.amountInPaise)}
+            </p>
+          </Card>
+        )}
+        {orderState.kind === 'dismissed' && (
+          <Card className="mx-auto max-w-2xl rounded-xl border border-amber-200 bg-amber-50 p-4 text-center text-xs sm:text-sm text-amber-800" role="status">
+            Payment checkout was closed. Your card was not charged. You can retry whenever you are ready.
           </Card>
         )}
         {orderState.kind === 'created' && (

@@ -463,4 +463,84 @@ describe('member phone-unlock usage (admin)', () => {
     expect((await service.memberPhoneUnlocks('u1', 1, 1, NOW_U)).nextOffset).toBeNull();
     await expect(service.memberPhoneUnlocks('nobody', 0, 50, NOW_U)).rejects.toBeInstanceOf(NotFoundException);
   });
+
+  describe('AdminBillingService.refund gateway integration', () => {
+    it('dispatches refund to payment gateway when gateway is active and order has paid payment reference', async () => {
+      const order = {
+        id: 'ord-1',
+        userId: 'u1',
+        planId: 'gold',
+        amountInPaise: 149900,
+        status: 'PAID',
+        payments: [{ id: 'p1', status: 'PAID', providerReference: 'pay_rzp_123', createdAt: new Date() }],
+      };
+      const prisma: any = {
+        order: {
+          findUnique: vi.fn(async () => ({
+            ...order,
+            createdAt: new Date(),
+            plan: { id: 'gold', code: 'GOLD', name: 'Gold' },
+            user: { id: 'u1', phoneNumber: '+919876543210', status: 'ACTIVE', profile: { fullName: 'User 1' } },
+            subscription: null,
+            payments: order.payments,
+          })),
+          updateMany: vi.fn(async () => ({ count: 1 })),
+        },
+        subscription: {
+          findUnique: vi.fn(async () => null),
+        },
+        adminUser: { findMany: vi.fn(async () => []) },
+        $transaction: vi.fn(async (fn: any) => fn(prisma)),
+      };
+      const subscriptions: any = {
+        lockMember: vi.fn(),
+      };
+      const audit: any = { record: vi.fn() };
+      const gateway: any = {
+        isStub: false,
+        refund: vi.fn().mockResolvedValue({ refundId: 'rfnd_1' }),
+      };
+      const service = new AdminBillingService(prisma, subscriptions, audit, gateway);
+
+      await service.refund('admin-1', 'ord-1', 'Customer requested');
+
+      expect(gateway.refund).toHaveBeenCalledWith('pay_rzp_123', 149900, 'Customer requested', 'ord-1');
+      expect(prisma.order.updateMany).toHaveBeenCalledWith({
+        where: { id: 'ord-1', status: 'PAID' },
+        data: expect.objectContaining({ status: 'REFUNDED', refundReason: 'Customer requested' }),
+      });
+      expect(audit.record).toHaveBeenCalledWith('admin-1', 'order.refund', 'Order', 'ord-1', expect.anything());
+    });
+
+    it('does not proceed to database update if gateway.refund throws', async () => {
+      const order = {
+        id: 'ord-1',
+        userId: 'u1',
+        planId: 'gold',
+        amountInPaise: 149900,
+        status: 'PAID',
+        payments: [{ id: 'p1', status: 'PAID', providerReference: 'pay_rzp_123' }],
+      };
+      const prisma: any = {
+        order: {
+          findUnique: vi.fn(async () => order),
+          updateMany: vi.fn(async () => ({ count: 1 })),
+        },
+        subscription: {
+          findUnique: vi.fn(async () => null),
+        },
+        $transaction: vi.fn(async (fn: any) => fn(prisma)),
+      };
+      const subscriptions: any = { lockMember: vi.fn() };
+      const audit: any = { record: vi.fn() };
+      const gateway: any = {
+        isStub: false,
+        refund: vi.fn().mockRejectedValue(new Error('Razorpay timeout')),
+      };
+      const service = new AdminBillingService(prisma, subscriptions, audit, gateway);
+
+      await expect(service.refund('admin-1', 'ord-1', 'Test')).rejects.toThrow('Razorpay timeout');
+      expect(prisma.order.updateMany).not.toHaveBeenCalled();
+    });
+  });
 });
