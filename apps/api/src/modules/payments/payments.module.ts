@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import type { Env } from '../config/env.schema.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { MembershipModule } from '../membership/membership.module.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 import { PAYMENT_GATEWAY_ADAPTER } from './adapters/payment-gateway.adapter.js';
 import { RazorpayPaymentGatewayAdapter } from './adapters/razorpay-payment-gateway.adapter.js';
 import { StubPaymentGatewayAdapter } from './adapters/stub-payment-gateway.adapter.js';
@@ -10,7 +11,7 @@ import { PaymentsController } from './payments.controller.js';
 import { PaymentsService } from './payments.service.js';
 
 @Module({
-  imports: [AuthModule, MembershipModule],
+  imports: [AuthModule, MembershipModule, NotificationsModule],
   controllers: [PaymentsController],
   providers: [
     PaymentsService,
@@ -26,5 +27,6 @@ import { PaymentsService } from './payments.service.js';
       inject: [ConfigService],
     },
   ],
+  exports: [PaymentsService, PAYMENT_GATEWAY_ADAPTER],
 })
 export class PaymentsModule {}

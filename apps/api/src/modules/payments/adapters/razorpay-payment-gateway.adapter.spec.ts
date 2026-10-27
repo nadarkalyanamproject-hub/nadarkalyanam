@@ -101,6 +101,72 @@ describe('RazorpayPaymentGatewayAdapter', () => {
     });
   });
 
+  describe('refund', () => {
+    it('dispatches refund to Razorpay API and returns ProviderRefund', async () => {
+      const adapter = buildAdapter();
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'rfnd_test_123',
+          entity: 'refund',
+          amount: 149900,
+          currency: 'INR',
+          payment_id: 'pay_test_001',
+          status: 'processed',
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const result = await adapter.refund('pay_test_001', 149900, 'Duplicate payment', 'order-uuid-1');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.razorpay.com/v1/payments/pay_test_001/refund',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            Authorization: `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString('base64')}`,
+            'Content-Type': 'application/json',
+          }),
+          body: JSON.stringify({
+            amount: 149900,
+            notes: { reason: 'Duplicate payment', orderId: 'order-uuid-1' },
+          }),
+        }),
+      );
+
+      expect(result).toEqual({
+        refundId: 'rfnd_test_123',
+        paymentId: 'pay_test_001',
+        amountInPaise: 149900,
+        status: 'processed',
+      });
+    });
+
+    it('throws BadGatewayException when Razorpay refund fails', async () => {
+      const adapter = buildAdapter();
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: async () => JSON.stringify({ error: { description: 'The payment has already been refunded' } }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      await expect(adapter.refund('pay_test_001', 149900, 'Customer request')).rejects.toThrow(
+        'Razorpay refund failed: 400 The payment has already been refunded',
+      );
+    });
+
+    it('throws BadGatewayException on network error during refund', async () => {
+      const adapter = buildAdapter();
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Connection reset'));
+      vi.stubGlobal('fetch', mockFetch);
+
+      await expect(adapter.refund('pay_test_001', 149900)).rejects.toThrow(
+        BadGatewayException,
+      );
+    });
+  });
+
   describe('verifyWebhookSignature', () => {
     it('verifies valid HMAC-SHA256 signature over exact bytes', () => {
       const adapter = buildAdapter();

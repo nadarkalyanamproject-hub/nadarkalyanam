@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { MembershipPlanResponse, OrderResponse, OrderStatus } from '@nadar-kalyanam/schemas';
 import { assertProviderConfigured } from '../../common/not-yet-available.exception.js';
@@ -6,8 +6,10 @@ import { planFeatures } from '../../common/plan-features.js';
 import type { Env } from '../config/env.schema.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { SubscriptionService, type Activation } from '../membership/subscription.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PAYMENT_GATEWAY_ADAPTER, type PaymentGatewayAdapter, type PaymentWebhookEvent } from './adapters/payment-gateway.adapter.js';
+import { generateReceiptPdf } from './receipt/receipt-generator.js';
 
 function isUniqueConstraintViolation(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
@@ -44,6 +46,7 @@ export class PaymentsService {
     @Inject(PAYMENT_GATEWAY_ADAPTER) private readonly gateway: PaymentGatewayAdapter,
     private readonly configService: ConfigService<Env, true>,
     private readonly subscriptions: SubscriptionService,
+    @Optional() private readonly notifications?: NotificationsService,
   ) {}
 
   async listPlans(): Promise<{ items: MembershipPlanResponse[]; freeInterestsPerMonth: number; requirePaidPlan: boolean }> {
@@ -139,10 +142,22 @@ export class PaymentsService {
     if (!order && typeof this.prisma.order.findFirst === 'function') {
       order = await this.prisma.order.findFirst({
         where: {
-          OR: [{ id: event.orderId }, { providerOrderId: event.orderId }],
+          OR: [
+            { id: event.orderId },
+            { providerOrderId: event.orderId },
+            { payments: { some: { providerReference: event.orderId } } },
+          ],
         },
         include: { plan: true },
       });
+    }
+    if (!order && typeof this.prisma.payment?.findFirst === 'function') {
+      const payment = await this.prisma.payment.findFirst({
+        where: { providerReference: event.orderId },
+      });
+      if (payment) {
+        order = await this.prisma.order.findUnique({ where: { id: payment.orderId }, include: { plan: true } });
+      }
     }
     if (!order) {
       throw new BadRequestException('Unknown order');
@@ -205,7 +220,20 @@ export class PaymentsService {
     if (outcome === 'ignored') {
       this.logger.warn(`Ignored ${event.status} event ${event.providerEventId} for order ${order.id} in status ${order.status}`);
     }
-    if (activated) this.subscriptions.notifyActivated(activated);
+    if (activated) {
+      this.subscriptions.notifyActivated(activated);
+      this.notifications?.notify({
+        recipientUserId: order.userId,
+        type: 'PAYMENT_SUCCEEDED',
+        targetType: 'Payment',
+        targetId: event.providerReference ?? event.providerEventId,
+        data: {
+          orderId: order.id,
+          planName: order.plan.name,
+          amountInPaise: order.amountInPaise,
+        },
+      });
+    }
     return { outcome };
   }
 
@@ -225,5 +253,81 @@ export class PaymentsService {
         })),
       ),
     };
+  }
+
+  // FR-7.6: Members can download a PDF receipt for each successful payment.
+  // The owner can download it; any other user gets 404 (IDOR protection).
+  async getReceiptPdf(currentUserId: string, paymentOrOrderId: string): Promise<{ buffer: Buffer; filename: string }> {
+    // 1. Try to find Payment by id with order and user profile
+    let payment = await this.prisma.payment.findUnique({
+      where: { id: paymentOrOrderId },
+      include: {
+        order: {
+          include: {
+            plan: true,
+            user: {
+              include: {
+                profile: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // If not found, check if paymentOrOrderId is an order ID
+    if (!payment) {
+      const order = await this.prisma.order.findUnique({
+        where: { id: paymentOrOrderId },
+        include: {
+          plan: true,
+          user: {
+            include: {
+              profile: true,
+            },
+          },
+          payments: {
+            where: { status: 'PAID' },
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      });
+
+      if (order && order.payments.length > 0) {
+        payment = {
+          ...order.payments[0],
+          order,
+        };
+      }
+    }
+
+    // 2. Validate existence, status, and ownership
+    // "The owner can download it; any other user gets 404."
+    if (!payment || payment.status !== 'PAID' || payment.order.userId !== currentUserId) {
+      throw new NotFoundException('Receipt not found');
+    }
+
+    const receiptNumber = `REC-${payment.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+    const memberName = payment.order.user.profile?.fullName ?? 'Valued Member';
+    const planName = payment.order.plan.name;
+    const durationDays = payment.order.plan.durationDays;
+    const amountInPaise = payment.order.amountInPaise;
+    const paymentDate = payment.createdAt;
+    const providerPaymentId = payment.providerReference ?? payment.providerEventId;
+    const gstin = this.configService.get('BUSINESS_GSTIN', { infer: true }) ?? null;
+
+    const buffer = await generateReceiptPdf({
+      receiptNumber,
+      memberName,
+      planName,
+      durationDays,
+      amountInPaise,
+      paymentDate,
+      providerPaymentId,
+      gstin,
+    });
+
+    const filename = `receipt-${receiptNumber}.pdf`;
+    return { buffer, filename };
   }
 }

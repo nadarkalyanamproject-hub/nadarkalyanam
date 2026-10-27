@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { BadGatewayException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env.schema.js';
-import type { PaymentGatewayAdapter, PaymentWebhookEvent, ProviderOrder } from './payment-gateway.adapter.js';
+import type { PaymentGatewayAdapter, PaymentWebhookEvent, ProviderOrder, ProviderRefund } from './payment-gateway.adapter.js';
 
 const RAZORPAY_API_BASE = 'https://api.razorpay.com/v1';
 
@@ -101,6 +101,66 @@ export class RazorpayPaymentGatewayAdapter implements PaymentGatewayAdapter {
           color: '#680A0E',
         },
       },
+    };
+  }
+
+  async refund(
+    paymentId: string,
+    amountInPaise: number,
+    reason?: string,
+    orderId?: string,
+  ): Promise<ProviderRefund> {
+    const credentials = Buffer.from(`${this.keyId}:${this.keySecret}`).toString('base64');
+
+    let response: Response;
+    try {
+      response = await fetch(`${RAZORPAY_API_BASE}/payments/${paymentId}/refund`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${credentials}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: amountInPaise,
+          notes: {
+            ...(reason ? { reason } : {}),
+            ...(orderId ? { orderId } : {}),
+          },
+        }),
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Network error';
+      throw new BadGatewayException(`Failed to connect to Razorpay: ${message}`);
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorDescription: string | undefined;
+      try {
+        const errorJson = JSON.parse(errorText) as { error?: { description?: string } };
+        errorDescription = errorJson.error?.description;
+      } catch {
+        // use raw errorText
+      }
+      throw new BadGatewayException(`Razorpay refund failed: ${response.status} ${errorDescription || errorText}`);
+    }
+
+    const data = (await response.json()) as {
+      id: string;
+      payment_id?: string;
+      amount: number;
+      status: string;
+    };
+
+    if (!data.id) {
+      throw new BadGatewayException('Razorpay refund response missing id');
+    }
+
+    return {
+      refundId: data.id,
+      paymentId: data.payment_id ?? paymentId,
+      amountInPaise: data.amount,
+      status: data.status,
     };
   }
 

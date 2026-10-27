@@ -17,10 +17,13 @@ export const notificationTypeEnum = z.enum([
   'PLAN_EXPIRED',
   'PLAN_CANCELLED',
   'PLAN_EXPIRING_SOON',
+  'PAYMENT_SUCCEEDED',
+  'PAYMENT_FAILED',
+  'PAYMENT_REFUNDED',
 ]);
 export type NotificationType = z.infer<typeof notificationTypeEnum>;
 
-export const notificationTargetTypeEnum = z.enum(['Interest', 'Conversation', 'Profile', 'Account']);
+export const notificationTargetTypeEnum = z.enum(['Interest', 'Conversation', 'Profile', 'Account', 'Payment', 'Order']);
 export type NotificationTargetType = z.infer<typeof notificationTargetTypeEnum>;
 
 // Who caused it — name and signed photo URL only. System/admin notices use

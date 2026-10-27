@@ -32,6 +32,8 @@ export const envSchema = z.object({
   // production must not be able to boot with a guessable dev-string secret
   // for something that authenticates inbound webhook calls.
   PAYMENT_WEBHOOK_SECRET: z.string().min(1, 'PAYMENT_WEBHOOK_SECRET is required'),
+  // Optional GSTIN for receipts/invoices (FR-7.6). If configured, printed on PDF receipts.
+  BUSINESS_GSTIN: z.string().optional(),
   // MinIO (and some S3-compatible providers) require path-style requests
   // (http://host/bucket/key). Real AWS S3 expects virtual-hosted-style
   // (https://bucket.host/key) — set this to false when pointing at AWS S3
