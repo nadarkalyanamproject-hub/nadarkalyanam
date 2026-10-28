@@ -418,3 +418,62 @@ describe('PhotosService.moderatePhoto', () => {
     expect(prisma.profilePhoto.update).not.toHaveBeenCalled();
   });
 });
+
+
+describe('PhotosService.listPendingPhotos', () => {
+  it('queries profilePhoto with isModerated: false, ordered by oldest first, and returns signed URLs', async () => {
+    const { service, prisma, storage } = buildService();
+    const createdAt = new Date('2026-10-28T09:00:00Z');
+    prisma.profilePhoto.count.mockResolvedValueOnce(1);
+    prisma.profilePhoto.findMany.mockResolvedValueOnce([
+      {
+        id: 'photo-1',
+        objectKey: 'photos/photo-1.jpg',
+        profileId: PROFILE_ID,
+        isPrimary: true,
+        sortOrder: 0,
+        createdAt,
+        profile: {
+          id: PROFILE_ID,
+          userId: USER_ID,
+          fullName: 'Kavitha Nadar',
+          user: { phoneNumber: '+919876543210' },
+        },
+      },
+    ]);
+    storage.getObjectUrl.mockResolvedValueOnce('https://storage.example/signed/photo-1.jpg');
+
+    const result = await service.listPendingPhotos(0, 10);
+
+    expect(prisma.profilePhoto.findMany).toHaveBeenCalledWith({
+      where: { isModerated: false },
+      orderBy: { createdAt: 'asc' },
+      skip: 0,
+      take: 10,
+      include: {
+        profile: {
+          select: {
+            id: true,
+            userId: true,
+            fullName: true,
+            user: { select: { phoneNumber: true } },
+          },
+        },
+      },
+    });
+    expect(result.items).toEqual([
+      {
+        id: 'photo-1',
+        url: 'https://storage.example/signed/photo-1.jpg',
+        profileId: PROFILE_ID,
+        userId: USER_ID,
+        memberName: 'Kavitha Nadar',
+        phoneNumber: '+919876543210',
+        isPrimary: true,
+        sortOrder: 0,
+        createdAt: createdAt.toISOString(),
+      },
+    ]);
+    expect(result.total).toBe(1);
+  });
+});

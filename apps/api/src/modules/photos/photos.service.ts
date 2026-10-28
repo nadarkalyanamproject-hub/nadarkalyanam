@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { PhotoResponse } from '@nadar-kalyanam/schemas';
+import type { AdminPendingPhotoItem, PhotoResponse } from '@nadar-kalyanam/schemas';
 import { APPROVED_PHOTO_WHERE, photoStatus } from '../../common/photo-visibility.js';
 import { refreshCompletionScore } from '../../common/profile-completion.js';
 import type { Env } from '../config/env.schema.js';
@@ -159,6 +159,61 @@ export class PhotosService {
       this.configService.get('PHOTO_MODERATION', { infer: true }) ??
       (this.configService.get('NODE_ENV', { infer: true }) === 'production' ? 'pending' : 'auto_approve')
     );
+  }
+
+  async listPendingPhotos(offset = 0, limit = 20): Promise<{ items: AdminPendingPhotoItem[]; total: number }> {
+    const where = { isModerated: false };
+    const [total, photos] = await Promise.all([
+      this.prisma.profilePhoto.count({ where }),
+      this.prisma.profilePhoto.findMany({
+        where,
+        orderBy: { createdAt: 'asc' },
+        skip: offset,
+        take: limit,
+        include: {
+          profile: {
+            select: {
+              id: true,
+              userId: true,
+              fullName: true,
+              user: { select: { phoneNumber: true } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const items: AdminPendingPhotoItem[] = await Promise.all(
+      photos.map(async (photo) => ({
+        id: photo.id,
+        url: await this.storage.getObjectUrl(photo.objectKey),
+        profileId: photo.profileId,
+        userId: photo.profile.userId,
+        memberName: photo.profile.fullName,
+        phoneNumber: photo.profile.user.phoneNumber,
+        isPrimary: photo.isPrimary,
+        sortOrder: photo.sortOrder,
+        createdAt: photo.createdAt.toISOString(),
+      })),
+    );
+
+    return { items, total };
+  }
+
+  async findPhotoWithProfile(photoId: string) {
+    return this.prisma.profilePhoto.findUnique({
+      where: { id: photoId },
+      include: {
+        profile: {
+          select: {
+            id: true,
+            userId: true,
+            fullName: true,
+            user: { select: { phoneNumber: true } },
+          },
+        },
+      },
+    });
   }
 
   private async getOwnedPhoto(profileId: string, photoId: string) {
