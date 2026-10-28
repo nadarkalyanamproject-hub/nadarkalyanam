@@ -9,6 +9,7 @@ import { Dialog, ReasonDialog, StateBadge } from '../../components/billing-ui';
 import { ApiError } from '../../lib/api-client';
 import {
   activateOrder,
+  downloadOrdersCsv,
   formatDate,
   getOrder,
   listOrders,
@@ -99,9 +100,24 @@ export default function OrdersPage() {
   return (
     <AdminShell>
       <div className="flex flex-col gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Orders</h1>
-          <p className="text-sm text-muted-foreground">Membership orders and their payment events. Amounts include taxes.</p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Orders</h1>
+            <p className="text-sm text-muted-foreground">Membership orders and their payment events. Amounts include taxes.</p>
+          </div>
+          {orders && orders.items.length > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const dateStr = new Date().toISOString().split('T')[0];
+                downloadOrdersCsv(orders.items, `orders-export-${dateStr}.csv`);
+              }}
+            >
+              Export CSV
+            </Button>
+          )}
         </div>
         {message && <Card className="rounded-2xl p-4 text-sm text-muted-foreground" role="status">{message}</Card>}
         {error && <Card className="rounded-2xl p-4 text-sm text-destructive" role="alert">{error}</Card>}
@@ -207,30 +223,36 @@ export default function OrdersPage() {
           <p className="mt-2 text-[11px] text-muted-foreground">Only events with a verified signature are stored; others are rejected.</p>
           {detail.status === 'PAID' && can('payments.refund') && (
             <div className="mt-4 flex justify-end">
-              <Button type="button" size="sm" variant="outline" onClick={() => { setRefunding(detail); setDetail(null); }}>Record refund</Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => { setRefunding(detail); setDetail(null); }}>Refund order</Button>
             </div>
           )}
         </Dialog>
       )}
       {refunding && (
         <ReasonDialog
-          title="Record refund"
+          title="Issue refund"
           testId="refund-dialog"
           description={
             <>
               <p>
-                Marks this {rupees(refunding.amountInPaise)} order refunded and ends its plan now; any queued plans start immediately.
+                Initiates an immediate refund of {rupees(refunding.amountInPaise)} via the payment gateway and marks this order as refunded.
+                Any active plan from this order will end immediately, and any queued plans will start.
                 Phone numbers already unlocked stay unlocked.
               </p>
-              <p className="mt-2 font-semibold text-foreground">This records the refund here. Return the money from your payment gateway.</p>
+              <p className="mt-2 text-xs text-muted-foreground">The money will be returned to the member&apos;s original payment method via the payment gateway.</p>
             </>
           }
-          confirmLabel="Record refund"
+          confirmLabel="Issue refund"
           onClose={() => setRefunding(null)}
           onConfirm={async (reason) => {
-            await refundOrder(token!, refunding.id, reason);
-            setMessage(`Refund recorded for order ${refunding.id}. Remember to return the money in your payment gateway.`);
-            load();
+            try {
+              await refundOrder(token!, refunding.id, reason);
+              setMessage(`Refund successfully processed for order ${refunding.id} via payment gateway.`);
+              setError(null);
+              load();
+            } catch (err) {
+              setError(err instanceof ApiError ? err.message : 'Could not process refund via payment gateway.');
+            }
           }}
         />
       )}

@@ -189,3 +189,61 @@ export function formatDate(iso: string | null): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
 }
+
+export function exportOrdersToCsv(orders: AdminOrder[]): string {
+  const headers = [
+    'Order ID',
+    'Member Name',
+    'Member Phone',
+    'Plan Name',
+    'Plan Code',
+    'Amount (INR)',
+    'Status',
+    'Created At',
+    'Paid At',
+    'Refunded At',
+    'Refund Reason',
+    'Refunded By',
+  ];
+
+  const escapeCsv = (val: string | number | null | undefined): string => {
+    if (val === null || val === undefined) return '';
+    const str = String(val);
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const rows = orders.map((o) => [
+    escapeCsv(o.id),
+    escapeCsv(o.member.fullName ?? ''),
+    escapeCsv(o.member.phoneNumber),
+    escapeCsv(o.plan.name),
+    escapeCsv(o.plan.code),
+    escapeCsv((o.amountInPaise / 100).toFixed(2)),
+    escapeCsv(o.status),
+    escapeCsv(formatDate(o.createdAt)),
+    escapeCsv(formatDate(o.paidAt)),
+    escapeCsv(formatDate(o.refundedAt)),
+    escapeCsv(o.refundReason ?? ''),
+    escapeCsv(o.refundedByEmail ?? ''),
+  ]);
+
+  return [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+}
+
+export function downloadOrdersCsv(orders: AdminOrder[], filename = 'orders.csv'): void {
+  if (typeof document === 'undefined') return;
+  const csvContent = exportOrdersToCsv(orders);
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
