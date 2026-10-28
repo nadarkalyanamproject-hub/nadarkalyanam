@@ -561,5 +561,73 @@ describe('member phone-unlock usage (admin)', () => {
       await expect(service.refund('admin-1', 'ord-1', 'Test')).rejects.toThrow('Razorpay timeout');
       expect(prisma.order.updateMany).not.toHaveBeenCalled();
     });
+
+    function refundFixture(opts: { providerReference: string | null; updatedCount: number }) {
+      const order = {
+        id: 'ord-1',
+        userId: 'u1',
+        planId: 'gold',
+        amountInPaise: 149900,
+        status: 'PAID',
+        createdAt: new Date(),
+        plan: { id: 'gold', code: 'GOLD', name: 'Gold' },
+        user: { id: 'u1', phoneNumber: '+919876543210', status: 'ACTIVE', profile: { fullName: 'User 1' } },
+        subscription: null,
+        payments: [{ id: 'p1', status: 'PAID', providerReference: opts.providerReference }],
+      };
+      const prisma: any = {
+        order: {
+          findUnique: vi.fn(async () => order),
+          updateMany: vi.fn().mockResolvedValueOnce({ count: opts.updatedCount }).mockResolvedValue({ count: 1 }),
+        },
+        subscription: { findUnique: vi.fn(async () => null) },
+        adminUser: { findMany: vi.fn(async () => []) },
+        $transaction: vi.fn(async (fn: any) => fn(prisma)),
+      };
+      const audit: any = { record: vi.fn() };
+      return { prisma, audit };
+    }
+
+    it('returns the gateway refund id when money was sent back', async () => {
+      const { prisma, audit } = refundFixture({ providerReference: 'pay_rzp_123', updatedCount: 1 });
+      const gateway: any = { isStub: false, refund: vi.fn().mockResolvedValue({ refundId: 'rfnd_1' }) };
+      const service = new AdminBillingService(prisma, { lockMember: vi.fn() } as any, audit, gateway);
+
+      const result = await service.refund('admin-1', 'ord-1', 'Customer requested');
+      expect(result.gatewayRefundId).toBe('rfnd_1');
+    });
+
+    it('returns a null gateway refund id for the stub gateway or an order with no gateway payment', async () => {
+      for (const [gateway, providerReference] of [
+        [{ isStub: true, refund: vi.fn() }, 'pay_rzp_123'],
+        [{ isStub: false, refund: vi.fn() }, null],
+      ] as const) {
+        const { prisma, audit } = refundFixture({ providerReference, updatedCount: 1 });
+        const service = new AdminBillingService(prisma, { lockMember: vi.fn() } as any, audit, gateway as any);
+        const result = await service.refund('admin-1', 'ord-1', 'Manual order');
+        expect(result.gatewayRefundId).toBeNull();
+        expect(gateway.refund).not.toHaveBeenCalled();
+      }
+    });
+
+    it('does not report a failure when the refund webhook marked the order first', async () => {
+      const { prisma, audit } = refundFixture({ providerReference: 'pay_rzp_123', updatedCount: 0 });
+      const gateway: any = { isStub: false, refund: vi.fn().mockResolvedValue({ refundId: 'rfnd_1' }) };
+      const service = new AdminBillingService(prisma, { lockMember: vi.fn() } as any, audit, gateway);
+
+      const result = await service.refund('admin-1', 'ord-1', 'Customer requested');
+      expect(result.gatewayRefundId).toBe('rfnd_1');
+      expect(prisma.order.updateMany).toHaveBeenLastCalledWith({
+        where: { id: 'ord-1', status: 'REFUNDED', refundedByAdminId: null },
+        data: { refundReason: 'Customer requested', refundedByAdminId: 'admin-1' },
+      });
+      expect(audit.record).toHaveBeenCalledWith('admin-1', 'order.refund', 'Order', 'ord-1', expect.objectContaining({ gatewayRefundId: 'rfnd_1' }));
+    });
+
+    it('still refuses an order that is no longer paid when no gateway refund was made', async () => {
+      const { prisma, audit } = refundFixture({ providerReference: null, updatedCount: 0 });
+      const service = new AdminBillingService(prisma, { lockMember: vi.fn() } as any, audit, undefined);
+      await expect(service.refund('admin-1', 'ord-1', 'Again')).rejects.toThrow('Only a paid order can be refunded');
+    });
   });
 });

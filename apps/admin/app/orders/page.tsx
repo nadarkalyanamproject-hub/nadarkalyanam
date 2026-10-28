@@ -12,6 +12,7 @@ import {
   downloadOrdersCsv,
   formatDate,
   getOrder,
+  listAllOrders,
   listOrders,
   ordersNeedingAttention,
   refundOrder,
@@ -53,6 +54,7 @@ export default function OrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(() => {
     if (!token) return;
@@ -94,6 +96,21 @@ export default function OrdersPage() {
     }
   }
 
+  // Exports every order matching the filters, not just the page on screen.
+  async function exportCsv() {
+    if (!token) return;
+    setExporting(true);
+    try {
+      const all = await listAllOrders(token, { status: status || undefined, from: from || undefined, to: to || undefined, search: search.trim() || undefined });
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      downloadOrdersCsv(all, `orders-${today}.csv`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not export orders.');
+    } finally {
+      setExporting(false);
+    }
+  }
+
   if (!ready) return null;
   const needs = (attention?.paidWithoutSubscription.length ?? 0) + (attention?.staleCreated.length ?? 0);
 
@@ -105,17 +122,9 @@ export default function OrdersPage() {
             <h1 className="text-2xl font-bold text-foreground">Orders</h1>
             <p className="text-sm text-muted-foreground">Membership orders and their payment events. Amounts include taxes.</p>
           </div>
-          {orders && orders.items.length > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const dateStr = new Date().toISOString().split('T')[0];
-                downloadOrdersCsv(orders.items, `orders-export-${dateStr}.csv`);
-              }}
-            >
-              Export CSV
+          {orders && orders.total > 0 && (
+            <Button type="button" variant="outline" size="sm" disabled={exporting} onClick={exportCsv}>
+              {exporting ? 'Exporting...' : `Export CSV (${orders.total})`}
             </Button>
           )}
         </div>
@@ -235,24 +244,27 @@ export default function OrdersPage() {
           description={
             <>
               <p>
-                Initiates an immediate refund of {rupees(refunding.amountInPaise)} via the payment gateway and marks this order as refunded.
-                Any active plan from this order will end immediately, and any queued plans will start.
-                Phone numbers already unlocked stay unlocked.
+                Refunds {rupees(refunding.amountInPaise)} and marks this order refunded. Any active plan from this order ends now,
+                and any queued plans start. Phone numbers already unlocked stay unlocked.
               </p>
-              <p className="mt-2 text-xs text-muted-foreground">The money will be returned to the member&apos;s original payment method via the payment gateway.</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                If the member paid online, the money goes back to their original payment method through the payment gateway.
+                For an order activated by hand, return the money yourself.
+              </p>
             </>
           }
           confirmLabel="Issue refund"
           onClose={() => setRefunding(null)}
           onConfirm={async (reason) => {
-            try {
-              await refundOrder(token!, refunding.id, reason);
-              setMessage(`Refund successfully processed for order ${refunding.id} via payment gateway.`);
-              setError(null);
-              load();
-            } catch (err) {
-              setError(err instanceof ApiError ? err.message : 'Could not process refund via payment gateway.');
-            }
+            // Errors are shown inside the dialog by ReasonDialog, which stays open.
+            const result = await refundOrder(token!, refunding.id, reason);
+            setMessage(
+              result.gatewayRefundId
+                ? `Refund sent through the payment gateway for order ${refunding.id} (refund ${result.gatewayRefundId}).`
+                : `Order ${refunding.id} marked refunded. No gateway payment was found, so return the money yourself.`,
+            );
+            setError(null);
+            load();
           }}
         />
       )}

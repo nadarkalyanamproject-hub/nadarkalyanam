@@ -1,11 +1,32 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   downloadOrdersCsv,
   exportOrdersToCsv,
   formatDate,
+  listAllOrders,
   rupees,
   type AdminOrder,
 } from './billing-api';
+
+const HEADER =
+  'Order ID,Member Name,Member Phone,Plan Name,Plan Code,Amount (INR),Status,Created At (IST),Paid At (IST),Refunded At (IST),Refund Reason,Refunded By';
+
+function order(overrides: Partial<AdminOrder> = {}): AdminOrder {
+  return {
+    id: 'ord_123',
+    member: { userId: 'usr_001', fullName: 'Jane Doe', phoneNumber: '+919876543210', status: 'ACTIVE' },
+    plan: { id: 'plan_gold', code: 'GOLD_PREMIUM', name: 'Gold Premium Plan' },
+    amountInPaise: 149900,
+    status: 'PAID',
+    createdAt: '2026-10-25T10:00:00.000Z',
+    paidAt: '2026-10-25T10:05:00.000Z',
+    refundedAt: null,
+    refundReason: null,
+    refundedByEmail: null,
+    subscription: { id: 'sub_001', state: 'ACTIVE' },
+    ...overrides,
+  };
+}
 
 describe('Admin Billing API Utilities', () => {
   describe('rupees', () => {
@@ -39,138 +60,111 @@ describe('Admin Billing API Utilities', () => {
   });
 
   describe('exportOrdersToCsv', () => {
-    const mockOrders: AdminOrder[] = [
-      {
-        id: 'ord_123',
-        member: {
-          userId: 'usr_001',
-          fullName: 'Jane Doe',
-          phoneNumber: '+919876543210',
-          status: 'ACTIVE',
-        },
-        plan: {
-          id: 'plan_gold',
-          code: 'GOLD_PREMIUM',
-          name: 'Gold Premium Plan',
-        },
-        amountInPaise: 149900,
-        status: 'PAID',
-        createdAt: '2026-10-25T10:00:00.000Z',
-        paidAt: '2026-10-25T10:05:00.000Z',
-        refundedAt: null,
-        refundReason: null,
-        refundedByEmail: null,
-        subscription: { id: 'sub_001', state: 'ACTIVE' },
-      },
-      {
-        id: 'ord_456',
-        member: {
-          userId: 'usr_002',
-          fullName: 'Smith, John "The Great"',
-          phoneNumber: '+919876543211',
-          status: 'ACTIVE',
-        },
-        plan: {
-          id: 'plan_silver',
-          code: 'SILVER',
-          name: 'Silver, 3-Month Plan',
-        },
-        amountInPaise: 79900,
-        status: 'REFUNDED',
-        createdAt: '2026-10-20T10:00:00.000Z',
-        paidAt: '2026-10-20T10:05:00.000Z',
-        refundedAt: '2026-10-21T11:00:00.000Z',
-        refundReason: 'Accidental double payment, requested refund.',
-        refundedByEmail: 'finance@nadarkalyanam.com',
-        subscription: null,
-      },
-    ];
-
-    it('includes all standard CSV headers', () => {
-      const csv = exportOrdersToCsv(mockOrders);
-      const lines = csv.split('\r\n');
-      expect(lines[0]).toBe(
-        'Order ID,Member Name,Member Phone,Plan Name,Plan Code,Amount (INR),Status,Created At,Paid At,Refunded At,Refund Reason,Refunded By',
+    it('writes the header and a row with decimal INR and IST timestamps', () => {
+      const lines = exportOrdersToCsv([order()]).split('\r\n');
+      expect(lines[0]).toBe(HEADER);
+      // 10:05 UTC is 15:35 IST; the +91 phone is kept as text.
+      expect(lines[1]).toBe(
+        "ord_123,Jane Doe,'+919876543210,Gold Premium Plan,GOLD_PREMIUM,1499.00,PAID,25-10-2026 15:30,25-10-2026 15:35,,,",
       );
     });
 
-    it('formats rows accurately with decimal INR amount', () => {
-      const csv = exportOrdersToCsv(mockOrders);
-      const lines = csv.split('\r\n');
-      expect(lines).toHaveLength(3);
-
-      expect(lines[1]).toContain('ord_123');
-      expect(lines[1]).toContain('Jane Doe');
-      expect(lines[1]).toContain('+919876543210');
-      expect(lines[1]).toContain('Gold Premium Plan');
-      expect(lines[1]).toContain('GOLD_PREMIUM');
-      expect(lines[1]).toContain('1499.00');
-      expect(lines[1]).toContain('PAID');
+    it('uses the IST calendar day for times after 18:30 UTC', () => {
+      const line = exportOrdersToCsv([order({ createdAt: '2026-10-25T19:00:00.000Z' })]).split('\r\n')[1];
+      expect(line).toContain('26-10-2026 00:30');
     });
 
-    it('escapes fields containing commas, double quotes, and special characters RFC 4180 style', () => {
-      const csv = exportOrdersToCsv(mockOrders);
-      const lines = csv.split('\r\n');
-      const secondRow = lines[2];
-
-      // "Smith, John ""The Great"""
-      expect(secondRow).toContain('"Smith, John ""The Great"""');
-      // "Silver, 3-Month Plan"
-      expect(secondRow).toContain('"Silver, 3-Month Plan"');
-      // "Accidental double payment, requested refund."
-      expect(secondRow).toContain('"Accidental double payment, requested refund."');
-      expect(secondRow).toContain('799.00');
-      expect(secondRow).toContain('REFUNDED');
-      expect(secondRow).toContain('finance@nadarkalyanam.com');
+    it('escapes commas, quotes and newlines RFC 4180 style', () => {
+      const line = exportOrdersToCsv([
+        order({
+          member: { userId: 'u2', fullName: 'Smith, John "The Great"', phoneNumber: '+919876543211', status: 'ACTIVE' },
+          plan: { id: 'p', code: 'SILVER', name: 'Silver, 3-Month Plan' },
+          amountInPaise: 79900,
+          status: 'REFUNDED',
+          refundedAt: '2026-10-21T11:00:00.000Z',
+          refundReason: 'Double payment,\nrequested refund.',
+          refundedByEmail: 'finance@nadarkalyanam.com',
+        }),
+      ]).split('\r\n').slice(1).join('\r\n');
+      expect(line).toContain('"Smith, John ""The Great"""');
+      expect(line).toContain('"Silver, 3-Month Plan"');
+      expect(line).toContain('"Double payment,\nrequested refund."');
+      expect(line).toContain('799.00');
+      expect(line).toContain('finance@nadarkalyanam.com');
     });
 
-    it('handles empty orders list gracefully', () => {
-      const csv = exportOrdersToCsv([]);
-      expect(csv).toBe(
-        'Order ID,Member Name,Member Phone,Plan Name,Plan Code,Amount (INR),Status,Created At,Paid At,Refunded At,Refund Reason,Refunded By',
+    it('stops spreadsheet formulas in member-typed text', () => {
+      const line = exportOrdersToCsv([
+        order({
+          member: { userId: 'u3', fullName: '=HYPERLINK("http://x","y")', phoneNumber: '+919876543212', status: 'ACTIVE' },
+          refundReason: '@SUM(A1)',
+        }),
+      ]).split('\r\n')[1];
+      expect(line).toContain(`"'=HYPERLINK(""http://x"",""y"")"`);
+      expect(line).toContain("'@SUM(A1)");
+    });
+
+    it('leaves a blank cell for a missing name', () => {
+      const line = exportOrdersToCsv([order({ member: { userId: 'u4', fullName: null, phoneNumber: '+919876543213', status: 'ACTIVE' } })]).split('\r\n')[1];
+      expect(line.startsWith('ord_123,,')).toBe(true);
+    });
+
+    it('handles an empty orders list', () => {
+      expect(exportOrdersToCsv([])).toBe(HEADER);
+    });
+  });
+
+  describe('listAllOrders', () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('fetches every page for the filters, not just the first', async () => {
+      const total = 230;
+      const offsets: number[] = [];
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string) => {
+          const params = new URL(url, 'http://test').searchParams;
+          const offset = Number(params.get('offset'));
+          offsets.push(offset);
+          expect(params.get('status')).toBe('PAID');
+          const count = Math.min(Number(params.get('limit')), total - offset);
+          const items = Array.from({ length: count }, (_, i) => order({ id: `ord_${offset + i}` }));
+          return new Response(JSON.stringify({ items, total }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }),
       );
+
+      const all = await listAllOrders('token', { status: 'PAID' });
+      expect(all).toHaveLength(total);
+      expect(offsets).toEqual([0, 100, 200]);
     });
   });
 
   describe('downloadOrdersCsv', () => {
-    it('gracefully exits on server-side when document is undefined', () => {
-      const origDoc = globalThis.document;
-      (globalThis as unknown as { document?: Document }).document = undefined;
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('does nothing on the server, where document is undefined', () => {
+      vi.stubGlobal('document', undefined);
       expect(() => downloadOrdersCsv([], 'test.csv')).not.toThrow();
-      globalThis.document = origDoc;
     });
 
     it('creates and clicks an anchor element to trigger download in browser', () => {
-      const clickMock = vi.fn();
-      const setAttributeMock = vi.fn();
-      const mockAnchor = {
-        setAttribute: setAttributeMock,
-        click: clickMock,
-      };
-
-      const appendChildMock = vi.fn();
-      const removeChildMock = vi.fn();
-
-      globalThis.document = {
-        createElement: vi.fn().mockReturnValue(mockAnchor),
-        body: {
-          appendChild: appendChildMock,
-          removeChild: removeChildMock,
-        },
-      } as unknown as Document;
-
-      const createObjectURLMock = vi.fn().mockReturnValue('blob:test');
-      const revokeObjectURLMock = vi.fn();
-      globalThis.URL.createObjectURL = createObjectURLMock;
-      globalThis.URL.revokeObjectURL = revokeObjectURLMock;
+      const mockAnchor = { setAttribute: vi.fn(), click: vi.fn() };
+      const appendChild = vi.fn();
+      const removeChild = vi.fn();
+      vi.stubGlobal('document', { createElement: vi.fn().mockReturnValue(mockAnchor), body: { appendChild, removeChild } });
+      const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test');
+      const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
 
       downloadOrdersCsv([], 'test-orders.csv');
 
-      expect(createObjectURLMock).toHaveBeenCalled();
-      expect(appendChildMock).toHaveBeenCalledWith(mockAnchor);
-      expect(clickMock).toHaveBeenCalled();
-      expect(removeChildMock).toHaveBeenCalledWith(mockAnchor);
-      expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:test');
+      expect(createObjectURL).toHaveBeenCalled();
+      expect(mockAnchor.setAttribute).toHaveBeenCalledWith('download', 'test-orders.csv');
+      expect(appendChild).toHaveBeenCalledWith(mockAnchor);
+      expect(mockAnchor.click).toHaveBeenCalled();
+      expect(removeChild).toHaveBeenCalledWith(mockAnchor);
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:test');
+      createObjectURL.mockRestore();
+      revokeObjectURL.mockRestore();
     });
   });
 });
