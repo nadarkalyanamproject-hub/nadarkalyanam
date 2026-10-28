@@ -167,7 +167,7 @@ export const ordersNeedingAttention = (t: string) =>
 export const activateOrder = (t: string, id: string) =>
   adminRequest<{ created: boolean; subscriptionId: string }>(t, `/admin/orders/${id}/activate`, { method: 'POST' });
 export const refundOrder = (t: string, id: string, reason: string) =>
-  adminRequest<AdminOrderDetail>(t, `/admin/orders/${id}/refund`, { method: 'POST', body: JSON.stringify({ reason }) });
+  adminRequest<AdminOrderDetail & { gatewayRefundId: string | null }>(t, `/admin/orders/${id}/refund`, { method: 'POST', body: JSON.stringify({ reason }) });
 
 export const getFinanceDashboard = (t: string, days: 7 | 30 | 90) => adminRequest<FinanceDashboard>(t, `/admin/finance/dashboard?days=${days}`);
 
@@ -189,3 +189,97 @@ export function formatDate(iso: string | null): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
 }
+
+// Every order matching the filters, page by page (the list API caps a page
+// at 100), so an export is never cut short to what is on screen.
+export async function listAllOrders(
+  t: string,
+  params: { status?: OrderStatus; from?: string; to?: string; search?: string },
+): Promise<AdminOrder[]> {
+  const all: AdminOrder[] = [];
+  for (;;) {
+    const page = await listOrders(t, { ...params, offset: all.length, limit: 100 });
+    all.push(...page.items);
+    if (page.items.length === 0 || all.length >= page.total) return all;
+  }
+}
+
+// dd-mm-yyyy HH:mm in India time; blank when there is no date.
+function csvDateTime(iso: string | null): string {
+  if (!iso) return '';
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      timeZone: 'Asia/Kolkata',
+    })
+      .formatToParts(new Date(iso))
+      .map((p) => [p.type, p.value]),
+  );
+  return `${parts.day}-${parts.month}-${parts.year} ${parts.hour}:${parts.minute}`;
+}
+
+// RFC 4180 quoting, plus a leading apostrophe on text a spreadsheet would
+// otherwise run as a formula or turn into a number (=, +, -, @, tab, CR):
+// names and reasons are typed by people, and +91 phone numbers would show
+// as 9.19E+11.
+function csvCell(val: string | null | undefined): string {
+  if (val === null || val === undefined) return '';
+  const str = /^[=+\-@\t\r]/.test(val) ? `'${val}` : val;
+  return /[",\r\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+}
+
+export function exportOrdersToCsv(orders: AdminOrder[]): string {
+  const headers = [
+    'Order ID',
+    'Member Name',
+    'Member Phone',
+    'Plan Name',
+    'Plan Code',
+    'Amount (INR)',
+    'Status',
+    'Created At (IST)',
+    'Paid At (IST)',
+    'Refunded At (IST)',
+    'Refund Reason',
+    'Refunded By',
+  ];
+
+  const rows = orders.map((o) =>
+    [
+      o.id,
+      o.member.fullName,
+      o.member.phoneNumber,
+      o.plan.name,
+      o.plan.code,
+      (o.amountInPaise / 100).toFixed(2),
+      o.status,
+      csvDateTime(o.createdAt),
+      csvDateTime(o.paidAt),
+      csvDateTime(o.refundedAt),
+      o.refundReason,
+      o.refundedByEmail,
+    ].map(csvCell),
+  );
+
+  return [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+}
+
+export function downloadOrdersCsv(orders: AdminOrder[], filename = 'orders.csv'): void {
+  if (typeof document === 'undefined') return;
+  // The BOM makes Excel open the file as UTF-8 (Tamil names, the rupee sign).
+  const blob = new Blob(['﻿' + exportOrdersToCsv(orders)], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+

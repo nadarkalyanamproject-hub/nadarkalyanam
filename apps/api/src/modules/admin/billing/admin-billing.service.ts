@@ -383,6 +383,9 @@ export class AdminBillingService {
   // Records a refund here (PAID -> REFUNDED only) and ends that order's plan;
   // the member's queued plans move up with no gap. If connected to a real
   // gateway (Razorpay), dispatches the refund request via the gateway API.
+  // gatewayRefundId is null when no money was moved (stub gateway, or an
+  // order with no gateway payment, e.g. one activated by hand), so the admin
+  // UI can tell staff to return the money themselves.
   async refund(adminId: string, orderId: string, reason: string, now: Date = new Date()) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -391,10 +394,12 @@ export class AdminBillingService {
     if (!order) throw new NotFoundException('Order not found');
     if (order.status !== 'PAID') throw new ConflictException('Only a paid order can be refunded');
 
+    let gatewayRefundId: string | null = null;
     if (this.gateway && !this.gateway.isStub && typeof this.gateway.refund === 'function') {
       const payment = order.payments?.find((p) => p.providerReference);
       if (payment?.providerReference) {
-        await this.gateway.refund(payment.providerReference, order.amountInPaise, reason, order.id);
+        const result = await this.gateway.refund(payment.providerReference, order.amountInPaise, reason, order.id);
+        gatewayRefundId = result.refundId;
       }
     }
 
@@ -404,7 +409,19 @@ export class AdminBillingService {
         where: { id: orderId, status: 'PAID' },
         data: { status: 'REFUNDED', refundedAt: now, refundReason: reason, refundedByAdminId: adminId },
       });
-      if (count === 0) throw new ConflictException('Only a paid order can be refunded');
+      if (count === 0) {
+        // The gateway's refund webhook can land between the gateway call and
+        // this update and mark the order REFUNDED first. The money has gone
+        // back, so record who asked for it instead of reporting a failure.
+        if (gatewayRefundId) {
+          await tx.order.updateMany({
+            where: { id: orderId, status: 'REFUNDED', refundedByAdminId: null },
+            data: { refundReason: reason, refundedByAdminId: adminId },
+          });
+          return null;
+        }
+        throw new ConflictException('Only a paid order can be refunded');
+      }
       const subscription = await tx.subscription.findUnique({ where: { orderId } });
       if (subscription && !subscription.cancelledAt && subscription.expiresAt > now) {
         return this.subscriptions.cancelInTx(tx, subscription.id, { adminId, reason: `Order refunded: ${reason}` }, now);
@@ -417,8 +434,9 @@ export class AdminBillingService {
       amountInPaise: order.amountInPaise,
       reason,
       cancelledSubscriptionId: cancelled?.id ?? null,
+      gatewayRefundId,
     });
-    return this.getOrder(orderId);
+    return { ...(await this.getOrder(orderId)), gatewayRefundId };
   }
 
   // --- Member detail ----------------------------------------------------------
