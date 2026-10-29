@@ -12,6 +12,7 @@ import {
   rejectVerification,
   type QueuedVerification,
 } from '../../lib/api-client';
+import { formatDate } from '../../lib/billing-api';
 import { useCurrentAdmin } from '../../lib/use-current-admin';
 import { useAdminAuth } from '../providers/admin-auth-provider';
 import { useRequireAdminAuth } from '../../lib/use-require-admin-auth';
@@ -220,7 +221,7 @@ export default function VerificationsPage() {
                       {item.providerReference}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {new Date(item.createdAt).toLocaleDateString()}
+                      {formatDate(item.createdAt)}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {item.status === 'PENDING' ? (
@@ -245,7 +246,7 @@ export default function VerificationsPage() {
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">
-                          {item.decidedAt ? new Date(item.decidedAt).toLocaleDateString() : '—'}
+                          {formatDate(item.decidedAt)}
                         </span>
                       )}
                     </td>

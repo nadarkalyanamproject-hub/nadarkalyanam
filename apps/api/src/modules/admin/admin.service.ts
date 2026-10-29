@@ -1,7 +1,6 @@
 import { ConflictException, Injectable, NotFoundException, NotImplementedException } from '@nestjs/common';
 import type {
   AccountStatus,
-  AdminPendingPhotoItem,
   AdminVerificationItem,
   MemberActivityResponse,
   VerificationStatus,
@@ -18,6 +17,32 @@ export interface MemberListFilters {
   status?: AccountStatus;
   verified?: boolean;
   sort?: 'newest' | 'oldest';
+}
+
+// An agent decides a verification request only while it is PENDING: a
+// decided request (by the provider or another agent) is never overwritten,
+// so a stale screen can't revive a FAILED request or strip a SUCCEEDED one.
+function assertVerificationPending(status: VerificationStatus) {
+  if (status !== 'PENDING') {
+    throw new ConflictException(`This request has already been decided (${status})`);
+  }
+}
+
+// Conditional on PENDING inside the transaction, so two agents (or an agent
+// and the provider callback) racing on one request can't both apply.
+async function decidePendingVerification(
+  tx: Prisma.TransactionClient,
+  requestId: string,
+  status: 'SUCCEEDED' | 'FAILED',
+  decidedAt: Date,
+) {
+  const { count } = await tx.verificationRequest.updateMany({
+    where: { id: requestId, status: 'PENDING' },
+    data: { status, decidedAt },
+  });
+  if (count === 0) {
+    throw new ConflictException('This request has already been decided');
+  }
 }
 
 // FR-9.5 / FR-11.4: suspend/reinstate are reachable by both Moderator and
@@ -289,9 +314,10 @@ export class AdminService {
     userId: string,
     photoId: string,
     decision: { approve: true } | { approve: false; reason: string },
+    options: { pendingOnly?: boolean } = {},
   ) {
     await this.getActionableMember(userId, decision.approve ? 'approve photo' : 'reject photo');
-    const photo = await this.photosService.moderatePhoto(userId, photoId, decision);
+    const photo = await this.photosService.moderatePhoto(userId, photoId, decision, options);
     await this.auditLog.record(
       adminId,
       decision.approve ? 'member.photo.approve' : 'member.photo.reject',
@@ -321,7 +347,7 @@ export class AdminService {
     if (!photo) {
       throw new NotFoundException('Photo not found');
     }
-    return this.moderateMemberPhoto(adminId, photo.profile.userId, photoId, decision);
+    return this.moderateMemberPhoto(adminId, photo.profile.userId, photoId, decision, { pendingOnly: true });
   }
 
   async listVerifications(
@@ -378,14 +404,12 @@ export class AdminService {
     if (!request) {
       throw new NotFoundException('Verification request not found');
     }
+    assertVerificationPending(request.status);
     await this.getActionableMember(request.userId, 'approve verification');
 
     const decidedAt = new Date();
     await this.prisma.$transaction(async (tx) => {
-      await tx.verificationRequest.update({
-        where: { id: requestId },
-        data: { status: 'SUCCEEDED', decidedAt },
-      });
+      await decidePendingVerification(tx, requestId, 'SUCCEEDED', decidedAt);
       await tx.profile.updateMany({
         where: { userId: request.userId },
         data: { isVerified: true },
@@ -413,14 +437,12 @@ export class AdminService {
     if (!request) {
       throw new NotFoundException('Verification request not found');
     }
+    assertVerificationPending(request.status);
     await this.getActionableMember(request.userId, 'reject verification');
 
     const decidedAt = new Date();
     await this.prisma.$transaction(async (tx) => {
-      await tx.verificationRequest.update({
-        where: { id: requestId },
-        data: { status: 'FAILED', decidedAt },
-      });
+      await decidePendingVerification(tx, requestId, 'FAILED', decidedAt);
 
       // FR-8.6 Guardrail: A failed verification request must never downgrade
       // a profile that has another SUCCEEDED verification request.

@@ -254,7 +254,7 @@ describe('AdminService.moderateMemberPhoto', () => {
     const result = await service.moderateMemberPhoto(ADMIN_ID, USER_ID, 'photo-1', { approve: true });
 
     expect(result).toEqual({ id: 'photo-1', status: 'APPROVED' });
-    expect(photosService.moderatePhoto).toHaveBeenCalledWith(USER_ID, 'photo-1', { approve: true });
+    expect(photosService.moderatePhoto).toHaveBeenCalledWith(USER_ID, 'photo-1', { approve: true }, {});
     expect(auditLog.record).toHaveBeenCalledWith(ADMIN_ID, 'member.photo.approve', 'ProfilePhoto', 'photo-1', {
       userId: USER_ID,
     });

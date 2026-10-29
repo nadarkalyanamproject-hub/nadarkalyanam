@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { requestUploadUrlSchema } from '@nadar-kalyanam/schemas';
 import { describe, expect, it, vi } from 'vitest';
 import { PhotosService } from './photos.service.js';
@@ -32,6 +32,8 @@ function buildService(nodeEnv: string = 'test', photoModeration?: 'pending' | 'a
       delete: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      findUniqueOrThrow: vi.fn(),
     },
     $transaction: vi.fn(async (callback: (tx: TxMock) => unknown) => callback(tx)),
   };
@@ -385,13 +387,13 @@ describe('PhotosService.moderatePhoto', () => {
   it('approve marks the photo moderated and approved, clearing any old rejection reason', async () => {
     const { service, prisma } = buildService();
     prisma.profilePhoto.findUnique.mockResolvedValueOnce({ id: 'photo-1', profileId: PROFILE_ID });
-    prisma.profilePhoto.update.mockImplementationOnce(({ data }: { data: Record<string, unknown> }) =>
-      Promise.resolve({ id: 'photo-1', objectKey: 'k', isPrimary: true, sortOrder: 0, ...data }),
-    );
+    prisma.profilePhoto.findUniqueOrThrow.mockResolvedValueOnce({
+      id: 'photo-1', objectKey: 'k', isPrimary: true, sortOrder: 0, isModerated: true, isApproved: true, rejectionReason: null,
+    });
 
     const result = await service.moderatePhoto(USER_ID, 'photo-1', { approve: true });
 
-    expect(prisma.profilePhoto.update).toHaveBeenCalledWith({
+    expect(prisma.profilePhoto.updateMany).toHaveBeenCalledWith({
       where: { id: 'photo-1' },
       data: { isModerated: true, isApproved: true, rejectionReason: null },
     });
@@ -401,9 +403,9 @@ describe('PhotosService.moderatePhoto', () => {
   it('reject keeps the photo hidden and stores the reason for the owner', async () => {
     const { service, prisma } = buildService();
     prisma.profilePhoto.findUnique.mockResolvedValueOnce({ id: 'photo-1', profileId: PROFILE_ID });
-    prisma.profilePhoto.update.mockImplementationOnce(({ data }: { data: Record<string, unknown> }) =>
-      Promise.resolve({ id: 'photo-1', objectKey: 'k', isPrimary: true, sortOrder: 0, ...data }),
-    );
+    prisma.profilePhoto.findUniqueOrThrow.mockResolvedValueOnce({
+      id: 'photo-1', objectKey: 'k', isPrimary: true, sortOrder: 0, isModerated: true, isApproved: false, rejectionReason: 'Group photo',
+    });
 
     const result = await service.moderatePhoto(USER_ID, 'photo-1', { approve: false, reason: 'Group photo' });
 
@@ -415,7 +417,20 @@ describe('PhotosService.moderatePhoto', () => {
     prisma.profilePhoto.findUnique.mockResolvedValueOnce({ id: 'photo-9', profileId: 'other-profile' });
 
     await expect(service.moderatePhoto(USER_ID, 'photo-9', { approve: true })).rejects.toBeInstanceOf(NotFoundException);
-    expect(prisma.profilePhoto.update).not.toHaveBeenCalled();
+    expect(prisma.profilePhoto.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('pendingOnly (the queue) only decides a photo still pending, and 409s once another moderator has', async () => {
+    const { service, prisma } = buildService();
+    prisma.profilePhoto.findUnique.mockResolvedValueOnce({ id: 'photo-1', profileId: PROFILE_ID });
+    prisma.profilePhoto.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await expect(
+      service.moderatePhoto(USER_ID, 'photo-1', { approve: true }, { pendingOnly: true }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.profilePhoto.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'photo-1', isModerated: false } }),
+    );
   });
 });
 
@@ -446,7 +461,7 @@ describe('PhotosService.listPendingPhotos', () => {
     const result = await service.listPendingPhotos(0, 10);
 
     expect(prisma.profilePhoto.findMany).toHaveBeenCalledWith({
-      where: { isModerated: false },
+      where: { isModerated: false, profile: { user: { status: { not: 'DELETED' } } } },
       orderBy: { createdAt: 'asc' },
       skip: 0,
       take: 10,

@@ -23,6 +23,7 @@ function buildService(user: Record<string, unknown> | null = { id: USER_ID, stat
       findMany: vi.fn(),
       count: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     profile: {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -88,7 +89,7 @@ describe('AdminService — Photo Moderation Queue', () => {
     const result = await service.moderatePhotoFromQueue(ADMIN_ID, 'photo-1', { approve: true });
 
     expect(result.status).toBe('APPROVED');
-    expect(photosService.moderatePhoto).toHaveBeenCalledWith(USER_ID, 'photo-1', { approve: true });
+    expect(photosService.moderatePhoto).toHaveBeenCalledWith(USER_ID, 'photo-1', { approve: true }, { pendingOnly: true });
     expect(auditLog.record).toHaveBeenCalledWith(ADMIN_ID, 'member.photo.approve', 'ProfilePhoto', 'photo-1', {
       userId: USER_ID,
     });
@@ -114,10 +115,12 @@ describe('AdminService — Photo Moderation Queue', () => {
     });
 
     expect(result.status).toBe('REJECTED');
-    expect(photosService.moderatePhoto).toHaveBeenCalledWith(USER_ID, 'photo-1', {
-      approve: false,
-      reason: 'Blurred image',
-    });
+    expect(photosService.moderatePhoto).toHaveBeenCalledWith(
+      USER_ID,
+      'photo-1',
+      { approve: false, reason: 'Blurred image' },
+      { pendingOnly: true },
+    );
     expect(auditLog.record).toHaveBeenCalledWith(ADMIN_ID, 'member.photo.reject', 'ProfilePhoto', 'photo-1', {
       userId: USER_ID,
       reason: 'Blurred image',
@@ -231,9 +234,9 @@ describe('AdminService — Identity Verification Queue', () => {
     const result = await service.approveVerification(ADMIN_ID, 'req-1');
 
     expect(result.status).toBe('SUCCEEDED');
-    expect(prisma.verificationRequest.update).toHaveBeenCalledWith(
+    expect(prisma.verificationRequest.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'req-1' },
+        where: { id: 'req-1', status: 'PENDING' },
         data: expect.objectContaining({ status: 'SUCCEEDED' }),
       }),
     );
@@ -304,9 +307,9 @@ describe('AdminService — Identity Verification Queue', () => {
     const result = await service.rejectVerification(ADMIN_ID, 'req-older', 'Old attempt timed out');
 
     expect(result.status).toBe('FAILED');
-    expect(prisma.verificationRequest.update).toHaveBeenCalledWith(
+    expect(prisma.verificationRequest.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'req-older' },
+        where: { id: 'req-older', status: 'PENDING' },
         data: expect.objectContaining({ status: 'FAILED' }),
       }),
     );
@@ -318,5 +321,33 @@ describe('AdminService — Identity Verification Queue', () => {
       targetType: 'Account',
       data: { reason: 'Old attempt timed out' },
     });
+  });
+
+  it.each([
+    ['approve', 'FAILED'],
+    ['approve', 'EXPIRED'],
+    ['reject', 'SUCCEEDED'],
+    ['reject', 'FAILED'],
+  ] as const)('refuses to %s a request that is already %s, changing nothing', async (action, status) => {
+    const { service, prisma, notifications, auditLog } = buildService();
+    prisma.verificationRequest.findUnique.mockResolvedValueOnce({ id: 'req-1', userId: USER_ID, status });
+
+    const call =
+      action === 'approve' ? service.approveVerification(ADMIN_ID, 'req-1') : service.rejectVerification(ADMIN_ID, 'req-1', 'x');
+    await expect(call).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.verificationRequest.updateMany).not.toHaveBeenCalled();
+    expect(prisma.profile.updateMany).not.toHaveBeenCalled();
+    expect(notifications.notify).not.toHaveBeenCalled();
+    expect(auditLog.record).not.toHaveBeenCalled();
+  });
+
+  it('409s when another agent decided the request between the read and the update', async () => {
+    const { service, prisma, notifications } = buildService();
+    prisma.verificationRequest.findUnique.mockResolvedValueOnce({ id: 'req-1', userId: USER_ID, status: 'PENDING' });
+    prisma.verificationRequest.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await expect(service.rejectVerification(ADMIN_ID, 'req-1', 'x')).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.profile.updateMany).not.toHaveBeenCalled();
+    expect(notifications.notify).not.toHaveBeenCalled();
   });
 });

@@ -12,6 +12,7 @@ import {
   rejectQueuedPhoto,
   type QueuedPhoto,
 } from '../../lib/api-client';
+import { formatDate } from '../../lib/billing-api';
 import { useCurrentAdmin } from '../../lib/use-current-admin';
 import { useAdminAuth } from '../providers/admin-auth-provider';
 import { useRequireAdminAuth } from '../../lib/use-require-admin-auth';
@@ -169,7 +170,7 @@ export default function PhotosPage() {
                     </Link>
                     <p className="text-xs text-muted-foreground">{photo.phoneNumber}</p>
                     <p className="text-[11px] text-muted-foreground mt-1">
-                      Uploaded {new Date(photo.createdAt).toLocaleDateString()}
+                      Uploaded {formatDate(photo.createdAt)}
                     </p>
                   </div>
                 </div>

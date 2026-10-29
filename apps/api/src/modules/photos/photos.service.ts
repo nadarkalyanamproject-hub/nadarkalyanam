@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { AdminPendingPhotoItem, PhotoResponse } from '@nadar-kalyanam/schemas';
 import { APPROVED_PHOTO_WHERE, photoStatus } from '../../common/photo-visibility.js';
@@ -135,22 +135,28 @@ export class PhotosService {
 
   // Admin decision on one of a member's photos. Scoped like deletePhoto: a
   // photo that isn't on this member's profile 404s. Re-deciding is allowed
-  // (e.g. approving a photo rejected by mistake).
+  // (e.g. approving a photo rejected by mistake). The cross-member queue
+  // passes pendingOnly, so two moderators on one photo can't both decide it.
   async moderatePhoto(
     userId: string,
     photoId: string,
     decision: { approve: true } | { approve: false; reason: string },
+    options: { pendingOnly?: boolean } = {},
   ): Promise<PhotoResponse> {
     const profile = await this.getOwnedProfile(userId);
     const photo = await this.getOwnedPhoto(profile.id, photoId);
-    const updated = await this.prisma.profilePhoto.update({
-      where: { id: photo.id },
+    const { count } = await this.prisma.profilePhoto.updateMany({
+      where: { id: photo.id, ...(options.pendingOnly ? { isModerated: false } : {}) },
       data: {
         isModerated: true,
         isApproved: decision.approve,
         rejectionReason: decision.approve ? null : decision.reason,
       },
     });
+    if (count === 0) {
+      throw new ConflictException('This photo has already been reviewed');
+    }
+    const updated = await this.prisma.profilePhoto.findUniqueOrThrow({ where: { id: photo.id } });
     return this.toPhotoResponse(updated);
   }
 
@@ -162,7 +168,9 @@ export class PhotosService {
   }
 
   async listPendingPhotos(offset = 0, limit = 20): Promise<{ items: AdminPendingPhotoItem[]; total: number }> {
-    const where = { isModerated: false };
+    // Anonymized (DELETED) accounts can't be moderated, so their photos would
+    // sit at the top of this oldest-first queue for good.
+    const where = { isModerated: false, profile: { user: { status: { not: 'DELETED' as const } } } };
     const [total, photos] = await Promise.all([
       this.prisma.profilePhoto.count({ where }),
       this.prisma.profilePhoto.findMany({
