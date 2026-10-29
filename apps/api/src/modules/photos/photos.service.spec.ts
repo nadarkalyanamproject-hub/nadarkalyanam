@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { requestUploadUrlSchema } from '@nadar-kalyanam/schemas';
 import { describe, expect, it, vi } from 'vitest';
 import { PhotosService } from './photos.service.js';
@@ -32,6 +32,8 @@ function buildService(nodeEnv: string = 'test', photoModeration?: 'pending' | 'a
       delete: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      findUniqueOrThrow: vi.fn(),
     },
     $transaction: vi.fn(async (callback: (tx: TxMock) => unknown) => callback(tx)),
   };
@@ -385,13 +387,13 @@ describe('PhotosService.moderatePhoto', () => {
   it('approve marks the photo moderated and approved, clearing any old rejection reason', async () => {
     const { service, prisma } = buildService();
     prisma.profilePhoto.findUnique.mockResolvedValueOnce({ id: 'photo-1', profileId: PROFILE_ID });
-    prisma.profilePhoto.update.mockImplementationOnce(({ data }: { data: Record<string, unknown> }) =>
-      Promise.resolve({ id: 'photo-1', objectKey: 'k', isPrimary: true, sortOrder: 0, ...data }),
-    );
+    prisma.profilePhoto.findUniqueOrThrow.mockResolvedValueOnce({
+      id: 'photo-1', objectKey: 'k', isPrimary: true, sortOrder: 0, isModerated: true, isApproved: true, rejectionReason: null,
+    });
 
     const result = await service.moderatePhoto(USER_ID, 'photo-1', { approve: true });
 
-    expect(prisma.profilePhoto.update).toHaveBeenCalledWith({
+    expect(prisma.profilePhoto.updateMany).toHaveBeenCalledWith({
       where: { id: 'photo-1' },
       data: { isModerated: true, isApproved: true, rejectionReason: null },
     });
@@ -401,9 +403,9 @@ describe('PhotosService.moderatePhoto', () => {
   it('reject keeps the photo hidden and stores the reason for the owner', async () => {
     const { service, prisma } = buildService();
     prisma.profilePhoto.findUnique.mockResolvedValueOnce({ id: 'photo-1', profileId: PROFILE_ID });
-    prisma.profilePhoto.update.mockImplementationOnce(({ data }: { data: Record<string, unknown> }) =>
-      Promise.resolve({ id: 'photo-1', objectKey: 'k', isPrimary: true, sortOrder: 0, ...data }),
-    );
+    prisma.profilePhoto.findUniqueOrThrow.mockResolvedValueOnce({
+      id: 'photo-1', objectKey: 'k', isPrimary: true, sortOrder: 0, isModerated: true, isApproved: false, rejectionReason: 'Group photo',
+    });
 
     const result = await service.moderatePhoto(USER_ID, 'photo-1', { approve: false, reason: 'Group photo' });
 
@@ -415,6 +417,78 @@ describe('PhotosService.moderatePhoto', () => {
     prisma.profilePhoto.findUnique.mockResolvedValueOnce({ id: 'photo-9', profileId: 'other-profile' });
 
     await expect(service.moderatePhoto(USER_ID, 'photo-9', { approve: true })).rejects.toBeInstanceOf(NotFoundException);
-    expect(prisma.profilePhoto.update).not.toHaveBeenCalled();
+    expect(prisma.profilePhoto.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('pendingOnly (the queue) only decides a photo still pending, and 409s once another moderator has', async () => {
+    const { service, prisma } = buildService();
+    prisma.profilePhoto.findUnique.mockResolvedValueOnce({ id: 'photo-1', profileId: PROFILE_ID });
+    prisma.profilePhoto.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await expect(
+      service.moderatePhoto(USER_ID, 'photo-1', { approve: true }, { pendingOnly: true }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.profilePhoto.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'photo-1', isModerated: false } }),
+    );
+  });
+});
+
+
+describe('PhotosService.listPendingPhotos', () => {
+  it('queries profilePhoto with isModerated: false, ordered by oldest first, and returns signed URLs', async () => {
+    const { service, prisma, storage } = buildService();
+    const createdAt = new Date('2026-10-28T09:00:00Z');
+    prisma.profilePhoto.count.mockResolvedValueOnce(1);
+    prisma.profilePhoto.findMany.mockResolvedValueOnce([
+      {
+        id: 'photo-1',
+        objectKey: 'photos/photo-1.jpg',
+        profileId: PROFILE_ID,
+        isPrimary: true,
+        sortOrder: 0,
+        createdAt,
+        profile: {
+          id: PROFILE_ID,
+          userId: USER_ID,
+          fullName: 'Kavitha Nadar',
+          user: { phoneNumber: '+919876543210' },
+        },
+      },
+    ]);
+    storage.getObjectUrl.mockResolvedValueOnce('https://storage.example/signed/photo-1.jpg');
+
+    const result = await service.listPendingPhotos(0, 10);
+
+    expect(prisma.profilePhoto.findMany).toHaveBeenCalledWith({
+      where: { isModerated: false, profile: { user: { status: { not: 'DELETED' } } } },
+      orderBy: { createdAt: 'asc' },
+      skip: 0,
+      take: 10,
+      include: {
+        profile: {
+          select: {
+            id: true,
+            userId: true,
+            fullName: true,
+            user: { select: { phoneNumber: true } },
+          },
+        },
+      },
+    });
+    expect(result.items).toEqual([
+      {
+        id: 'photo-1',
+        url: 'https://storage.example/signed/photo-1.jpg',
+        profileId: PROFILE_ID,
+        userId: USER_ID,
+        memberName: 'Kavitha Nadar',
+        phoneNumber: '+919876543210',
+        isPrimary: true,
+        sortOrder: 0,
+        createdAt: createdAt.toISOString(),
+      },
+    ]);
+    expect(result.total).toBe(1);
   });
 });

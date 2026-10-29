@@ -49,7 +49,7 @@ export const reportResponseSchema = z.object({
 export type ReportResponse = z.infer<typeof reportResponseSchema>;
 
 // IN_REVIEW marks a report as picked up; RESOLVED/DISMISSED close it. The
-// optional note has no column on Report — it's kept in the audit log entry
+// optional note has no column on Report â€” it's kept in the audit log entry
 // the transition writes (see AdminController.updateReport).
 export const resolveReportRequestSchema = z.object({
   status: z.enum(['IN_REVIEW', 'RESOLVED', 'DISMISSED']),
@@ -57,7 +57,7 @@ export const resolveReportRequestSchema = z.object({
 });
 export type ResolveReportRequest = z.infer<typeof resolveReportRequestSchema>;
 
-// GET /admin/reports?status=… — omitted means the open queue (OPEN +
+// GET /admin/reports?status=â€¦ â€” omitted means the open queue (OPEN +
 // IN_REVIEW), the queue's original behaviour.
 export const adminReportsQuerySchema = z.object({
   offset: z.string().optional(),

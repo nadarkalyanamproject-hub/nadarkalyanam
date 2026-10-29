@@ -51,6 +51,18 @@ export function notificationMessage(type: string, actorName: string, data: Recor
       const plan = typeof data.planName === 'string' ? data.planName : 'membership';
       return `Payment failed for ${plan}. Please try again.`;
     }
+    case 'PHOTO_APPROVED':
+      return 'Your profile photo has been approved and is now visible to members';
+    case 'PHOTO_REJECTED': {
+      const reason = typeof data.reason === 'string' && data.reason.trim() ? `: ${data.reason.trim()}` : '';
+      return `A profile photo was rejected by our moderation team${reason}`;
+    }
+    case 'VERIFICATION_APPROVED':
+      return 'Your identity verification was approved. Your profile now shows a verified badge.';
+    case 'VERIFICATION_REJECTED': {
+      const reason = typeof data.reason === 'string' && data.reason.trim() ? `: ${data.reason.trim()}` : '';
+      return `Your identity verification could not be approved${reason}`;
+    }
     case 'PAYMENT_REFUNDED': {
       const plan = typeof data.planName === 'string' ? data.planName : 'membership';
       return `Payment for ${plan} has been refunded.`;
