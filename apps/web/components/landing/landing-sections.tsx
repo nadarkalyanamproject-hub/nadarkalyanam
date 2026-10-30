@@ -1,15 +1,6 @@
 'use client';
 
 import { motion } from 'motion/react';
-import {
-  Crown,
-  EyeOff,
-  HeartHandshake,
-  ImageUp,
-  ScrollText,
-  Users,
-  type LucideIcon,
-} from 'lucide-react';
 
 // The landing page sections between the trust strip and the footer. Every
 // line describes something the product does today: no member counts, no
@@ -32,67 +23,6 @@ function SectionHeading({ id, eyebrow, title, intro }: { id: string; eyebrow: st
       <span className="lp-rule" aria-hidden="true" />
       {intro && <p className="lp-intro">{intro}</p>}
     </motion.div>
-  );
-}
-
-const FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
-  {
-    icon: Users,
-    title: 'Only for the Nadar community',
-    text: 'Hindu and Christian Nadar families, with your subcategory on every profile.',
-  },
-  {
-    icon: ImageUp,
-    title: 'Photos reviewed by our team',
-    text: 'Every photo is checked before other members can see it.',
-  },
-  {
-    icon: EyeOff,
-    title: 'You control your privacy',
-    text: 'Hide your profile any time. Your phone number stays hidden unless you choose to share it.',
-  },
-  {
-    icon: HeartHandshake,
-    title: 'Matches by your preferences',
-    text: 'Age, height, location, marital status and income: tell us once and matches follow.',
-  },
-  {
-    icon: ScrollText,
-    title: 'Horoscope on your terms',
-    text: 'Add your horoscope and decide who can see it.',
-  },
-  {
-    icon: Crown,
-    title: 'VIP assisted matchmaking',
-    text: 'Prefer a personal touch? Our team can search on your family’s behalf.',
-  },
-];
-
-export function WhyUs() {
-  return (
-    <section className="lp-section lp-why" id="why-us" aria-labelledby="why-heading">
-      <div className="lp-inner">
-        <SectionHeading
-          id="why-heading"
-          eyebrow="Why Nadar Kalyanam"
-          title="Built around how our families find a match"
-          intro="Tradition, trust and privacy come first, so families can search with confidence."
-        />
-        <ul className="lp-features">
-          {FEATURES.map(({ icon: Icon, title, text }, n) => (
-            <motion.li key={title} className="lp-feature" {...REVEAL} transition={{ ...REVEAL.transition, delay: (n % 3) * 0.08 }}>
-              <span className="lp-icon" aria-hidden="true">
-                <Icon strokeWidth={1.6} />
-              </span>
-              <div>
-                <h3 className="lp-card-title">{title}</h3>
-                <p className="lp-card-text">{text}</p>
-              </div>
-            </motion.li>
-          ))}
-        </ul>
-      </div>
-    </section>
   );
 }
 

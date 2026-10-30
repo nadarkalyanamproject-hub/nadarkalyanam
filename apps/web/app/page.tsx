@@ -10,7 +10,7 @@ import { isValidLocalPhone, toE164 } from '../lib/phone';
 import { OTPVerification } from '@/components/ui/otp-verify';
 import { FounderMessage } from '@/components/landing/founder-message';
 import { TrustStrip } from '@/components/landing/trust-strip';
-import { Faq, FinalCta, WhyUs } from '@/components/landing/landing-sections';
+import { Faq, FinalCta } from '@/components/landing/landing-sections';
 import { Logo, LogoMark } from '@/components/brand/logo';
 import './landing.css';
 
@@ -28,7 +28,6 @@ function IndiaFlag() {
 }
 
 const PROFILE_OPTIONS = PROFILE_FOR.map((key) => PROFILE_FOR_LABELS[key]);
-const LANG_OPTIONS = ['English', 'தமிழ் (Tamil)'];
 
 function getNamePlaceholder(profileFor: string): string {
   switch (profileFor.toLowerCase()) {
@@ -85,8 +84,6 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const returnTo = safeReturnTo(searchParams.get('returnTo'));
 
-  const [langOpen, setLangOpen] = useState(false);
-  const [currentLang, setCurrentLang] = useState('English');
 
   const [profileForOpen, setProfileForOpen] = useState(false);
   const [profileFor, setProfileFor] = useState('');
@@ -121,7 +118,6 @@ function HomeContent() {
   const [toast, setToast] = useState({ visible: false, title: '', msg: '', isError: false });
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const langSelectorRef = useRef<HTMLDivElement>(null);
   const profileForRef = useRef<HTMLDivElement>(null);
   // A login or register success already knows exactly where to go (based on
   // hasProfile) and navigates there itself. Without this, setAuth() below
@@ -142,9 +138,6 @@ function HomeContent() {
 
   useEffect(() => {
     function onDocumentClick(e: MouseEvent) {
-      if (langSelectorRef.current && !langSelectorRef.current.contains(e.target as Node)) {
-        setLangOpen(false);
-      }
       if (profileForRef.current && !profileForRef.current.contains(e.target as Node)) {
         setProfileForOpen(false);
       }
@@ -365,81 +358,6 @@ function HomeContent() {
 
   return (
     <div className="nk-landing">
-      {/* Top Announcement Bar */}
-      <header className="top-bar">
-        <div className="top-bar-container">
-          <div className="top-bar-left">
-            <span>Tradition</span>
-            <span className="pipe">|</span>
-            <span>Trust</span>
-            <span className="pipe">|</span>
-            <span>Together in Values</span>
-          </div>
-          <div className="top-bar-right">
-            <div
-              className={`lang-selector${langOpen ? ' open' : ''}`}
-              ref={langSelectorRef}
-              tabIndex={0}
-              role="button"
-              aria-haspopup="listbox"
-              aria-expanded={langOpen}
-              onClick={(e) => {
-                e.stopPropagation();
-                setProfileForOpen(false);
-                setLangOpen((v) => !v);
-              }}
-            >
-              <svg
-                className="icon-globe"
-                viewBox="0 0 24 24"
-                width="15"
-                height="15"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="2" y1="12" x2="22" y2="12" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
-              <span className="lang-label">{currentLang}</span>
-              <svg
-                className="chevron-down"
-                viewBox="0 0 24 24"
-                width="13"
-                height="13"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-              <ul className={`lang-dropdown${langOpen ? ' show' : ''}`} role="listbox">
-                {LANG_OPTIONS.map((lang) => (
-                  <li
-                    key={lang}
-                    role="option"
-                    aria-selected={currentLang === lang}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentLang(lang);
-                      setLangOpen(false);
-                      showToast('Language Updated', `Switched interface language to ${lang}`);
-                    }}
-                  >
-                    {lang}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Main Navigation */}
       <nav className="main-navbar">
         <div className="nav-container">
@@ -547,7 +465,6 @@ function HomeContent() {
                       aria-controls="profileOptions"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setLangOpen(false);
                         setProfileForOpen((v) => !v);
                       }}
                     >
@@ -796,7 +713,6 @@ function HomeContent() {
 
       {/* Trust strip: tagline + the four promises */}
       <TrustStrip />
-      <WhyUs />
 
       <FounderMessage />
       <Faq />
