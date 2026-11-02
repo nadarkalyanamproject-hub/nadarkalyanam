@@ -67,11 +67,11 @@ export function ShortlistButton({
           className={`inline-flex items-center justify-center gap-2 rounded-md border px-5 py-2.5 text-sm font-semibold transition-all active:scale-[0.98] ${
             shortlisted
               ? 'border-nk-maroon bg-[#FAF5F6] text-nk-maroon'
-              : 'border-[#E2E8F0] bg-white text-[#334155] hover:bg-[#FAF8F5] hover:border-[#CBD5E1]'
+              : 'border-nk-gold/60 bg-white text-nk-ink shadow-sm hover:border-nk-maroon hover:bg-nk-sand hover:text-nk-maroon'
           } disabled:cursor-not-allowed disabled:opacity-60`}
         >
           <Bookmark
-            className={`h-4 w-4 ${shortlisted ? 'fill-nk-maroon text-nk-maroon' : 'text-[#64748B]'}`}
+            className={`h-4 w-4 ${shortlisted ? 'fill-nk-maroon text-nk-maroon' : 'text-nk-maroon'}`}
           />
           <span>{busy ? 'Saving…' : shortlisted ? 'Shortlisted' : 'Shortlist'}</span>
         </button>

@@ -142,15 +142,20 @@ export function SiteFooter() {
                 );
               })}
               <li>
-                <address className={`${linkClass} inline-flex items-start gap-2 not-italic`}>
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#E9C77A]" strokeWidth={1.75} aria-hidden="true" />
-                  <span>
-                    {OFFICE_ADDRESS.slice(1).map((line) => (
-                      <span key={line} className="block">
-                        {line}
-                      </span>
-                    ))}
-                  </span>
+                {/* From sm up the pin hangs in the gutter left of the column, level
+                    with the first line, so the address lines up with the links above.
+                    Phones have only a 16px page margin, so there it sits inside. */}
+                <address className={`${linkClass} relative block pl-6 not-italic sm:pl-0`}>
+                  <MapPin
+                    className="absolute left-0 top-[3px] h-4 w-4 text-[#E9C77A] sm:-left-6"
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  />
+                  {OFFICE_ADDRESS.slice(1).map((line) => (
+                    <span key={line} className="block">
+                      {line}
+                    </span>
+                  ))}
                 </address>
               </li>
             </ul>

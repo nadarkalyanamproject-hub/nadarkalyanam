@@ -893,7 +893,8 @@ html {
   font-weight: 700;
   line-height: 1.25;
   color: #2B1B14;
-  white-space: nowrap;
+  /* Wraps rather than running into the next point on narrow columns. */
+  text-wrap: balance;
 }
 
 .trust-strip-point-text {

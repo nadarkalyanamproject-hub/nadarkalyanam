@@ -2,7 +2,7 @@ import { LogoMark } from './logo';
 
 // The boot splash: the logo animation, played on every full load of the site
 // (not on page-to-page navigation, since the layout stays mounted), then it
-// fades away to show the page underneath (about 2.4s, tap to skip).
+// fades away to show the page underneath (about 3.6s, tap to skip).
 // It is server-rendered so it covers the page from the very first paint; the
 // inline script right after it switches to a still logo that simply fades
 // for visitors who prefer reduced motion (e.g. Windows "Animation effects" off).
@@ -42,7 +42,7 @@ export function Splash() {
             </span>
           </span>
           <span className="nk-logo-word">
-            <span className="nk-logo-a">{letters('NADAR', 0.8, 0.05)}</span>
+            <span className="nk-logo-a">{letters('NADAR', 1.2, 0.08)}</span>
             <span className="nk-logo-b nk-splash-b">KALYANAM</span>
           </span>
         </div>

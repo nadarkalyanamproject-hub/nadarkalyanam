@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 // The trust strip under the landing hero: a short tagline, then the four
 // promises the product actually keeps today (every one of these is built).
 const POINTS: { icon: LucideIcon; title: string; text: string }[] = [
-  { icon: ShieldCheck, title: 'OTP Verified', text: 'Every mobile number confirmed' },
+  { icon: ShieldCheck, title: 'Verified Phone Numbers', text: 'Confirmed by OTP' },
   { icon: HeartHandshake, title: 'Meaningful Matches', text: 'Based on shared values' },
   { icon: Lock, title: 'Safe & Secure', text: 'Your privacy, our priority' },
   { icon: Users, title: 'Direct Connect', text: 'Mutual family interest' },

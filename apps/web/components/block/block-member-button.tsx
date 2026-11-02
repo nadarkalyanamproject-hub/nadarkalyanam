@@ -55,11 +55,11 @@ export function BlockMemberButton({
         data-testid="block-member"
         className={
           appearance === 'pill'
-            ? 'inline-flex items-center justify-center gap-2 rounded-md border border-[#E2E8F0] bg-white px-5 py-2.5 text-sm font-semibold text-[#64748B] hover:bg-[#FAF8F5] hover:border-[#CBD5E1] hover:text-[#475569] transition-all active:scale-[0.98]'
+            ? 'inline-flex items-center justify-center gap-2 rounded-md border border-nk-gold/60 bg-white px-5 py-2.5 text-sm font-semibold text-nk-ink shadow-sm hover:border-nk-maroon hover:bg-nk-sand hover:text-nk-maroon transition-all active:scale-[0.98]'
             : 'inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground'
         }
       >
-        <Ban className={appearance === 'pill' ? 'h-4 w-4 text-[#8C6B6B]' : 'h-3.5 w-3.5'} aria-hidden="true" />
+        <Ban className={appearance === 'pill' ? 'h-4 w-4 text-nk-maroon' : 'h-3.5 w-3.5'} aria-hidden="true" />
         <span>Block</span>
       </button>
 

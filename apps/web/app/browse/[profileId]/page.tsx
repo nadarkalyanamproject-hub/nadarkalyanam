@@ -255,9 +255,9 @@ function ViewProfilePageContent() {
                     <button
                       type="button"
                       onClick={() => setShowReportForm((open) => !open)}
-                      className="inline-flex items-center justify-center gap-2 rounded-md border border-[#E2E8F0] bg-white px-5 py-2.5 text-sm font-semibold text-[#64748B] hover:bg-[#FAF8F5] hover:border-[#CBD5E1] hover:text-[#475569] transition-all active:scale-[0.98]"
+                      className="inline-flex items-center justify-center gap-2 rounded-md border border-nk-gold/60 bg-white px-5 py-2.5 text-sm font-semibold text-nk-ink shadow-sm hover:border-nk-maroon hover:bg-nk-sand hover:text-nk-maroon transition-all active:scale-[0.98]"
                     >
-                      <AlertTriangle className="h-4 w-4 text-[#8C6B6B]" />
+                      <AlertTriangle className="h-4 w-4 text-nk-maroon" />
                       <span>Report</span>
                     </button>
                   )}
