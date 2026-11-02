@@ -14,6 +14,8 @@ import { toFieldErrors } from '../../../lib/zod-errors';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { useRegistration } from '../../providers/registration-provider';
 import { useIdentityStatus } from '../../../lib/identity-status';
+import { logout } from '../../../lib/api-client';
+import { claimAuthRedirect } from '../../../lib/auth-events';
 
 type FormState = BasicDetailsFormState;
 
@@ -37,7 +39,8 @@ export default function BasicDetailsPage() {
 function BasicDetailsStep() {
   const router = useRouter();
   const { ready } = useRequireAuth();
-  const { data, saveStep, saveStepInput } = useRegistration();
+  const { data, saveStep, saveStepInput, clearAuth } = useRegistration();
+  const [leaving, setLeaving] = useState(false);
 
   // Latest raw input wins over the last validated save, so whatever was
   // typed (even unsaved/invalid) is what comes back.
@@ -67,6 +70,23 @@ function BasicDetailsStep() {
     setForm((prev: FormState) => ({ ...prev, [key]: value }));
   }
 
+  // There's no step before this one, and while signed in without a profile
+  // every member page sends them back here, so Back signs out (as the
+  // header's Log out does) and returns to the landing page.
+  async function handleBack() {
+    if (leaving) return;
+    setLeaving(true);
+    claimAuthRedirect();
+    try {
+      if (data.accessToken) await logout(data.accessToken);
+    } catch {
+      // Signed out locally below anyway; the token expires on its own.
+    } finally {
+      clearAuth();
+      router.push('/');
+    }
+  }
+
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     const result = basicDetailsSchema.safeParse(values);
@@ -83,6 +103,9 @@ function BasicDetailsStep() {
     <OnboardingShell
       step={1}
       activePercent={activePercent}
+      onBack={handleBack}
+      backDisabled={leaving}
+      backLabel="Back to log in"
       title="Basic Details"
       subtitle="Tell us a little about yourself"
     >

@@ -5,7 +5,7 @@ import { useId } from 'react';
 // The Nadar Kalyanam mark: the Nadar thali pendant. Two arches over one body,
 // an open niche under each arch with a thin inner border, the lingam on its
 // peedam (left), the standing goddess (right) and the "M" legs at the bottom.
-// Source of truth: Desktop/Tech Arnik/Nadar Kalyanam/logo/gen.mjs. Parts carry
+// Source of truth: Desktop/Tech Arnik/Nadar Kalyanam/logo-source/mark.mjs. Parts carry
 // nk-* classes so the splash and loading screens can animate them.
 // fill 'metal' paints it soft gold (light at the top, deeper at the base).
 export function LogoMark({ fill = 'metal', className }: { fill?: 'metal' | string; className?: string }) {
@@ -71,7 +71,9 @@ export function Logo({ className = '', light = false }: { className?: string; li
     <span className={`nk-logo ${light ? 'nk-logo-light' : ''} ${className}`} role="img" aria-label="Nadar Kalyanam">
       <LogoMark className="nk-logo-mark" />
       <span className="nk-logo-word" aria-hidden="true">
-        <span className="nk-logo-a">NADAR</span>
+        <span className="nk-logo-a">
+          NADAR<span className="nk-logo-tm">TM</span>
+        </span>
         <span className="nk-logo-b">KALYANAM</span>
       </span>
     </span>

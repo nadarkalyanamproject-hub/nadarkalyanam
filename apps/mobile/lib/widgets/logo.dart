@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme.dart';
 
 // The pendant mark, the same drawing as apps/web/components/brand/logo.tsx
-// (source: Desktop/Tech Arnik/Nadar Kalyanam/logo/gen.mjs). viewBox 100x118.
+// (source: Desktop/Tech Arnik/Nadar Kalyanam/logo-source/mark.mjs). viewBox 100x118.
 String markSvg({String fill = 'url(#g)', bool withGradient = true}) => '''
 <svg viewBox="0 10 100 118" xmlns="http://www.w3.org/2000/svg">
 ${withGradient ? '<defs><linearGradient id="g" gradientUnits="userSpaceOnUse" x1="20" y1="10" x2="80" y2="128"><stop offset="0" stop-color="#D9B45C"/><stop offset=".55" stop-color="#C89B3C"/><stop offset="1" stop-color="#B98B32"/></linearGradient></defs>' : ''}
@@ -45,8 +45,51 @@ class LogoMark extends StatelessWidget {
   }
 }
 
-// Pendant beside NADAR over KALYANAM, in the website's proportions:
-// everything scales from the NADAR size.
+// The lockup's proportions, as in the website's brand.css: in multiples of
+// the logo size. NADAR sits centred over the wider KALYANAM, and the pendant
+// spans from the top of NADAR to the KALYANAM baseline.
+class LogoSizes {
+  static const nadar = 0.9, nadarTrack = 0.08;
+  static const kalyanam = 0.78, kalyanamTrack = 0.09;
+  static const markHeight = 1.497, markTop = 0.056, gap = 0.343;
+}
+
+// letterSpacing also adds space after the last letter; the same space on the
+// left keeps each line centred on its letters.
+Widget centredWord(String text, TextStyle style) =>
+    Padding(padding: EdgeInsets.only(left: style.letterSpacing ?? 0), child: Text(text, style: style));
+
+// NADAR with the trademark: small caps level with the top of the word, just
+// past its last letter, hung outside its width so the lines stay centred.
+// The splash passes its own letter-by-letter [word] and fades the TM in.
+Widget nadarWithTm(TextStyle style, {Widget? word, double tmOpacity = 1}) {
+  final size = style.fontSize ?? 14;
+  return Stack(
+    clipBehavior: Clip.none,
+    children: [
+      word ?? centredWord('NADAR', style),
+      Positioned(
+        right: 0,
+        top: size * 0.13,
+        child: FractionalTranslation(
+          translation: const Offset(1, 0),
+          child: Transform.translate(
+            offset: Offset(-(style.letterSpacing ?? 0) * 0.6, 0),
+            child: Opacity(
+              opacity: tmOpacity,
+              child: Text(
+                'TM',
+                style: style.copyWith(fontSize: size * 0.25, letterSpacing: size * 0.25 * 0.04, height: 1),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+// Pendant beside NADAR over KALYANAM.
 class Logo extends StatelessWidget {
   const Logo({super.key, this.size = 22, this.light = false});
   final double size;
@@ -55,16 +98,16 @@ class Logo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = GoogleFonts.cinzel(
-      fontSize: size,
+      fontSize: size * LogoSizes.nadar,
       fontWeight: FontWeight.w700,
-      letterSpacing: size * 0.1286,
+      letterSpacing: size * LogoSizes.nadar * LogoSizes.nadarTrack,
       height: 1.02,
       color: light ? Colors.white : NK.maroon,
     );
     final b = GoogleFonts.cinzel(
-      fontSize: size * 0.593,
+      fontSize: size * LogoSizes.kalyanam,
       fontWeight: FontWeight.w600,
-      letterSpacing: size * 0.593 * 0.2217,
+      letterSpacing: size * LogoSizes.kalyanam * LogoSizes.kalyanamTrack,
       height: 1.02,
       color: light ? NK.goldLight : NK.goldText,
     );
@@ -75,12 +118,14 @@ class Logo extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(padding: EdgeInsets.only(top: size * 0.0714), child: LogoMark(height: size * 1.434)),
-            SizedBox(width: size * 0.343),
+            Padding(
+              padding: EdgeInsets.only(top: size * LogoSizes.markTop),
+              child: LogoMark(height: size * LogoSizes.markHeight),
+            ),
+            SizedBox(width: size * LogoSizes.gap),
             Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [Text('NADAR', style: a), Text('KALYANAM', style: b)],
+              children: [nadarWithTm(a), centredWord('KALYANAM', b)],
             ),
           ],
         ),

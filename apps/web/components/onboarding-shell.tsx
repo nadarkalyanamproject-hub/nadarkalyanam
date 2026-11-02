@@ -10,6 +10,7 @@ export function OnboardingShell({
   subtitle,
   onBack,
   backDisabled = false,
+  backLabel = 'Back',
   children,
 }: {
   step: number;
@@ -17,9 +18,11 @@ export function OnboardingShell({
   title: string;
   subtitle: string;
   // Steps 2-4 pass their Back handler (it saves the step's raw input, then
-  // goes to the previous step); step 1 passes none, so no Back is shown.
+  // goes to the previous step); step 1's signs out and returns to the
+  // landing page, so no one is stuck in the wizard after an OTP.
   onBack?: () => void;
   backDisabled?: boolean;
+  backLabel?: string;
   children: ReactNode;
 }) {
   return (
@@ -42,8 +45,8 @@ export function OnboardingShell({
                 onClick={onBack}
                 disabled={backDisabled}
                 data-testid="onboarding-back"
-                aria-label="Back"
-                title="Back"
+                aria-label={backLabel}
+                title={backLabel}
                 className="-ml-1.5 mb-3 inline-flex items-center rounded-md p-1.5 text-nk-maroon-bright transition-colors hover:bg-nk-maroon-bright/5 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <ArrowLeft className="h-5 w-5" aria-hidden="true" />

@@ -140,7 +140,7 @@ export async function seedEssential(prisma: PrismaClient, log: (message: string)
   // an admin-scoped (typ: 'admin') token instead of a normal member token —
   // no separate admin credential or endpoint exists.
   const ADMIN_PHONE_NUMBER = '+919876543200';
-  const ADMIN_EMAIL = 'admin@nadarkalyanam.dev';
+  const ADMIN_EMAIL = 'admin@nadarkalyanam.com';
   const ADMIN_ROLE_NAME = 'SUPER_ADMIN';
 
   const adminAccountUser = await prisma.user.upsert({

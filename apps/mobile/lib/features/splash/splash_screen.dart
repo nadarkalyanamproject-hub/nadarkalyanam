@@ -6,9 +6,11 @@ import '../../state/session.dart';
 import '../../theme.dart';
 import '../../widgets/logo.dart';
 
-// The boot animation, as on the website: the pendant rises, NADAR comes in
-// letter by letter, KALYANAM spreads out and a shine crosses the gold.
-// About 2.2s (tap to skip); with reduced motion, the still logo briefly.
+// The boot animation, as on the website (times in seconds):
+//   0.0   pendant rises into place        2.3  KALYANAM letter by letter
+//   1.6   NADAR letter by letter          3.0  a shine sweeps across the gold
+//                                         3.6  TM fades in
+// About 4.6s (tap to skip); with reduced motion, the still logo briefly.
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -16,8 +18,11 @@ class SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
+const _totalSeconds = 4.6;
+
 class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 2200));
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: Duration(milliseconds: (_totalSeconds * 1000).round()));
   bool _started = false;
 
   @override
@@ -44,13 +49,45 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
     super.dispose();
   }
 
-  // 0..1 progress of a sub-interval of the timeline, eased.
+  // 0..1 progress between two moments of the timeline (in seconds), eased.
   double _t(double from, double to, [Curve curve = Curves.easeOutCubic]) =>
-      curve.transform(((_c.value - from) / (to - from)).clamp(0.0, 1.0));
+      curve.transform(((_c.value * _totalSeconds - from) / (to - from)).clamp(0.0, 1.0));
+
+  // A word whose letters rise in one after another, from [start] seconds,
+  // [step] apart. The leading space balances the one letterSpacing leaves
+  // after the last letter, so the word stays centred.
+  Widget _letters(String text, TextStyle style, double start, double step) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(width: style.letterSpacing ?? 0),
+          for (var i = 0; i < text.length; i++)
+            Builder(builder: (_) {
+              final p = _t(start + i * step, start + i * step + 0.9);
+              return Opacity(
+                opacity: p,
+                child: Transform.translate(offset: Offset(0, 14 * (1 - p)), child: Text(text[i], style: style)),
+              );
+            }),
+        ],
+      );
 
   @override
   Widget build(BuildContext context) {
     const size = 38.0;
+    final nadar = GoogleFonts.cinzel(
+      fontSize: size * LogoSizes.nadar,
+      fontWeight: FontWeight.w700,
+      letterSpacing: size * LogoSizes.nadar * LogoSizes.nadarTrack,
+      height: 1.02,
+      color: NK.maroon,
+    );
+    final kalyanam = GoogleFonts.cinzel(
+      fontSize: size * LogoSizes.kalyanam,
+      fontWeight: FontWeight.w600,
+      letterSpacing: size * LogoSizes.kalyanam * LogoSizes.kalyanamTrack,
+      height: 1.02,
+      color: NK.goldText,
+    );
     return Scaffold(
       backgroundColor: NK.ivory,
       body: GestureDetector(
@@ -60,9 +97,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
           child: AnimatedBuilder(
             animation: _c,
             builder: (context, _) {
-              final rise = _t(0, 0.3);
-              final shine = _t(0.55, 0.92, Curves.easeInOut);
-              final spread = _t(0.48, 0.8);
+              final rise = _t(0, 1.35);
+              final shine = _t(3.0, 4.4, Curves.easeInOut);
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,7 +108,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                     child: Transform.translate(
                       offset: Offset(0, 18 * (1 - rise)),
                       child: Padding(
-                        padding: const EdgeInsets.only(top: size * 0.0714),
+                        padding: const EdgeInsets.only(top: size * LogoSizes.markTop),
                         child: ShaderMask(
                           blendMode: BlendMode.srcATop,
                           shaderCallback: (rect) {
@@ -84,54 +120,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                               stops: const [0.2, 0.5, 0.8],
                             ).createShader(rect);
                           },
-                          child: const LogoMark(height: size * 1.434),
+                          child: const LogoMark(height: size * LogoSizes.markHeight),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: size * 0.343),
+                  const SizedBox(width: size * LogoSizes.gap),
                   Column(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          for (var i = 0; i < 5; i++)
-                            Builder(builder: (_) {
-                              final p = _t(0.36 + i * 0.025, 0.56 + i * 0.025);
-                              return Opacity(
-                                opacity: p,
-                                child: Transform.translate(
-                                  offset: Offset(0, 14 * (1 - p)),
-                                  child: Text(
-                                    'NADAR'[i],
-                                    style: GoogleFonts.cinzel(
-                                      fontSize: size,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: size * 0.1286,
-                                      height: 1.02,
-                                      color: NK.maroon,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
-                        ],
+                      nadarWithTm(
+                        nadar,
+                        word: _letters('NADAR', nadar, 1.6, 0.12),
+                        tmOpacity: _t(3.6, 4.2),
                       ),
-                      Opacity(
-                        opacity: spread,
-                        child: Text(
-                          'KALYANAM',
-                          style: GoogleFonts.cinzel(
-                            fontSize: size * 0.593,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: size * 0.593 * 0.2217 * spread,
-                            height: 1.02,
-                            color: NK.goldText,
-                          ),
-                        ),
-                      ),
+                      _letters('KALYANAM', kalyanam, 2.3, 0.1),
                     ],
                   ),
                 ],

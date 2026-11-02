@@ -103,7 +103,6 @@ function HomeContent() {
   const [registerOtpError, setRegisterOtpError] = useState<string | undefined>();
   const [registerDevOtp, setRegisterDevOtp] = useState<string | undefined>();
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(() => searchParams.get('login') === 'true');
   const [submitting, setSubmitting] = useState(false);
 
@@ -365,19 +364,6 @@ function HomeContent() {
             <Logo className="landing-logo" />
           </a>
 
-          <ul className={`nav-menu${mobileMenuOpen ? ' open' : ''}`}>
-            <li>
-              <a href="#hero" className="nav-link active">
-                Home
-              </a>
-            </li>
-            <li>
-              <a href="#trustSection" className="nav-link">
-                Community
-              </a>
-            </li>
-          </ul>
-
           <div className="nav-actions">
             <div className="nav-login-group">
               <span className="nav-login-prompt">Already a user?</span>
@@ -385,15 +371,6 @@ function HomeContent() {
                 Log In
               </button>
             </div>
-            <button
-              className="hamburger-btn"
-              aria-label="Toggle navigation menu"
-              onClick={() => setMobileMenuOpen((v) => !v)}
-            >
-              <span />
-              <span />
-              <span />
-            </button>
           </div>
         </div>
       </nav>
