@@ -186,6 +186,7 @@ function webhookWorld() {
   const prisma: any = {
     payment: {
       findUnique: async ({ where }: any) => payments.find((p) => p.providerEventId === where.providerEventId) ?? null,
+      findFirst: async ({ where }: any) => payments.find((p) => p.providerReference === where.providerReference) ?? null,
       create: async ({ data }: any) => {
         if (payments.some((p) => p.providerEventId === data.providerEventId)) throw unique('providerEventId');
         payments.push({ id: `pay-${payments.length + 1}`, createdAt: new Date(), ...data });
@@ -380,6 +381,18 @@ describe('PaymentsService.handleWebhook', () => {
     expect(w.subscriptions[0]).toMatchObject({ status: 'CANCELLED', cancelledAt: expect.any(Date) });
   });
 
+  it('REFUNDED event resolves order via payment providerReference if orderId is payment reference', async () => {
+    const w = webhookWorld();
+    w.order('o1');
+    await w.send({ providerEventId: 'e1', orderId: 'o1', status: 'PAID', providerReference: 'pay_rzp_999' });
+
+    await expect(
+      w.send({ providerEventId: 'e2', orderId: 'pay_rzp_999', status: 'REFUNDED', amountInPaise: 149900, currency: 'INR' }),
+    ).resolves.toEqual({ outcome: 'processed' });
+    expect(w.orders[0].status).toBe('REFUNDED');
+    expect(w.subscriptions[0]).toMatchObject({ status: 'CANCELLED', cancelledAt: expect.any(Date) });
+  });
+
   it('buying again while a plan is active appends the new period after it (no overlap)', async () => {
     const w = webhookWorld();
     w.order('o1', 'gold');
@@ -527,6 +540,7 @@ describe('PaymentsService with RazorpayPaymentGatewayAdapter', () => {
       adapter,
       config as never,
       new SubscriptionService(prisma, notifications as never),
+      notifications as never,
     );
 
     const order = (id: string, planId = 'gold', userId = 'user-1', providerOrderId = 'order_rzp_o1') => {
@@ -573,6 +587,14 @@ describe('PaymentsService with RazorpayPaymentGatewayAdapter', () => {
     expect(w.payments).toHaveLength(1);
     expect(w.payments[0].providerReference).toBe('pay_rzp_1');
     expect(w.notifications.notify).toHaveBeenCalledWith(expect.objectContaining({ recipientUserId: 'user-1', type: 'PLAN_ACTIVATED' }));
+    expect(w.notifications.notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientUserId: 'user-1',
+        type: 'PAYMENT_SUCCEEDED',
+        targetType: 'Payment',
+        data: expect.objectContaining({ orderId: 'o1', amountInPaise: 149900, planName: 'Gold' }),
+      }),
+    );
   });
 
   it('missing or wrong signature is rejected with 400 and writes nothing', async () => {

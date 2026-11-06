@@ -9,8 +9,10 @@ import { Dialog, ReasonDialog, StateBadge } from '../../components/billing-ui';
 import { ApiError } from '../../lib/api-client';
 import {
   activateOrder,
+  downloadOrdersCsv,
   formatDate,
   getOrder,
+  listAllOrders,
   listOrders,
   ordersNeedingAttention,
   refundOrder,
@@ -52,6 +54,7 @@ export default function OrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(() => {
     if (!token) return;
@@ -93,15 +96,37 @@ export default function OrdersPage() {
     }
   }
 
+  // Exports every order matching the filters, not just the page on screen.
+  async function exportCsv() {
+    if (!token) return;
+    setExporting(true);
+    try {
+      const all = await listAllOrders(token, { status: status || undefined, from: from || undefined, to: to || undefined, search: search.trim() || undefined });
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      downloadOrdersCsv(all, `orders-${today}.csv`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not export orders.');
+    } finally {
+      setExporting(false);
+    }
+  }
+
   if (!ready) return null;
   const needs = (attention?.paidWithoutSubscription.length ?? 0) + (attention?.staleCreated.length ?? 0);
 
   return (
     <AdminShell>
       <div className="flex flex-col gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Orders</h1>
-          <p className="text-sm text-muted-foreground">Membership orders and their payment events. Amounts include taxes.</p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Orders</h1>
+            <p className="text-sm text-muted-foreground">Membership orders and their payment events. Amounts include taxes.</p>
+          </div>
+          {orders && orders.total > 0 && (
+            <Button type="button" variant="outline" size="sm" disabled={exporting} onClick={exportCsv}>
+              {exporting ? 'Exporting...' : `Export CSV (${orders.total})`}
+            </Button>
+          )}
         </div>
         {message && <Card className="rounded-2xl p-4 text-sm text-muted-foreground" role="status">{message}</Card>}
         {error && <Card className="rounded-2xl p-4 text-sm text-destructive" role="alert">{error}</Card>}
@@ -207,29 +232,38 @@ export default function OrdersPage() {
           <p className="mt-2 text-[11px] text-muted-foreground">Only events with a verified signature are stored; others are rejected.</p>
           {detail.status === 'PAID' && can('payments.refund') && (
             <div className="mt-4 flex justify-end">
-              <Button type="button" size="sm" variant="outline" onClick={() => { setRefunding(detail); setDetail(null); }}>Record refund</Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => { setRefunding(detail); setDetail(null); }}>Refund order</Button>
             </div>
           )}
         </Dialog>
       )}
       {refunding && (
         <ReasonDialog
-          title="Record refund"
+          title="Issue refund"
           testId="refund-dialog"
           description={
             <>
               <p>
-                Marks this {rupees(refunding.amountInPaise)} order refunded and ends its plan now; any queued plans start immediately.
-                Phone numbers already unlocked stay unlocked.
+                Refunds {rupees(refunding.amountInPaise)} and marks this order refunded. Any active plan from this order ends now,
+                and any queued plans start. Phone numbers already unlocked stay unlocked.
               </p>
-              <p className="mt-2 font-semibold text-foreground">This records the refund here. Return the money from your payment gateway.</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                If the member paid online, the money goes back to their original payment method through the payment gateway.
+                For an order activated by hand, return the money yourself.
+              </p>
             </>
           }
-          confirmLabel="Record refund"
+          confirmLabel="Issue refund"
           onClose={() => setRefunding(null)}
           onConfirm={async (reason) => {
-            await refundOrder(token!, refunding.id, reason);
-            setMessage(`Refund recorded for order ${refunding.id}. Remember to return the money in your payment gateway.`);
+            // Errors are shown inside the dialog by ReasonDialog, which stays open.
+            const result = await refundOrder(token!, refunding.id, reason);
+            setMessage(
+              result.gatewayRefundId
+                ? `Refund sent through the payment gateway for order ${refunding.id} (refund ${result.gatewayRefundId}).`
+                : `Order ${refunding.id} marked refunded. No gateway payment was found, so return the money yourself.`,
+            );
+            setError(null);
             load();
           }}
         />

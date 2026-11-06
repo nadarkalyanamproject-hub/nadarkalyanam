@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Injectable, NotImplementedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env.schema.js';
-import type { PaymentGatewayAdapter, PaymentWebhookEvent, ProviderOrder } from './payment-gateway.adapter.js';
+import type { PaymentGatewayAdapter, PaymentWebhookEvent, ProviderOrder, ProviderRefund } from './payment-gateway.adapter.js';
 
 // No payment gateway is contracted yet (SRS §2.6). createProviderOrder is a
 // hard stop until one is — but verifyWebhookSignature is real, provider-
@@ -15,6 +15,10 @@ export class StubPaymentGatewayAdapter implements PaymentGatewayAdapter {
   constructor(private readonly configService: ConfigService<Env, true>) {}
 
   createProviderOrder(): Promise<ProviderOrder> {
+    throw new NotImplementedException('No payment gateway is configured yet');
+  }
+
+  refund(): Promise<ProviderRefund> {
     throw new NotImplementedException('No payment gateway is configured yet');
   }
 

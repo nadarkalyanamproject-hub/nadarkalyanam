@@ -61,6 +61,7 @@ Core environment variables and configuration options are documented in `apps/api
 - `MAX_PHOTO_SIZE_BYTES`: Enforces photo and horoscope upload size limit (default 5 MB / `5242880` bytes).
 - Cloudflare R2 / S3 settings: Configured via `MINIO_*` variables (for R2, set `STORAGE_REGION="auto"` and `STORAGE_FORCE_PATH_STYLE=false`).
 - `PAYMENT_PROVIDER`: Payment gateway selection (`stub` for local development/testing, `razorpay` for live/sandbox checkout with `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`).
+- `BUSINESS_GSTIN`: Optional business GST identification number printed on generated PDF payment receipts (FR-7.6).
 
 ## Data model
 
