@@ -136,7 +136,7 @@ function UnlockedContactsPageContent() {
 // Needs a membership plan when the server requires one (see PlanGate).
 export default function UnlockedContactsPage() {
   return (
-    <PlanGate>
+    <PlanGate membersOnly={{ title: "Contact details", body: "Phone numbers are for members. Take a membership plan to see the contact details of members you connect with." }}>
       <UnlockedContactsPageContent />
     </PlanGate>
   );

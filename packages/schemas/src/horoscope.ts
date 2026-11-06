@@ -126,6 +126,36 @@ export const horoscopeChartSchema = z.object({
 });
 export type HoroscopeChart = z.infer<typeof horoscopeChartSchema>;
 
+// The horoscope worked out from the date, time and place of birth (sidereal,
+// Lahiri ayanamsa): moon sign, star and pada, lagnam and the rasi chart
+// (which sign each of the nine grahas is in). The moon's star doesn't depend
+// on the place; the lagnam does, so approximatePlace says when the city
+// wasn't recognised and the state's capital was used instead.
+export const GRAHAS = [
+  { code: 'SUN', label: 'Sun', tamil: 'Suriyan', short: 'Sur' },
+  { code: 'MOON', label: 'Moon', tamil: 'Chandran', short: 'Cha' },
+  { code: 'MARS', label: 'Mars', tamil: 'Sevvai', short: 'Sev' },
+  { code: 'MERCURY', label: 'Mercury', tamil: 'Budhan', short: 'Bud' },
+  { code: 'JUPITER', label: 'Jupiter', tamil: 'Guru', short: 'Gur' },
+  { code: 'VENUS', label: 'Venus', tamil: 'Sukkiran', short: 'Suk' },
+  { code: 'SATURN', label: 'Saturn', tamil: 'Sani', short: 'San' },
+  { code: 'RAHU', label: 'Rahu', tamil: 'Rahu', short: 'Rah' },
+  { code: 'KETU', label: 'Ketu', tamil: 'Kethu', short: 'Ket' },
+] as const;
+export type Graha = (typeof GRAHAS)[number]['code'];
+export const GRAHA_CODES = GRAHAS.map((g) => g.code) as unknown as readonly [Graha, ...Graha[]];
+export const generatedHoroscopeSchema = z.object({
+  rasi: rasiEnum,
+  nakshatra: nakshatraEnum,
+  nakshatraPada: z.number().int().min(1).max(4),
+  lagnam: rasiEnum,
+  planets: z.record(z.enum(GRAHA_CODES), rasiEnum),
+  // Null on someone else's profile unless they share their birth details.
+  place: z.object({ city: z.string(), state: z.string() }).nullable(),
+  approximatePlace: z.boolean(),
+});
+export type GeneratedHoroscope = z.infer<typeof generatedHoroscopeSchema>;
+
 // The member's own horoscope (GET/PUT /me/horoscope).
 export const horoscopeDetailsSchema = z.object({
   birthTime: z.string().nullable(),
@@ -143,6 +173,8 @@ export const myHoroscopeSchema = horoscopeDetailsSchema.extend({
   visibility: horoscopeVisibilityEnum,
   shareBirthDetails: z.boolean(),
   chart: horoscopeChartSchema.nullable(),
+  // Null until the date, time and place of birth are given (India only).
+  generated: generatedHoroscopeSchema.nullable(),
   updatedAt: z.string(),
 });
 export type MyHoroscope = z.infer<typeof myHoroscopeSchema>;
@@ -173,6 +205,8 @@ export const horoscopeViewSchema = z.discriminatedUnion('shared', [
       })
       .nullable(),
     chartImageUrl: z.string().nullable(),
+    // The worked-out rasi chart, when the owner gave their birth details.
+    generated: generatedHoroscopeSchema.nullable(),
   }),
 ]);
 export type HoroscopeView = z.infer<typeof horoscopeViewSchema>;

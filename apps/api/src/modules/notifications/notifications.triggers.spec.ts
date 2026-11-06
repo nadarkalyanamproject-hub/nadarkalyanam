@@ -4,6 +4,7 @@ import { AdminService } from '../admin/admin.service.js';
 import { InterestsService } from '../interests/interests.service.js';
 import { MessagesService } from '../messages/messages.service.js';
 import { ProfilesController } from '../profiles/profiles.controller.js';
+import { memberPrisma } from '../../common/testing/member-prisma.js';
 import { NotificationsService } from './notifications.service.js';
 
 // Each business flow calls notify() exactly once, for the right recipient
@@ -127,6 +128,7 @@ describe('profile view trigger', () => {
       {} as never,
       { findForUser: async () => null, fitForViewer: async () => null, theirPreferencesFor: async () => null } as never,
       { findByProfileId: async () => null, viewFor: async () => ({ shared: false }) } as never,
+      memberPrisma() as never,
     );
     return { ctl, notifications };
   }

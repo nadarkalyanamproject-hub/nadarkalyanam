@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Profile } from '../../generated/prisma/client.js';
+import { memberPrisma } from '../../common/testing/member-prisma.js';
 import { ProfilesController, toPublicProfileDetail, toPublicProfileSummary } from './profiles.controller.js';
 
 // The privacy requirement this project treats as non-negotiable: email must
@@ -145,6 +146,7 @@ describe('ProfilesController — photo URLs are signed, not plain', () => {
       {} as never,
       { findForUser: async () => null, fitForViewer: async () => null, theirPreferencesFor: async () => null } as never,
       { findByProfileId: async () => null, viewFor: async () => ({ shared: false }) } as never,
+      memberPrisma() as never,
     );
     return { controller, photosService };
   }

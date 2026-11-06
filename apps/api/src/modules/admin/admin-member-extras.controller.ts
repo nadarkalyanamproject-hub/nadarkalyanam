@@ -32,13 +32,13 @@ export class AdminMemberExtrasController {
   async preferencesAndHoroscope(@Param('userId') userId: string) {
     const profile = await this.prisma.profile.findUnique({
       where: { userId },
-      select: { id: true },
+      select: { id: true, dateOfBirth: true },
     });
     if (!profile) throw new NotFoundException('This member has no profile');
     const [partnerPreferences, horoscope] = await Promise.all([this.preferences.findForUser(userId), this.horoscope.findByProfileId(profile.id)]);
     return {
       partnerPreferences,
-      horoscope: horoscope ? await this.horoscope.toFull(horoscope) : null,
+      horoscope: horoscope ? await this.horoscope.toFull(horoscope, profile.dateOfBirth) : null,
     };
   }
 

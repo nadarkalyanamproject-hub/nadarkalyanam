@@ -3,6 +3,7 @@ import { listNotificationsQuerySchema } from '@nadar-kalyanam/schemas';
 import { describe, expect, it, vi } from 'vitest';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { NotificationsController } from './notifications.controller.js';
+import { memberPrisma } from '../../common/testing/member-prisma.js';
 import { NotificationsService } from './notifications.service.js';
 
 const ME = 'user-me';
@@ -44,6 +45,8 @@ function build() {
       return value === cond;
     });
   const prisma = {
+    // The recipients have a plan, so interest notifications name the sender.
+    subscription: memberPrisma().subscription,
     block: { findMany: vi.fn().mockResolvedValue([]) },
     profile: { findMany: vi.fn().mockResolvedValue([]) },
     notification: {

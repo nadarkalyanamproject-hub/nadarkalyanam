@@ -4,24 +4,34 @@ import { useState } from 'react';
 import type { HoroscopeView, PreferenceFit } from '@nadar-kalyanam/schemas';
 import { FIT_KEY_LABELS, horoscopeViewRows, preferenceFitLine } from '../../lib/partner-preferences';
 import { PhotoLightbox } from '../photo-lightbox';
+import { RasiChart } from '../horoscope/rasi-chart';
+import { MembersOnlyCard } from '../plan/plan-gate';
 
 // Another member's horoscope, exactly as the API allows THIS viewer to see
-// it. "Not shared" covers both hidden and not-added.
-export function HoroscopeCard({ view }: { view: HoroscopeView }) {
+// it. "Not shared" covers both hidden and not-added. locked: shared, but
+// the viewer has no membership plan (the API sent nothing).
+export function HoroscopeCard({ view, locked = false }: { view: HoroscopeView; locked?: boolean }) {
   const [enlarged, setEnlarged] = useState(false);
   const rows = horoscopeViewRows(view);
   const chartUrl = view.shared ? view.chartImageUrl : null;
+  const generated = view.shared ? view.generated : null;
   return (
     <div className="rounded-3xl border border-nk-line-soft bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]" data-testid="horoscope-card">
       <div className="border-b border-nk-line-soft pb-4">
         <h2 className="font-[family-name:var(--font-playfair)] font-serif text-lg sm:text-xl font-bold text-[#1E293B]">Horoscope</h2>
         <p className="text-xs text-nk-muted">Shared at this member&apos;s choice</p>
       </div>
-      {!view.shared ? (
+      {locked ? (
+        <MembersOnlyCard
+          className="mt-4 p-5"
+          title="Horoscope shared with members"
+          body="This member shares their horoscope. Take a membership plan to see their rasi, star, lagnam and chart."
+        />
+      ) : !view.shared ? (
         <p className="mt-4 text-sm text-nk-muted" data-testid="horoscope-not-shared">
           Not shared.
         </p>
-      ) : rows.length === 0 && !chartUrl ? (
+      ) : rows.length === 0 && !chartUrl && !generated ? (
         <p className="mt-4 text-sm text-nk-muted" data-testid="horoscope-not-added">
           No horoscope details added yet.
         </p>
@@ -35,6 +45,14 @@ export function HoroscopeCard({ view }: { view: HoroscopeView }) {
               </div>
             ))}
           </dl>
+          {generated && (
+            <div className="mt-5">
+              <RasiChart chart={generated} />
+              {generated.approximatePlace && (
+                <p className="mt-2 text-[11px] text-nk-muted">Lagnam is approximate: the exact birth town wasn&apos;t recognised.</p>
+              )}
+            </div>
+          )}
           {chartUrl && (
             <button type="button" onClick={() => setEnlarged(true)} className="mt-4 block" aria-label="Enlarge jathagam chart">
               {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL */}

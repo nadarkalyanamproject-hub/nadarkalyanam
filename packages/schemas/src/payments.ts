@@ -40,9 +40,16 @@ export type CreateOrderRequest = z.infer<typeof createOrderRequestSchema>;
 export const orderStatusEnum = z.enum(['CREATED', 'PAID', 'FAILED', 'CANCELLED', 'REFUNDED']);
 export type OrderStatus = z.infer<typeof orderStatusEnum>;
 
+// What an order buys: a membership plan, or one horoscope match (porutham
+// report) with one member.
+export const orderKindEnum = z.enum(['MEMBERSHIP', 'HOROSCOPE_MATCH']);
+export type OrderKind = z.infer<typeof orderKindEnum>;
+
 export const orderResponseSchema = z.object({
   id: z.string(),
-  planId: z.string(),
+  kind: orderKindEnum.optional(),
+  // Null for a horoscope match order.
+  planId: z.string().nullable(),
   amountInPaise: z.number(),
   status: orderStatusEnum,
   createdAt: z.string(),

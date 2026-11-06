@@ -10,7 +10,7 @@ import {
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
 import { parseCorsOrigins } from '../../common/cors-origins.js';
-import { hasPlanAccess, PLAN_REQUIRED_MESSAGE } from '../../common/plan-required.guard.js';
+import { MEMBERSHIP_REQUIRED_MESSAGE, membershipDenial } from '../../common/plan-required.guard.js';
 import { assertActiveSession } from '../auth/session.util.js';
 import type { Env } from '../config/env.schema.js';
 import { MessagesService } from '../messages/messages.service.js';
@@ -112,11 +112,11 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     await this.messagesService.markRead(userId, payload.conversationId);
   }
 
-  // Chat needs a plan when REQUIRE_PAID_PLAN is on (and is closed before
-  // launch), same as the REST routes.
+  // Chat is members-only (and closed before launch), same as the REST
+  // routes (MembershipRequiredGuard).
   private async requirePlan(userId: string): Promise<void> {
-    if (!(await hasPlanAccess(this.prisma, this.config, userId))) {
-      throw new Error(PLAN_REQUIRED_MESSAGE);
+    if ((await membershipDenial(this.prisma, this.config, userId)) !== null) {
+      throw new Error(MEMBERSHIP_REQUIRED_MESSAGE);
     }
   }
 

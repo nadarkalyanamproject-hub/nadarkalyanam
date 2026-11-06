@@ -6,7 +6,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard.js';
 import { InterestsService } from './interests.service.js';
-import { PlanRequiredGuard } from '../../common/plan-required.guard.js';
+import { MembershipRequiredGuard, PlanRequiredGuard } from '../../common/plan-required.guard.js';
 
 @Controller('interests')
 @UseGuards(JwtAuthGuard)
@@ -54,14 +54,15 @@ export class InterestsController {
     return this.interestsService.markViewed(user.userId);
   }
 
+  // Answering an interest means seeing who sent it: members only.
   @Patch(':id/accept')
-  @UseGuards(PlanRequiredGuard)
+  @UseGuards(MembershipRequiredGuard)
   accept(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.interestsService.accept(user.userId, id);
   }
 
   @Patch(':id/decline')
-  @UseGuards(PlanRequiredGuard)
+  @UseGuards(MembershipRequiredGuard)
   decline(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.interestsService.decline(user.userId, id);
   }

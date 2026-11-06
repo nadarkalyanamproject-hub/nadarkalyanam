@@ -5,10 +5,11 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { AuthenticatedUser } from '../auth/guards/jwt-auth.guard.js';
 import { CallsService } from './calls.service.js';
-import { PlanRequiredGuard } from '../../common/plan-required.guard.js';
+import { MembershipRequiredGuard } from '../../common/plan-required.guard.js';
 
 @Controller('calls')
-@UseGuards(JwtAuthGuard, PlanRequiredGuard)
+// Members-only: free members can't contact anyone (MembershipRequiredGuard).
+@UseGuards(JwtAuthGuard, MembershipRequiredGuard)
 export class CallsController {
   constructor(private readonly callsService: CallsService) {}
 

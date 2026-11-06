@@ -1,5 +1,6 @@
 export * from './admin.js';
 export * from './auth.js';
+export * from './birth-places.js';
 export * from './billing-admin.js';
 export * from './calls.js';
 export * from './date-format.js';
@@ -14,6 +15,7 @@ export * from './partner-preferences.js';
 export * from './payments.js';
 export * from './phone.js';
 export * from './photo.js';
+export * from './porutham.js';
 export * from './profile.js';
 export * from './profile-card.js';
 export * from './public-profile.js';

@@ -121,6 +121,9 @@ export const envSchema = z.object({
   // Free members may send this many interests per calendar month (India
   // time). Paid plans have no limit.
   FREE_INTERESTS_PER_MONTH: z.coerce.number().int().min(0).default(5),
+  // Price of one horoscope match (porutham report with one member), paise.
+  // Everyone pays it, with or without a plan.
+  HOROSCOPE_MATCH_PRICE_IN_PAISE: z.coerce.number().int().min(100).default(9900),
   // Abuse guard: new phone unlocks one member may make per day (India time),
   // on top of their plan's quota.
   UNLOCK_DAILY_CAP: z.coerce.number().int().min(1).default(100),

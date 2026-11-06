@@ -26,9 +26,10 @@ import { PhotosService } from '../photos/photos.service.js';
 import { PhoneUnlockService } from './phone-unlock.service.js';
 import { HoroscopeService, hasHoroscopeContent } from '../horoscope/horoscope.service.js';
 import { PartnerPreferencesService } from '../partner-preferences/partner-preferences.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { ProfilesService } from './profiles.service.js';
 import { toPublicProfileDetail, toPublicProfileSummary } from './public-profile.mapper.js';
-import { PlanRequiredGuard } from '../../common/plan-required.guard.js';
+import { MembershipRequiredGuard, PlanRequiredGuard, hasMembership } from '../../common/plan-required.guard.js';
 
 // Re-exported so existing imports of the public mappers keep working.
 export { toPublicProfileDetail, toPublicProfileSummary };
@@ -63,6 +64,7 @@ export class ProfilesController {
     private readonly phoneUnlocks: PhoneUnlockService,
     private readonly partnerPreferences: PartnerPreferencesService,
     private readonly horoscope: HoroscopeService,
+    private readonly prisma: PrismaService,
   ) {}
 
   // The owner's own profile, with the optional checklist items (partner
@@ -190,24 +192,31 @@ export class ProfilesController {
       type: 'PROFILE_VIEWED',
       targetType: 'Profile',
     });
-    const photos = await this.photosService.getPhotosForProfile(profile.id);
+    const allPhotos = await this.photosService.getPhotosForProfile(profile.id);
     const relationships = await this.profilesService.getRelationshipStates(user.userId, [profile.userId]);
     const relationship = relationships.get(profile.userId);
     // Computed for THIS viewer: their own preferences against this profile,
     // the owner's preferences against the viewer, and what the owner's
     // horoscope setting allows them to see.
-    const [preferenceFit, theirPreferences, horoscope] = await Promise.all([
+    const [preferenceFit, theirPreferences, sharedHoroscope, member] = await Promise.all([
       this.partnerPreferences.fitForViewer(user.userId, profile),
       this.partnerPreferences.theirPreferencesFor(profile.userId, user.userId),
-      this.horoscope.viewFor(profile.id, relationship?.status),
+      this.horoscope.viewFor(profile.id, relationship?.status, profile.dateOfBirth),
+      hasMembership(this.prisma, user.userId),
     ]);
-    return toPublicProfileDetail(profile, photos, relationship, { preferenceFit, theirPreferences, horoscope });
+    // Without a plan: the main photo only, and no horoscope (memberLocks
+    // says what a plan would show).
+    const mainPhoto = allPhotos.find((photo) => photo.isPrimary) ?? allPhotos[0];
+    const photos = member || !mainPhoto ? allPhotos : [mainPhoto];
+    const horoscope = member ? sharedHoroscope : { shared: false as const };
+    const memberLocks = { hiddenPhotos: allPhotos.length - photos.length, horoscope: !member && sharedHoroscope.shared };
+    return toPublicProfileDetail(profile, photos, relationship, { preferenceFit, theirPreferences, horoscope, memberLocks });
   }
 
   // What the caller can do about this member's phone number. Never contains
   // the number itself. Registered after `me` routes (see getOne).
   @Get(':id/phone-status')
-  @UseGuards(JwtAuthGuard, PlanRequiredGuard)
+  @UseGuards(JwtAuthGuard, MembershipRequiredGuard)
   phoneStatus(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string): Promise<PhoneStatusResponse> {
     return this.phoneUnlocks.status(user.userId, id);
   }
@@ -216,7 +225,7 @@ export class ProfilesController {
   // Idempotent: unlocking the same member again returns it without quota.
   @Post(':id/phone-unlock')
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard, PlanRequiredGuard)
+  @UseGuards(JwtAuthGuard, MembershipRequiredGuard)
   phoneUnlock(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string): Promise<PhoneUnlockResponse> {
     return this.phoneUnlocks.unlock(user.userId, id);
   }

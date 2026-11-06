@@ -36,8 +36,14 @@ export interface ProfileViewExtras {
   preferenceFit: PreferenceFit | null;
   theirPreferences: PublicProfileDetail['theirPreferences'];
   horoscope: HoroscopeView;
+  memberLocks: PublicProfileDetail['memberLocks'];
 }
-const NO_EXTRAS: ProfileViewExtras = { preferenceFit: null, theirPreferences: null, horoscope: { shared: false } };
+const NO_EXTRAS: ProfileViewExtras = {
+  preferenceFit: null,
+  theirPreferences: null,
+  horoscope: { shared: false },
+  memberLocks: { hiddenPhotos: 0, horoscope: false },
+};
 
 export function toPublicProfileDetail(
   profile: Profile,
@@ -63,5 +69,6 @@ export function toPublicProfileDetail(
     preferenceFit: extras.preferenceFit,
     theirPreferences: extras.theirPreferences,
     horoscope: extras.horoscope,
+    memberLocks: extras.memberLocks,
   };
 }

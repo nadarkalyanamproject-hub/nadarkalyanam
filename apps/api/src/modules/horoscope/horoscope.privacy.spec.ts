@@ -8,6 +8,7 @@ import { PartnerPreferencesController } from '../partner-preferences/partner-pre
 import { PartnerPreferencesService } from '../partner-preferences/partner-preferences.service.js';
 import { ProfilesController } from '../profiles/profiles.controller.js';
 import { HoroscopeController } from './horoscope.controller.js';
+import { memberPrisma } from '../../common/testing/member-prisma.js';
 import { HoroscopeService, canViewHoroscope, hasHoroscopeContent } from './horoscope.service.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -209,6 +210,7 @@ describe('profile view: horoscope and preference fit are computed for the viewer
       {} as never,
       preferences as never,
       service as never,
+      memberPrisma() as never,
     );
     return { ctl, preferences };
   }
@@ -496,6 +498,7 @@ describe('completeness: optional items, never a penalty', () => {
       {} as never,
       { findForUser: async () => prefs } as never,
       { findByProfileId: async () => row } as never,
+      memberPrisma() as never,
     );
   const me = { userId: 'owner', sessionId: 's' };
 

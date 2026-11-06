@@ -73,6 +73,10 @@ export const publicProfileDetailSchema = publicProfileSummarySchema.extend({
     .nullable(),
   // What the owner's horoscope setting lets this viewer see.
   horoscope: horoscopeViewSchema,
+  // What a viewer without a membership plan can't see here (so the page can
+  // say what a plan unlocks): photos after the main one, and the horoscope
+  // when the owner shares it. Zero / false for members with a plan.
+  memberLocks: z.object({ hiddenPhotos: z.number().int(), horoscope: z.boolean() }),
 });
 export type PublicProfileDetail = z.infer<typeof publicProfileDetailSchema>;
 

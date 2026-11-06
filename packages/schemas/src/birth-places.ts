@@ -1,0 +1,217 @@
+import type { IndiaState } from './reference-data.js';
+
+// Birth places with coordinates, for the generated horoscope: the lagnam
+// (rising sign) depends on where the member was born, the moon's star does
+// not. Tamil Nadu first (every district headquarters and the larger towns),
+// then the main cities elsewhere. Suggested in the birth city field; a city
+// that isn't listed falls back to its state's capital (see birthPlaceFor).
+export interface BirthPlace {
+  city: string;
+  state: IndiaState;
+  lat: number;
+  lon: number;
+}
+
+const TN = 'Tamil Nadu' as const;
+const row = (city: string, state: IndiaState, lat: number, lon: number): BirthPlace => ({ city, state, lat, lon });
+
+export const BIRTH_PLACES: readonly BirthPlace[] = [
+  row('Chennai', TN, 13.08, 80.27),
+  row('Coimbatore', TN, 11.02, 76.96),
+  row('Madurai', TN, 9.93, 78.12),
+  row('Tiruchirappalli', TN, 10.79, 78.7),
+  row('Salem', TN, 11.66, 78.15),
+  row('Tirunelveli', TN, 8.71, 77.76),
+  row('Tiruppur', TN, 11.11, 77.34),
+  row('Vellore', TN, 12.92, 79.13),
+  row('Erode', TN, 11.34, 77.72),
+  row('Thoothukudi', TN, 8.76, 78.13),
+  row('Dindigul', TN, 10.36, 77.98),
+  row('Thanjavur', TN, 10.79, 79.14),
+  row('Ranipet', TN, 12.93, 79.33),
+  row('Sivakasi', TN, 9.45, 77.8),
+  row('Karur', TN, 10.96, 78.08),
+  row('Ooty', TN, 11.41, 76.7),
+  row('Hosur', TN, 12.74, 77.83),
+  row('Nagercoil', TN, 8.18, 77.41),
+  row('Kanchipuram', TN, 12.83, 79.7),
+  row('Kumbakonam', TN, 10.96, 79.39),
+  row('Tiruvannamalai', TN, 12.23, 79.07),
+  row('Pollachi', TN, 10.66, 77.01),
+  row('Rajapalayam', TN, 9.45, 77.55),
+  row('Pudukkottai', TN, 10.38, 78.82),
+  row('Neyveli', TN, 11.61, 79.48),
+  row('Nagapattinam', TN, 10.77, 79.84),
+  row('Viluppuram', TN, 11.94, 79.49),
+  row('Tiruchendur', TN, 8.5, 78.12),
+  row('Sivaganga', TN, 9.85, 78.48),
+  row('Virudhunagar', TN, 9.58, 77.96),
+  row('Ramanathapuram', TN, 9.37, 78.83),
+  row('Theni', TN, 10.01, 77.48),
+  row('Namakkal', TN, 11.22, 78.17),
+  row('Krishnagiri', TN, 12.52, 78.21),
+  row('Dharmapuri', TN, 12.13, 78.16),
+  row('Cuddalore', TN, 11.75, 79.75),
+  row('Ariyalur', TN, 11.14, 79.08),
+  row('Perambalur', TN, 11.23, 78.88),
+  row('Tiruvarur', TN, 10.77, 79.64),
+  row('Mayiladuthurai', TN, 11.1, 79.65),
+  row('Kallakurichi', TN, 11.74, 78.96),
+  row('Chengalpattu', TN, 12.69, 79.98),
+  row('Tiruvallur', TN, 13.14, 79.91),
+  row('Tirupattur', TN, 12.5, 78.57),
+  row('Tenkasi', TN, 8.96, 77.3),
+  row('Kovilpatti', TN, 9.17, 77.87),
+  row('Aruppukottai', TN, 9.51, 78.1),
+  row('Karaikudi', TN, 10.07, 78.78),
+  row('Sattur', TN, 9.35, 77.92),
+  row('Srivilliputhur', TN, 9.51, 77.63),
+  row('Marthandam', TN, 8.31, 77.22),
+  row('Kanyakumari', TN, 8.08, 77.54),
+  row('Valliyur', TN, 8.38, 77.61),
+  row('Tiruchengode', TN, 11.38, 77.89),
+  row('Gobichettipalayam', TN, 11.45, 77.44),
+  row('Mettupalayam', TN, 11.3, 76.94),
+  row('Ambur', TN, 12.79, 78.72),
+  row('Vaniyambadi', TN, 12.68, 78.62),
+  row('Arakkonam', TN, 13.08, 79.67),
+  row('Puducherry', 'Puducherry', 11.94, 79.81),
+  row('Thiruvananthapuram', 'Kerala', 8.52, 76.94),
+  row('Kochi', 'Kerala', 9.93, 76.27),
+  row('Kozhikode', 'Kerala', 11.26, 75.78),
+  row('Thrissur', 'Kerala', 10.53, 76.21),
+  row('Kollam', 'Kerala', 8.89, 76.61),
+  row('Palakkad', 'Kerala', 10.79, 76.65),
+  row('Bengaluru', 'Karnataka', 12.97, 77.59),
+  row('Mysuru', 'Karnataka', 12.3, 76.64),
+  row('Mangaluru', 'Karnataka', 12.91, 74.86),
+  row('Hubballi', 'Karnataka', 15.36, 75.12),
+  row('Hyderabad', 'Telangana', 17.39, 78.49),
+  row('Visakhapatnam', 'Andhra Pradesh', 17.69, 83.22),
+  row('Vijayawada', 'Andhra Pradesh', 16.51, 80.65),
+  row('Tirupati', 'Andhra Pradesh', 13.63, 79.42),
+  row('Nellore', 'Andhra Pradesh', 14.44, 79.99),
+  row('Amaravati', 'Andhra Pradesh', 16.51, 80.52),
+  row('Mumbai', 'Maharashtra', 19.08, 72.88),
+  row('Pune', 'Maharashtra', 18.52, 73.86),
+  row('Nagpur', 'Maharashtra', 21.15, 79.09),
+  row('New Delhi', 'Delhi', 28.61, 77.21),
+  row('Kolkata', 'West Bengal', 22.57, 88.36),
+  row('Ahmedabad', 'Gujarat', 23.02, 72.57),
+  row('Gandhinagar', 'Gujarat', 23.22, 72.65),
+  row('Jaipur', 'Rajasthan', 26.91, 75.79),
+  row('Lucknow', 'Uttar Pradesh', 26.85, 80.95),
+  row('Bhopal', 'Madhya Pradesh', 23.26, 77.41),
+  row('Patna', 'Bihar', 25.59, 85.14),
+  row('Bhubaneswar', 'Odisha', 20.3, 85.82),
+  row('Chandigarh', 'Chandigarh', 30.73, 76.78),
+  row('Raipur', 'Chhattisgarh', 21.25, 81.63),
+  row('Ranchi', 'Jharkhand', 23.34, 85.31),
+  row('Dehradun', 'Uttarakhand', 30.32, 78.03),
+  row('Shimla', 'Himachal Pradesh', 31.1, 77.17),
+  row('Srinagar', 'Jammu and Kashmir', 34.08, 74.8),
+  row('Jammu', 'Jammu and Kashmir', 32.73, 74.86),
+  row('Leh', 'Ladakh', 34.15, 77.58),
+  row('Panaji', 'Goa', 15.5, 73.83),
+  row('Guwahati', 'Assam', 26.14, 91.74),
+  row('Shillong', 'Meghalaya', 25.58, 91.89),
+  row('Imphal', 'Manipur', 24.82, 93.94),
+  row('Aizawl', 'Mizoram', 23.73, 92.72),
+  row('Kohima', 'Nagaland', 25.67, 94.11),
+  row('Agartala', 'Tripura', 23.83, 91.29),
+  row('Itanagar', 'Arunachal Pradesh', 27.08, 93.61),
+  row('Gangtok', 'Sikkim', 27.33, 88.61),
+  row('Port Blair', 'Andaman and Nicobar Islands', 11.62, 92.73),
+  row('Kavaratti', 'Lakshadweep', 10.57, 72.64),
+  row('Daman', 'Dadra and Nagar Haveli and Daman and Diu', 20.4, 72.83),
+  row('Ludhiana', 'Punjab', 30.9, 75.85),
+  row('Gurugram', 'Haryana', 28.46, 77.03),
+];
+
+// Each state's fallback: its capital (or main city) in the list above.
+const STATE_CAPITAL: Record<IndiaState, string> = {
+  'Andaman and Nicobar Islands': 'Port Blair',
+  'Andhra Pradesh': 'Amaravati',
+  'Arunachal Pradesh': 'Itanagar',
+  Assam: 'Guwahati',
+  Bihar: 'Patna',
+  Chandigarh: 'Chandigarh',
+  Chhattisgarh: 'Raipur',
+  'Dadra and Nagar Haveli and Daman and Diu': 'Daman',
+  Delhi: 'New Delhi',
+  Goa: 'Panaji',
+  Gujarat: 'Gandhinagar',
+  Haryana: 'Gurugram',
+  'Himachal Pradesh': 'Shimla',
+  'Jammu and Kashmir': 'Srinagar',
+  Jharkhand: 'Ranchi',
+  Karnataka: 'Bengaluru',
+  Kerala: 'Thiruvananthapuram',
+  Ladakh: 'Leh',
+  Lakshadweep: 'Kavaratti',
+  'Madhya Pradesh': 'Bhopal',
+  Maharashtra: 'Mumbai',
+  Manipur: 'Imphal',
+  Meghalaya: 'Shillong',
+  Mizoram: 'Aizawl',
+  Nagaland: 'Kohima',
+  Odisha: 'Bhubaneswar',
+  Puducherry: 'Puducherry',
+  Punjab: 'Ludhiana',
+  Rajasthan: 'Jaipur',
+  Sikkim: 'Gangtok',
+  'Tamil Nadu': 'Chennai',
+  Telangana: 'Hyderabad',
+  Tripura: 'Agartala',
+  'Uttar Pradesh': 'Lucknow',
+  Uttarakhand: 'Dehradun',
+  'West Bengal': 'Kolkata',
+};
+
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '');
+const byCity = new Map(BIRTH_PLACES.map((p) => [squash(p.city), p]));
+// Older and alternative spellings members are likely to type.
+const ALIASES: Record<string, string> = {
+  madras: 'Chennai',
+  trichy: 'Tiruchirappalli',
+  tiruchi: 'Tiruchirappalli',
+  tuticorin: 'Thoothukudi',
+  udhagamandalam: 'Ooty',
+  kanchi: 'Kanchipuram',
+  kancheepuram: 'Kanchipuram',
+  villupuram: 'Viluppuram',
+  pondicherry: 'Puducherry',
+  pondy: 'Puducherry',
+  bangalore: 'Bengaluru',
+  mysore: 'Mysuru',
+  mangalore: 'Mangaluru',
+  trivandrum: 'Thiruvananthapuram',
+  cochin: 'Kochi',
+  ernakulam: 'Kochi',
+  calicut: 'Kozhikode',
+  bombay: 'Mumbai',
+  calcutta: 'Kolkata',
+  delhi: 'New Delhi',
+  vizag: 'Visakhapatnam',
+  tirunelveli: 'Tirunelveli',
+  nellai: 'Tirunelveli',
+  kovai: 'Coimbatore',
+  thanjai: 'Thanjavur',
+  tanjore: 'Thanjavur',
+  kumari: 'Kanyakumari',
+  capecomorin: 'Kanyakumari',
+};
+
+// Where to cast the chart for: the listed city, else the state's capital
+// (approximate: the lagnam can be off when the real place is far away).
+// Null when neither the city nor the state is known.
+export function birthPlaceFor(city: string | null, state: string | null): { place: BirthPlace; approximate: boolean } | null {
+  if (city) {
+    const key = squash(city);
+    const exact = byCity.get(key) ?? (ALIASES[key] ? byCity.get(squash(ALIASES[key]!)) : undefined);
+    if (exact) return { place: exact, approximate: false };
+  }
+  const capital = state ? STATE_CAPITAL[state as IndiaState] : undefined;
+  const fallback = capital ? byCity.get(squash(capital)) : undefined;
+  return fallback ? { place: fallback, approximate: true } : null;
+}

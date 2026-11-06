@@ -26,5 +26,6 @@ import { PaymentsService } from './payments.service.js';
       inject: [ConfigService],
     },
   ],
+  exports: [PaymentsService],
 })
 export class PaymentsModule {}

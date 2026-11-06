@@ -272,8 +272,30 @@ export class InterestsService {
 
   // Interests with a member blocked in either direction are left out (the
   // same blocked set every other list uses); unblocking brings them back.
+  // Without a membership plan the received list is locked: only how many
+  // are waiting, never who sent them.
   async listForUser(callerUserId: string) {
     const blocked = [...(await getBlockedUserIds(this.prisma, callerUserId))];
+    if (!(await this.entitlements.getActivePlan(callerUserId))) {
+      const [sentRows, receivedCount] = await Promise.all([
+        this.prisma.interest.findMany({ where: { senderId: callerUserId, targetId: { notIn: blocked } }, orderBy: { createdAt: 'desc' } }),
+        this.prisma.interest.count({ where: { targetId: callerUserId, senderId: { notIn: blocked }, status: 'PENDING' } }),
+      ]);
+      const parties = await this.resolveParties([...new Set(sentRows.map((row) => row.targetId)), callerUserId]);
+      return {
+        sent: sentRows.map((row) => ({
+          id: row.id,
+          status: row.status,
+          createdAt: row.createdAt.toISOString(),
+          respondedAt: row.respondedAt?.toISOString() ?? null,
+          sender: parties.get(callerUserId) ?? unknownParty(),
+          target: parties.get(row.targetId) ?? unknownParty(),
+        })),
+        received: [],
+        receivedLocked: true,
+        receivedCount,
+      };
+    }
     const [sentRows, receivedRows] = await Promise.all([
       this.prisma.interest.findMany({
         where: { senderId: callerUserId, targetId: { notIn: blocked } },
@@ -304,6 +326,8 @@ export class InterestsService {
     return {
       sent: sentRows.map((row) => toResponse(row, parties.get(row.targetId))),
       received: receivedRows.map((row) => toResponse(row, parties.get(row.senderId))),
+      receivedLocked: false,
+      receivedCount: receivedRows.filter((row) => row.status === 'PENDING').length,
     };
   }
 

@@ -4,6 +4,7 @@ import { updateProfileVisibilitySchema } from '@nadar-kalyanam/schemas';
 import { describe, expect, it, vi } from 'vitest';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
 import { ProfilesController } from './profiles.controller.js';
+import { memberPrisma } from '../../common/testing/member-prisma.js';
 import { ProfilesService } from './profiles.service.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -25,6 +26,7 @@ function setup(initial: string | null = 'MEMBERS_ONLY') {
     {} as never,
     { findForUser: async () => null, fitForViewer: async () => null, theirPreferencesFor: async () => null } as never,
     { findByProfileId: async () => null, viewFor: async () => ({ shared: false }) } as never,
+    memberPrisma() as never,
   );
   return { prisma, controller, row };
 }

@@ -53,6 +53,7 @@ model User {
   callsAsCallee              Call[]                    @relation("CallCallee")
   adminUser                  AdminUser?
   phoneUnlocksMade           PhoneUnlock[]             @relation("PhoneUnlockViewer")
+  horoscopeMatches           HoroscopeMatch[]
   phoneUnlocksOfMe           PhoneUnlock[]             @relation("PhoneUnlockTarget")
   vipEnquiries               VipEnquiry[]
 
@@ -148,6 +149,8 @@ model Profile {
   shortlistedBy      Shortlist[]        @relation("ShortlistedProfile")
   partnerPreferences PartnerPreference?
   horoscope          ProfileHoroscope?
+  horoscopeMatchesOf HoroscopeMatch[]
+  matchOrders        Order[]
 
   // Search (default sort: id) and Browse (createdAt) order by tier first.
   @@index([searchBoost(sort: Desc), id])
@@ -364,29 +367,29 @@ model Call {
 // --- Membership & payments (FR-7) -----------------------------------------
 
 model MembershipPlan {
-  id               String   @id @default(uuid())
+  id                   String   @id @default(uuid())
   // Stable identifier (GOLD, GOLD_PLUS, GOLD_PREMIUM, VIP_ASSISTED) — clients
   // and code key on this or the id, never on the display name.
-  code             String   @unique
-  name             String
+  code                 String   @unique
+  name                 String
   // One short line under the plan name (admin-edited, optional).
-  description      String?
-  priceInPaise     Int
+  description          String?
+  priceInPaise         Int
   // Optional "was" price shown struck out on the plan card, with the % off.
   // Display only: orders are always charged priceInPaise. When set it must
   // be more than priceInPaise (enforced by AdminBillingService.updatePlan).
   originalPriceInPaise Int?
-  durationDays     Int
-  sortOrder        Int      @default(0)
+  durationDays         Int
+  sortOrder            Int      @default(0)
   // Phone number unlocks per subscription; null = unlimited. Not enforced
   // yet (phone unlocks are not built).
-  phoneUnlockLimit Int?
+  phoneUnlockLimit     Int?
   // Assisted (staff-run) plan rather than self-serve.
-  isAssisted       Boolean  @default(false)
+  isAssisted           Boolean  @default(false)
   // Display copy only: { features: [{ key, label, available }] }.
-  entitlements     Json     @default("{}")
-  isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
+  entitlements         Json     @default("{}")
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
 
   orders        Order[]
   subscriptions Subscription[]
@@ -454,26 +457,39 @@ enum OrderStatus {
   REFUNDED
 }
 
+// What an order buys: a membership plan, or one horoscope match (the
+// porutham report between the buyer and one other member).
+enum OrderKind {
+  MEMBERSHIP
+  HOROSCOPE_MATCH
+}
+
 model Order {
-  id                String         @id @default(uuid())
+  id                String          @id @default(uuid())
   userId            String
-  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planId            String
-  plan              MembershipPlan @relation(fields: [planId], references: [id])
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind              OrderKind       @default(MEMBERSHIP)
+  // Set for MEMBERSHIP orders only.
+  planId            String?
+  plan              MembershipPlan? @relation(fields: [planId], references: [id], onDelete: Restrict)
+  // HOROSCOPE_MATCH orders: the member whose match was bought.
+  matchProfileId    String?
+  matchProfile      Profile?        @relation(fields: [matchProfileId], references: [id], onDelete: SetNull)
   amountInPaise     Int
-  status            OrderStatus    @default(CREATED)
+  status            OrderStatus     @default(CREATED)
   // The gateway's own order id, once a real gateway exists.
-  providerOrderId   String?        @unique
+  providerOrderId   String?         @unique
   paidAt            DateTime?
   // Recorded by an admin; the money itself is returned in the gateway.
   refundedAt        DateTime?
   refundReason      String?
   refundedByAdminId String?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
-  payments     Payment[]
-  subscription Subscription?
+  payments       Payment[]
+  subscription   Subscription?
+  horoscopeMatch HoroscopeMatch?
 
   @@map("orders")
 }
@@ -737,4 +753,22 @@ model ProfileHoroscope {
   updatedAt            DateTime            @updatedAt
 
   @@map("profile_horoscopes")
+}
+
+// A bought horoscope match: the member may see the porutham report between
+// themselves and this profile, for as long as both keep their horoscope
+// details (it is recomputed each time it's opened). One per pair; removed
+// if the order is refunded.
+model HoroscopeMatch {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  orderId   String?  @unique
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, profileId])
+  @@map("horoscope_matches")
 }

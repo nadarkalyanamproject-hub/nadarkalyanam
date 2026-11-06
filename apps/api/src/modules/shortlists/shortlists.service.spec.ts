@@ -17,7 +17,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { ShortlistsController } from './shortlists.controller.js';
 import { ShortlistsService } from './shortlists.service.js';
-import { PlanRequiredGuard } from '../../common/plan-required.guard.js';
+import { MembershipRequiredGuard } from '../../common/plan-required.guard.js';
 
 // me = the caller (male; everyone else is female, since members only see
 // the opposite gender); a/b/c are ordinary members; blocker blocked me, blocked
@@ -154,7 +154,7 @@ describe('ShortlistsController', () => {
 
   it('is mounted at /shortlists behind the member JwtAuthGuard', () => {
     expect(Reflect.getMetadata('path', ShortlistsController)).toBe('shortlists');
-    expect(Reflect.getMetadata('__guards__', ShortlistsController)).toEqual([JwtAuthGuard, PlanRequiredGuard]);
+    expect(Reflect.getMetadata('__guards__', ShortlistsController)).toEqual([JwtAuthGuard, MembershipRequiredGuard]);
     for (const { handler, method, path } of routes) {
       const fn = ShortlistsController.prototype[handler];
       expect(Reflect.getMetadata('method', fn)).toBe(method);

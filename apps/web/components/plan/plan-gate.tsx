@@ -26,38 +26,73 @@ function loadMembership(token: string): Promise<MyMembershipResponse> {
   return cache.request;
 }
 
+// The signed-in member's membership: undefined while loading (or signed
+// out), null if it couldn't be loaded. plan is null for a free member.
+export function useMembership(): MyMembershipResponse | null | undefined {
+  const { data } = useRegistration();
+  const token = data.accessToken;
+  const [state, setState] = useState<{ token: string; me: MyMembershipResponse | null } | null>(null);
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    loadMembership(token)
+      .then((me) => !cancelled && setState({ token, me }))
+      .catch(() => !cancelled && setState({ token, me: null }));
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+  return state && state.token === token ? state.me : undefined;
+}
+
 // Wraps every page that needs a plan (search, matches, other members'
 // profiles, interests, messages, unlocked contacts, home). When the server
 // requires a plan and the member has none, shows the "choose a plan" screen
 // instead of the page. The API enforces the same rule (PlanRequiredGuard);
 // if this lookup fails the page renders and the API still refuses.
-export function PlanGate({ children }: { children: ReactNode }) {
+// membersOnly: a page free members can't use at all (chat, contacts), as
+// MembershipRequiredGuard on the API; they see what a plan unlocks instead.
+export function PlanGate({ children, membersOnly }: { children: ReactNode; membersOnly?: { title: string; body: string } }) {
   const { data, hydrated } = useRegistration();
-  const token = data.accessToken;
-  const [state, setState] = useState<{ token: string; me: MyMembershipResponse | null } | null>(null);
-
-  useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
-    loadMembership(token)
-      .then((me) => {
-        if (!cancelled) setState({ token, me });
-      })
-      .catch(() => {
-        if (!cancelled) setState({ token, me: null });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+  const me = useMembership();
 
   if (!hydrated) return null;
   // Signed out: the page's own auth handling takes over.
-  if (!token) return <>{children}</>;
-  if (!state || state.token !== token) return <AppHeader />;
-  if (state.me?.preLaunch) return <PreLaunchScreen me={state.me} opensAt={state.me.preLaunch.opensAt} />;
-  if (state.me?.accessLocked) return <PlanRequiredScreen me={state.me} />;
+  if (!data.accessToken) return <>{children}</>;
+  if (me === undefined) return <AppHeader />;
+  if (me?.preLaunch) return <PreLaunchScreen me={me} opensAt={me.preLaunch.opensAt} />;
+  if (me?.accessLocked) return <PlanRequiredScreen me={me} />;
+  if (membersOnly && me && !me.plan) {
+    return (
+      <>
+        <AppHeader />
+        <main className="min-h-[70vh] bg-nk-ivory px-4 py-16 sm:px-6" data-testid="members-only">
+          <MembersOnlyCard title={membersOnly.title} body={membersOnly.body} className="mx-auto max-w-lg p-8" />
+        </main>
+      </>
+    );
+  }
   return <>{children}</>;
+}
+
+// What a membership plan unlocks, where a free member meets it: a page
+// (PlanGate membersOnly) or a section of one (photos, horoscope, contact).
+export function MembersOnlyCard({ title, body, className = 'p-5' }: { title: string; body: string; className?: string }) {
+  return (
+    <div className={`rounded-2xl border border-nk-line-gold bg-[#FFFBF0] text-center ${className}`} data-testid="members-only-card">
+      <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-nk-maroon-deep text-[#F6E3A8]">
+        <Lock className="h-4 w-4" />
+      </span>
+      <h2 className="mt-3 font-[family-name:var(--font-heading,serif)] text-lg font-bold text-nk-ink">{title}</h2>
+      <p className="mt-1.5 text-sm leading-relaxed text-nk-ink-soft">{body}</p>
+      <Link
+        href="/membership"
+        className="mt-4 inline-block rounded-lg bg-nk-maroon px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-nk-maroon-deep"
+      >
+        See membership plans
+      </Link>
+    </div>
+  );
 }
 
 // Before launch day matching is closed for everyone (the API answers

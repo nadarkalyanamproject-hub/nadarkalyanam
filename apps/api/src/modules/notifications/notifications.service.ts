@@ -7,6 +7,7 @@ import type {
 } from '@nadar-kalyanam/schemas';
 import type { Queue } from 'bullmq';
 import { getBlockedUserIds } from '../../common/blocks.util.js';
+import { hasMembership } from '../../common/plan-required.guard.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PhotosService } from '../photos/photos.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -162,7 +163,24 @@ export class NotificationsService {
         : [],
     );
 
+    // Who sent an interest is members-only: without a plan, those
+    // notifications say "Someone" and don't link to the sender.
+    const locked = rows.some((r) => r.type === 'INTEREST_RECEIVED') && !(await hasMembership(this.prisma, userId));
+
     const items: NotificationResponse[] = rows.map((row) => {
+      if (locked && row.type === 'INTEREST_RECEIVED') {
+        return {
+          id: row.id,
+          type: row.type,
+          message: notificationMessage(row.type, 'Someone', {}),
+          actor: { name: 'Someone', photoUrl: null },
+          targetType: null,
+          targetId: null,
+          targetAvailable: false,
+          isRead: row.read,
+          createdAt: row.createdAt.toISOString(),
+        };
+      }
       const actorProfile = row.actor?.profile ?? null;
       const actorName = row.actorUserId ? (actorProfile?.fullName ?? 'A member') : SYSTEM_ACTOR_NAME;
       return {

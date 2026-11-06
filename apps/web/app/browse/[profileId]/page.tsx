@@ -12,6 +12,7 @@ import {
   MapPin,
   Maximize2,
   ShieldAlert,
+  Lock,
 } from 'lucide-react';
 import { Card } from '@nadar-kalyanam/ui';
 import { AppHeader, UserIcon } from '../../../components/app-header';
@@ -25,6 +26,8 @@ import { BlockMemberButton } from '../../../components/block/block-member-button
 import { PhoneUnlockCard } from '../../../components/phone/phone-unlock-card';
 import { useBackNavigation } from '../../../lib/navigation-history';
 import { HoroscopeCard, PreferenceFitNote } from '../../../components/profile-view/horoscope-card';
+import { HoroscopeMatchCard } from '../../../components/profile-view/horoscope-match-card';
+import { MembersOnlyCard, useMembership } from '../../../components/plan/plan-gate';
 import { TheirPreferencesCard } from '../../../components/profile-view/their-preferences-card';
 import { PlanGate } from '../../../components/plan/plan-gate';
 import { hasLifestyle } from '../../../lib/lifestyle';
@@ -71,6 +74,10 @@ function ViewProfilePageContent() {
   const params = useParams<{ profileId: string }>();
   const { data } = useRegistration();
   const [profile, setProfile] = useState<PublicProfileDetail | null>(null);
+  // Free members can't contact or shortlist (the API refuses too). Treated
+  // as a member until known, so nothing flashes locked for members.
+  const membership = useMembership();
+  const isMember = membership === undefined || membership === null || membership.plan !== null;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showReportForm, setShowReportForm] = useState(false);
@@ -250,7 +257,18 @@ function ViewProfilePageContent() {
                     conversationId={profile.conversationId}
                     appearance="profile-hero"
                   />
-                  <ShortlistButton profileId={profile.id} appearance="pill" />
+                  {isMember ? (
+                    <ShortlistButton profileId={profile.id} appearance="pill" />
+                  ) : (
+                    <Link
+                      href="/membership"
+                      className="inline-flex items-center justify-center gap-2 rounded-md border border-nk-gold/60 bg-white px-5 py-2.5 text-sm font-semibold text-nk-ink shadow-sm hover:border-nk-maroon hover:bg-nk-sand hover:text-nk-maroon transition-all"
+                      title="Shortlisting is for members"
+                    >
+                      <Lock className="h-4 w-4 text-nk-maroon" />
+                      <span>Shortlist</span>
+                    </Link>
+                  )}
                   {!reportSubmitted && (
                     <button
                       type="button"
@@ -312,7 +330,14 @@ function ViewProfilePageContent() {
                   </div>
                 )}
 
-                <PhoneUnlockCard profileId={profile.id} memberName={profile.fullName} />
+                {isMember ? (
+                  <PhoneUnlockCard profileId={profile.id} memberName={profile.fullName} />
+                ) : (
+                  <MembersOnlyCard
+                    title="Contact this member"
+                    body="Phone numbers, chat and calls are for members. Take a membership plan to contact the members you connect with."
+                  />
+                )}
               </div>
 
               <PreferenceFitNote fit={profile.preferenceFit} />
@@ -349,6 +374,17 @@ function ViewProfilePageContent() {
                             </span>
                           </div>
                         </div>
+                      )}
+
+                      {profile.memberLocks.hiddenPhotos > 0 && (
+                        <Link
+                          href="/membership"
+                          className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-nk-line-gold bg-[#FFFBF0] px-3 py-2.5 text-xs font-semibold text-nk-maroon"
+                          data-testid="photos-locked"
+                        >
+                          <Lock className="h-3.5 w-3.5" />
+                          {profile.memberLocks.hiddenPhotos} more {profile.memberLocks.hiddenPhotos === 1 ? 'photo' : 'photos'} for members
+                        </Link>
                       )}
 
                       {/* Thumbnails row if more than 1 photo */}
@@ -473,7 +509,8 @@ function ViewProfilePageContent() {
                   </div>
 
                   {/* Horoscope: only what this member chose to share with this viewer */}
-                  <HoroscopeCard view={profile.horoscope} />
+                  <HoroscopeCard view={profile.horoscope} locked={profile.memberLocks.horoscope} />
+                  <HoroscopeMatchCard profileId={profile.id} memberName={profile.fullName} />
 
                   {/* Education & Career Details */}
                   <div className="rounded-3xl border border-nk-line-soft bg-white p-6 sm:p-7 shadow-[0_4px_24px_rgba(0,0,0,0.02)]">

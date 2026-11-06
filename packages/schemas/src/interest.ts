@@ -34,9 +34,13 @@ export const interestResponseSchema = z.object({
 });
 export type InterestResponse = z.infer<typeof interestResponseSchema>;
 
+// Without a membership plan, who sent you an interest is locked: received
+// is empty and receivedLocked/receivedCount say how many are waiting.
 export const listInterestsResponseSchema = z.object({
   sent: z.array(interestResponseSchema),
   received: z.array(interestResponseSchema),
+  receivedLocked: z.boolean().optional(),
+  receivedCount: z.number().int().optional(),
 });
 export type ListInterestsResponse = z.infer<typeof listInterestsResponseSchema>;
 

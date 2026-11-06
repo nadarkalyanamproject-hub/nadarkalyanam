@@ -106,7 +106,7 @@ describe('PaymentsService', () => {
 
     expect(prisma.membershipPlan.findUnique).toHaveBeenCalledWith({ where: { id: 'plan-gold-plus-3m' } });
     expect(prisma.order.create).toHaveBeenCalledWith({
-      data: { userId: 'user-1', planId: 'plan-gold-plus-3m', amountInPaise: 229900, status: 'CREATED' },
+      data: { userId: 'user-1', kind: 'MEMBERSHIP', planId: 'plan-gold-plus-3m', amountInPaise: 229900, status: 'CREATED' },
     });
   });
 

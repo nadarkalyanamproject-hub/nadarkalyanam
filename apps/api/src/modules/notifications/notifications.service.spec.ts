@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { NotificationsController } from './notifications.controller.js';
+import { memberPrisma } from '../../common/testing/member-prisma.js';
 import { NotificationsService, PROFILE_VIEW_THROTTLE_MS, type NotifyJob } from './notifications.service.js';
 
 interface Row {
@@ -46,6 +47,8 @@ function buildService(opts: { users?: Record<string, { status: string; fullName:
     });
 
   const prisma = {
+    // The recipients have a plan, so interest notifications name the sender.
+    subscription: memberPrisma().subscription,
     profile: {
       findUnique: vi.fn(async ({ where }: { where: { userId: string } }) =>
         users[where.userId]?.fullName ? { id: `profile-of-${where.userId}` } : null,

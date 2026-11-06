@@ -165,7 +165,7 @@ function MessagesPageContent() {
 // Needs a membership plan when the server requires one (see PlanGate).
 export default function MessagesPage() {
   return (
-    <PlanGate>
+    <PlanGate membersOnly={{ title: "Chat with members", body: "Messaging is for members. Take a membership plan to chat with the members you connect with." }}>
       <MessagesPageContent />
     </PlanGate>
   );

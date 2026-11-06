@@ -30,7 +30,7 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { PlanGate } from '../../components/plan/plan-gate';
+import { MembersOnlyCard, PlanGate } from '../../components/plan/plan-gate';
 import { ageAndCity, formatInterestDate, mapApiInterestToDisplay, placeLine, type DisplayInterest } from '../../lib/interests-ui';
 
 type Side = 'received' | 'sent';
@@ -232,6 +232,8 @@ function InterestsPageContent() {
   const [receivedList, setReceivedList] = useState<DisplayInterest[] | null>(null);
   const [sentList, setSentList] = useState<DisplayInterest[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Free members: how many interests are waiting, but not who sent them.
+  const [receivedLocked, setReceivedLocked] = useState<{ count: number } | null>(null);
 
   const [side, setSide] = useState<Side>('received');
   const [filters, setFilters] = useState<Record<Side, StatusFilter>>({ received: 'ALL', sent: 'ALL' });
@@ -265,6 +267,7 @@ function InterestsPageContent() {
       .then((result: ListInterestsResponse) => {
         if (cancelled) return;
         setReceivedList(result.received.map((i) => mapApiInterestToDisplay(i, true)));
+        setReceivedLocked(result.receivedLocked ? { count: result.receivedCount ?? 0 } : null);
         setSentList(result.sent.map((i) => mapApiInterestToDisplay(i, false)));
       })
       .catch((err: unknown) => {
@@ -475,7 +478,17 @@ function InterestsPageContent() {
           </div>
 
           <div className="rounded-2xl border border-nk-line bg-white shadow-[0_4px_24px_-4px_rgba(43,21,21,0.06)]">
-            {listStatus ? (
+            {side === 'received' && receivedLocked ? (
+              <MembersOnlyCard
+                className="m-4 p-6"
+                title={
+                  receivedLocked.count === 0
+                    ? 'See who is interested in you'
+                    : `${receivedLocked.count} ${receivedLocked.count === 1 ? 'member has' : 'members have'} sent you an interest`
+                }
+                body="Take a membership plan to see who they are and accept their interest."
+              />
+            ) : listStatus ? (
               <div
                 role={loadError ? 'alert' : undefined}
                 className={`px-4 py-12 text-center text-xs sm:text-sm ${loadError ? 'text-nk-maroon font-medium' : 'text-nk-subtle'}`}

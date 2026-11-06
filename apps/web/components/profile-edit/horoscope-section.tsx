@@ -1,7 +1,8 @@
 'use client';
 
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
-import { INDIA_STATES_AND_UTS, NAKSHATRAS, RASIS, updateHoroscopeSchema, type MyHoroscope } from '@nadar-kalyanam/schemas';
+import { BIRTH_PLACES, INDIA_STATES_AND_UTS, NAKSHATRAS, RASIS, nakshatraLabel, rasiLabel, updateHoroscopeSchema, type MyHoroscope } from '@nadar-kalyanam/schemas';
+import { RasiChart } from '../horoscope/rasi-chart';
 import { Button, Field, FormError, Input, Select } from '@nadar-kalyanam/ui';
 import { useRegistration } from '../../app/providers/registration-provider';
 import {
@@ -64,7 +65,36 @@ export function HoroscopeOwnerView({ saved, onChanged }: { saved: MyHoroscope | 
           ))}
         </dl>
       )}
+      <GeneratedHoroscopeCard saved={saved} />
       <HoroscopeChartCard saved={saved} onChanged={onChanged} />
+    </div>
+  );
+}
+
+// The horoscope worked out from the date, time and place of birth. Any
+// detail the member left blank above is filled from it for matching and
+// for the members they share their horoscope with.
+function GeneratedHoroscopeCard({ saved }: { saved: MyHoroscope | null }) {
+  const generated = saved?.generated ?? null;
+  return (
+    <div className="rounded-xl border border-nk-line p-4" data-testid="generated-horoscope">
+      <p className="text-sm font-semibold text-nk-ink">Your horoscope, worked out for you</p>
+      {!generated ? (
+        <p className="mt-1 text-xs text-nk-muted">
+          Add your birth time and birth town (in India) and we&apos;ll work out your rasi, star, lagnam and rasi chart.
+        </p>
+      ) : (
+        <>
+          <p className="mt-1 text-xs text-nk-muted">
+            From your date of birth, {saved?.birthTime} and {generated.place?.city}. Rasi {rasiLabel(generated.rasi)}, star{' '}
+            {nakshatraLabel(generated.nakshatra)} (pada {generated.nakshatraPada}), lagnam {rasiLabel(generated.lagnam)}.
+            {generated.approximatePlace && " Your town wasn't recognised, so the lagnam uses your state capital and may be off."}
+          </p>
+          <div className="mt-3">
+            <RasiChart chart={generated} />
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -254,7 +284,13 @@ export function HoroscopeEditor({
           <Input id="h-time" type="time" value={form.birthTime} onChange={(e) => set('birthTime', e.target.value)} />
         </Field>
         <Field label="Birth city / town" htmlFor="h-city" error={errors.birthCity}>
-          <Input id="h-city" value={form.birthCity} maxLength={60} onChange={(e) => set('birthCity', e.target.value)} />
+          <Input id="h-city" list="h-city-places" value={form.birthCity} maxLength={60} onChange={(e) => set('birthCity', e.target.value)} />
+          {/* Towns the horoscope can be worked out for exactly (any other town uses the state capital). */}
+          <datalist id="h-city-places">
+            {BIRTH_PLACES.map((p) => (
+              <option key={p.city} value={p.city} />
+            ))}
+          </datalist>
         </Field>
         <Field label="Birth country" htmlFor="h-country" error={errors.birthCountry}>
           <Input id="h-country" value={form.birthCountry} maxLength={60} onChange={(e) => set('birthCountry', e.target.value)} />

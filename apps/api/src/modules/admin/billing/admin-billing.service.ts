@@ -289,7 +289,8 @@ export class AdminBillingService {
     return rows.map((r) => ({
       id: r.id,
       member: toMember(r.user),
-      plan: r.plan,
+      // Horoscope match orders have no plan; shown under this name instead.
+      plan: r.plan ?? { id: '', code: 'HOROSCOPE_MATCH', name: 'Horoscope match' },
       amountInPaise: r.amountInPaise,
       status: r.status,
       createdAt: r.createdAt.toISOString(),
@@ -344,7 +345,7 @@ export class AdminBillingService {
   // them, or created more than 30 minutes ago and never paid.
   async attention(now: Date = new Date()) {
     const [paidWithoutSubscription, staleCreated] = await Promise.all([
-      this.prisma.order.findMany({ where: { status: 'PAID', subscription: null }, orderBy: { createdAt: 'desc' }, take: 50, include: this.orderInclude }),
+      this.prisma.order.findMany({ where: { status: 'PAID', kind: 'MEMBERSHIP', subscription: null }, orderBy: { createdAt: 'desc' }, take: 50, include: this.orderInclude }),
       this.prisma.order.findMany({
         where: { status: 'CREATED', createdAt: { lt: new Date(now.getTime() - STALE_CREATED_ORDER_MS) } },
         orderBy: { createdAt: 'desc' },
@@ -361,6 +362,7 @@ export class AdminBillingService {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException('Order not found');
     if (order.status !== 'PAID') throw new ConflictException('Only a paid order can be activated');
+    if (order.kind !== 'MEMBERSHIP' || !order.planId) throw new ConflictException('Only a membership order can be activated');
     const { subscription, created } = await this.subscriptions.activate({
       userId: order.userId,
       planId: order.planId,
@@ -392,6 +394,8 @@ export class AdminBillingService {
         data: { status: 'REFUNDED', refundedAt: now, refundReason: reason, refundedByAdminId: adminId },
       });
       if (count === 0) throw new ConflictException('Only a paid order can be refunded');
+      // A refunded horoscope match takes that report away.
+      if (order.kind === 'HOROSCOPE_MATCH') await tx.horoscopeMatch.deleteMany({ where: { orderId } });
       const subscription = await tx.subscription.findUnique({ where: { orderId } });
       if (subscription && !subscription.cancelledAt && subscription.expiresAt > now) {
         return this.subscriptions.cancelInTx(tx, subscription.id, { adminId, reason: `Order refunded: ${reason}` }, now);

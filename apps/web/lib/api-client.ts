@@ -1,4 +1,5 @@
 import type {
+  HoroscopeMatchResponse,
   BlockedMembersResponse,
   ConversationDetail,
   ConversationListResponse,
@@ -621,6 +622,22 @@ export function createOrder(accessToken: string, payload: CreateOrderRequest): P
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
     body: JSON.stringify(payload),
+  });
+}
+
+// The porutham (horoscope match) with one member: unavailable, locked
+// (with its price) or the report itself.
+export function getHoroscopeMatch(accessToken: string, profileId: string): Promise<HoroscopeMatchResponse> {
+  return request<HoroscopeMatchResponse>(`/horoscope-match/${encodeURIComponent(profileId)}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// Starts paying for one horoscope match (paid like a plan; see createOrder).
+export function createHoroscopeMatchOrder(accessToken: string, profileId: string): Promise<OrderResponse> {
+  return request<OrderResponse>(`/horoscope-match/${encodeURIComponent(profileId)}/order`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
 }
 

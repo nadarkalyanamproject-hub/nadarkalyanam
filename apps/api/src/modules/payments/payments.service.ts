@@ -79,9 +79,20 @@ export class PaymentsService {
       throw new NotFoundException('Membership plan not found');
     }
 
-    const order = await this.prisma.order.create({
-      data: { userId, planId, amountInPaise: plan.priceInPaise, status: 'CREATED' },
-    });
+    return this.placeOrder({ userId, kind: 'MEMBERSHIP', planId, amountInPaise: plan.priceInPaise });
+  }
+
+  // One horoscope match (porutham report with one member). The caller
+  // (HoroscopeMatchService) has checked the pair can be matched; the price
+  // is the server's setting, never the client's.
+  async createHoroscopeMatchOrder(userId: string, matchProfileId: string): Promise<OrderResponse> {
+    assertProviderConfigured(this.configService, this.gateway, 'Horoscope match payments');
+    const amountInPaise = this.configService.get('HOROSCOPE_MATCH_PRICE_IN_PAISE', { infer: true });
+    return this.placeOrder({ userId, kind: 'HOROSCOPE_MATCH', matchProfileId, amountInPaise });
+  }
+
+  private async placeOrder(data: Prisma.OrderUncheckedCreateInput & { amountInPaise: number }): Promise<OrderResponse> {
+    const order = await this.prisma.order.create({ data: { ...data, status: 'CREATED' } });
 
     let providerOrderId: string | null = null;
     let checkoutParams: Record<string, unknown> | null = null;
@@ -98,6 +109,7 @@ export class PaymentsService {
 
     return {
       id: order.id,
+      kind: order.kind,
       planId: order.planId,
       amountInPaise: order.amountInPaise,
       status: order.status,
@@ -179,10 +191,27 @@ export class PaymentsService {
 
         // Activation and cancellation go through SubscriptionService (the one
         // place that holds the chaining rule), inside this transaction.
+        // A horoscope match order unlocks that one report (once per pair);
+        // refunding it takes the report away again.
+        if (order.kind === 'HOROSCOPE_MATCH') {
+          if (event.status === 'PAID' && order.matchProfileId) {
+            await tx.horoscopeMatch.upsert({
+              where: { userId_profileId: { userId: order.userId, profileId: order.matchProfileId } },
+              create: { userId: order.userId, profileId: order.matchProfileId, orderId: order.id },
+              update: {},
+            });
+          }
+          if (event.status === 'REFUNDED') {
+            await tx.horoscopeMatch.deleteMany({ where: { orderId: order.id } });
+            await tx.order.update({ where: { id: order.id }, data: { refundedAt: now, refundReason: 'Refunded by the payment provider' } });
+          }
+          return 'processed';
+        }
+
         if (event.status === 'PAID') {
           const result = await this.subscriptions.activateInTx(
             tx,
-            { userId: order.userId, planId: order.planId, source: 'PAYMENT', orderId: order.id },
+            { userId: order.userId, planId: order.planId!, source: 'PAYMENT', orderId: order.id },
             now,
           );
           if (result.created) activated = result;
