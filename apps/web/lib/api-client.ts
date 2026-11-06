@@ -60,11 +60,18 @@ import { REGISTRATION_STORAGE_KEY, type RegistrationDraft } from './registration
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
+export interface ApiIssue {
+  path: string;
+  message: string;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
     public readonly status: number,
     public readonly code?: string,
+    // Validation failures (400 from ZodValidationPipe): one per field.
+    public readonly issues: ApiIssue[] = [],
   ) {
     super(message);
     this.name = 'ApiError';
@@ -72,14 +79,23 @@ export class ApiError extends Error {
 }
 
 interface NestErrorBody {
-  message?: string | { path: string; message: string }[];
+  message?: string | ApiIssue[];
   errorCode?: string;
 }
 
-function extractErrorMessage(body: NestErrorBody | null): string {
+// "personal.casteCommunity" -> "Caste community".
+export function fieldLabel(path: string): string {
+  const last = path.split('.').filter((part) => !/^\d+$/.test(part)).pop() ?? '';
+  const words = last.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+// Keeps each field's name, e.g. "Height: Height is required; City: ...".
+// Issues are joined with "; " because zod's own messages contain commas.
+export function extractErrorMessage(body: NestErrorBody | null): string {
   if (!body?.message) return 'Something went wrong. Please try again.';
   if (typeof body.message === 'string') return body.message;
-  return body.message.map((issue) => issue.message).join(', ');
+  return body.message.map((issue) => (issue.path ? `${fieldLabel(issue.path)}: ${issue.message}` : issue.message)).join('; ');
 }
 
 function readStoredDraft(): RegistrationDraft {
@@ -133,7 +149,8 @@ async function request<T>(path: string, init?: RequestInit, isRetry = false): Pr
         notifyUnauthorized();
       }
     }
-    throw new ApiError(extractErrorMessage(body), response.status, body?.errorCode);
+    const issues = Array.isArray(body?.message) ? body.message : [];
+    throw new ApiError(extractErrorMessage(body), response.status, body?.errorCode, issues);
   }
 
   if (response.status === 204) {

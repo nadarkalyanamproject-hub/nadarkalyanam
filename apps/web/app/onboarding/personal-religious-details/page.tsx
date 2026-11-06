@@ -1,9 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, type FormEvent } from 'react';
+import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import { personalReligiousSchema } from '@nadar-kalyanam/schemas';
-import { Button } from '@nadar-kalyanam/ui';
+import { Button, FormError } from '@nadar-kalyanam/ui';
 import { OnboardingShell } from '../../../components/onboarding-shell';
 import {
   PersonalReligiousFields,
@@ -11,6 +11,7 @@ import {
 } from '../../../components/profile-form-fields/personal-religious-fields';
 import { getOverallCompletionPercent } from '../../../lib/onboarding-progress';
 import { toFieldErrors } from '../../../lib/zod-errors';
+import { INCOMPLETE_STEP_MESSAGE, incompleteStepErrors, useIncompleteVisit } from '../../../lib/incomplete-step';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { useRegistration } from '../../providers/registration-provider';
 
@@ -30,7 +31,12 @@ const EMPTY_FORM: FormState = {
 // localStorage, so the form can start from it (see basic-details).
 export default function PersonalReligiousDetailsPage() {
   const { hydrated } = useRegistration();
-  return hydrated ? <PersonalReligiousStep /> : null;
+  // Suspense: the step reads ?incomplete via useSearchParams.
+  return hydrated ? (
+    <Suspense fallback={null}>
+      <PersonalReligiousStep />
+    </Suspense>
+  ) : null;
 }
 
 function PersonalReligiousStep() {
@@ -43,7 +49,11 @@ function PersonalReligiousStep() {
     ...(data.personal as unknown as Partial<FormState>),
     ...(data.stepInputs?.personal as Partial<FormState> | undefined),
   }));
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  // Sent back from the last step because this step's saved data is
+  // incomplete: mark what's missing straight away.
+  const incomplete = useIncompleteVisit();
+  const [errors, setErrors] = useState<Record<string, string>>(() => incompleteStepErrors(incomplete, personalReligiousSchema, form));
+  const [incompleteNotice, setIncompleteNotice] = useState(incomplete);
 
   // Raw input is kept in the draft on every edit (no validation).
   useEffect(() => {
@@ -73,6 +83,7 @@ function PersonalReligiousStep() {
       return;
     }
     setErrors({});
+    setIncompleteNotice(false);
     saveStep('personal', result.data);
     router.push('/onboarding/location-professional-details');
   }
@@ -86,6 +97,7 @@ function PersonalReligiousStep() {
       subtitle="A few more details about you"
     >
       <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+        {incompleteNotice ? <FormError>{INCOMPLETE_STEP_MESSAGE}</FormError> : null}
         <PersonalReligiousFields form={form} errors={errors} onChange={update} />
         <div className="mt-2 flex justify-end">
           <Button type="submit" size="md" className="min-w-32">

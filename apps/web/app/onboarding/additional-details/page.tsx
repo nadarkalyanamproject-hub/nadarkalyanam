@@ -16,7 +16,15 @@ import {
   lifestyleFormToDraft,
   type LifestyleFormState,
 } from '../../../components/profile-form-fields/lifestyle-fields';
-import { ApiError, createProfile } from '../../../lib/api-client';
+import { ApiError, createProfile, type ApiIssue } from '../../../lib/api-client';
+import {
+  INCOMPLETE_PARAM,
+  buildProfilePayload,
+  checkProfilePayload,
+  firstIncompleteStep,
+  sectionOfPath,
+  type EarlierStep,
+} from '../../../lib/build-profile-payload';
 import { consumeAuthRedirectClaim } from '../../../lib/auth-events';
 import { getOverallCompletionPercent } from '../../../lib/onboarding-progress';
 import { toFieldErrors } from '../../../lib/zod-errors';
@@ -25,6 +33,20 @@ import { useRegistration } from '../../providers/registration-provider';
 import { buildAboutDraft } from '../../../lib/about-draft';
 
 type FormState = AdditionalDetailsFormState;
+
+const incompleteHref = (step: EarlierStep) => `${step.href}?${INCOMPLETE_PARAM}=1`;
+
+// This step's own fields from server validation issues ("additional.about"
+// -> about); anything for another section stays in the form-level message.
+function fieldErrorsFor(issues: ApiIssue[], section: 'additional' | 'lifestyle'): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const issue of issues) {
+    if (sectionOfPath(issue.path) !== section) continue;
+    const key = issue.path.split('.')[1];
+    if (key && !errors[key]) errors[key] = issue.message;
+  }
+  return errors;
+}
 
 const EMPTY_FORM: FormState = {
   familyType: '',
@@ -76,10 +98,18 @@ function AdditionalDetailsStep() {
     // guards the 401 path, which doesn't depend on AppHeader being mounted.)
     if (consumeAuthRedirectClaim()) return;
     if (!ready) return;
-    if (!data.basicDetails) router.replace('/onboarding/basic-details');
-    else if (!data.personal) router.replace('/onboarding/personal-religious-details');
-    else if (!data.location) router.replace('/onboarding/location-professional-details');
-  }, [ready, data.basicDetails, data.personal, data.location, router]);
+    // The profile was created meanwhile (e.g. Finish in another tab, which
+    // also clears the shared draft): nothing is missing, so go home.
+    if (data.hasProfile) {
+      router.replace('/');
+      return;
+    }
+    // Each earlier step must pass its own schema, not merely exist: a draft
+    // saved by an older wizard, or edited elsewhere, is sent back to the
+    // first step it's incomplete on, with that step's fields marked.
+    const incomplete = firstIncompleteStep({ basicDetails: data.basicDetails, personal: data.personal, location: data.location });
+    if (incomplete) router.replace(incompleteHref(incomplete));
+  }, [ready, data.hasProfile, data.basicDetails, data.personal, data.location, router]);
 
   // Raw input is kept in the draft on every edit (no validation). Writes
   // only stepInputs, which the guard above doesn't read.
@@ -91,7 +121,7 @@ function AdditionalDetailsStep() {
     saveStepInput('lifestyle', lifestyleFormToDraft(lifestyle));
   }, [lifestyle, saveStepInput]);
 
-  if (!ready || !data.basicDetails || !data.personal || !data.location) return null;
+  if (!ready || firstIncompleteStep(data)) return null;
 
   const activePercent = getOverallCompletionPercent(data, 4, form);
 
@@ -117,22 +147,36 @@ function AdditionalDetailsStep() {
     if (!result.success || !lifestyleResult.success) return;
     saveStep('additional', result.data);
 
+    // Validate the whole request with the server's schema first: an
+    // incomplete draft goes back to the step it's missing from and never
+    // reaches the API.
+    const check = checkProfilePayload(
+      buildProfilePayload(data, result.data, isLifestyleFormEmpty(lifestyle) ? undefined : lifestyleResult.data),
+    );
+    if (!check.ok) {
+      if (check.step) {
+        router.push(incompleteHref(check.step));
+      } else {
+        setErrors(fieldErrorsFor(check.issues, 'additional'));
+        setLifestyleErrors(fieldErrorsFor(check.issues, 'lifestyle'));
+        setFormError('Some details are missing. Please check the highlighted fields.');
+      }
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await createProfile(data.accessToken!, {
-        ...data.basicDetails!,
-        ...(data.profileForPrefill ? { profileFor: data.profileForPrefill } : {}),
-        personal: data.personal!,
-        location: data.location!,
-        additional: result.data,
-        ...(isLifestyleFormEmpty(lifestyle) ? {} : { lifestyle: lifestyleResult.data }),
-      });
+      await createProfile(data.accessToken!, check.payload);
       skipWizardGuardRef.current = true;
       markProfileCreated();
       clearWizardDraft();
       // replace: Back from the welcome screen / Home never reopens the wizard.
       router.replace('/onboarding/success');
     } catch (error) {
+      if (error instanceof ApiError && error.issues.length) {
+        setErrors(fieldErrorsFor(error.issues, 'additional'));
+        setLifestyleErrors(fieldErrorsFor(error.issues, 'lifestyle'));
+      }
       setFormError(error instanceof ApiError ? error.message : 'Could not save your profile. Please try again.');
       setSubmitting(false);
     }

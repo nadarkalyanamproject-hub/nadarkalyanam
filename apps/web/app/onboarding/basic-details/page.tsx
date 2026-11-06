@@ -1,9 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, type FormEvent } from 'react';
+import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import { basicDetailsSchema } from '@nadar-kalyanam/schemas';
-import { Button } from '@nadar-kalyanam/ui';
+import { Button, FormError } from '@nadar-kalyanam/ui';
 import { OnboardingShell } from '../../../components/onboarding-shell';
 import {
   BasicDetailsFields,
@@ -11,6 +11,7 @@ import {
 } from '../../../components/profile-form-fields/basic-details-fields';
 import { getOverallCompletionPercent } from '../../../lib/onboarding-progress';
 import { toFieldErrors } from '../../../lib/zod-errors';
+import { INCOMPLETE_STEP_MESSAGE, incompleteStepErrors, useIncompleteVisit } from '../../../lib/incomplete-step';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { useRegistration } from '../../providers/registration-provider';
 import { useIdentityStatus } from '../../../lib/identity-status';
@@ -33,7 +34,12 @@ const EMPTY_FORM: FormState = {
 // (Initializing any earlier is how a reload used to show an empty form.)
 export default function BasicDetailsPage() {
   const { hydrated } = useRegistration();
-  return hydrated ? <BasicDetailsStep /> : null;
+  // Suspense: the step reads ?incomplete via useSearchParams.
+  return hydrated ? (
+    <Suspense fallback={null}>
+      <BasicDetailsStep />
+    </Suspense>
+  ) : null;
 }
 
 function BasicDetailsStep() {
@@ -51,7 +57,11 @@ function BasicDetailsStep() {
     ...(data.basicDetails as unknown as Partial<FormState>),
     ...(data.stepInputs?.basicDetails as Partial<FormState> | undefined),
   }));
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  // Sent back from the last step because this step's saved data is
+  // incomplete: mark what's missing straight away.
+  const incomplete = useIncompleteVisit();
+  const [errors, setErrors] = useState<Record<string, string>>(() => incompleteStepErrors(incomplete, basicDetailsSchema, form));
+  const [incompleteNotice, setIncompleteNotice] = useState(incomplete);
   const identity = useIdentityStatus(data.accessToken)?.identity ?? null;
   // Verified with DigiLocker: name and date of birth come from the ID.
   const values: FormState = identity ? { ...form, fullName: identity.name, dateOfBirth: identity.dateOfBirth } : form;
@@ -95,6 +105,7 @@ function BasicDetailsStep() {
       return;
     }
     setErrors({});
+    setIncompleteNotice(false);
     saveStep('basicDetails', result.data);
     router.push('/onboarding/personal-religious-details');
   }
@@ -110,6 +121,7 @@ function BasicDetailsStep() {
       subtitle="Tell us a little about yourself"
     >
       <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+        {incompleteNotice ? <FormError>{INCOMPLETE_STEP_MESSAGE}</FormError> : null}
         <BasicDetailsFields form={values} errors={errors} onChange={update} identityLocked={Boolean(identity)} />
         <div className="mt-2 flex justify-end">
           <Button type="submit" size="md" className="min-w-32">

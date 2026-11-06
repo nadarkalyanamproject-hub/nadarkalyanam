@@ -1,9 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, type FormEvent } from 'react';
+import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import { locationProfessionalSchema } from '@nadar-kalyanam/schemas';
-import { Button } from '@nadar-kalyanam/ui';
+import { Button, FormError } from '@nadar-kalyanam/ui';
 import { OnboardingShell } from '../../../components/onboarding-shell';
 import {
   LocationProfessionalFields,
@@ -11,6 +11,7 @@ import {
 } from '../../../components/profile-form-fields/location-professional-fields';
 import { getOverallCompletionPercent } from '../../../lib/onboarding-progress';
 import { toFieldErrors } from '../../../lib/zod-errors';
+import { INCOMPLETE_STEP_MESSAGE, incompleteStepErrors, useIncompleteVisit } from '../../../lib/incomplete-step';
 import { useRequireAuth } from '../../../lib/use-require-auth';
 import { useRegistration } from '../../providers/registration-provider';
 
@@ -32,7 +33,12 @@ const EMPTY_FORM: FormState = {
 // localStorage, so the form can start from it (see basic-details).
 export default function LocationProfessionalDetailsPage() {
   const { hydrated } = useRegistration();
-  return hydrated ? <LocationProfessionalStep /> : null;
+  // Suspense: the step reads ?incomplete via useSearchParams.
+  return hydrated ? (
+    <Suspense fallback={null}>
+      <LocationProfessionalStep />
+    </Suspense>
+  ) : null;
 }
 
 function LocationProfessionalStep() {
@@ -45,7 +51,11 @@ function LocationProfessionalStep() {
     ...(data.location as unknown as Partial<FormState>),
     ...(data.stepInputs?.location as Partial<FormState> | undefined),
   }));
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  // Sent back from the last step because this step's saved data is
+  // incomplete: mark what's missing straight away.
+  const incomplete = useIncompleteVisit();
+  const [errors, setErrors] = useState<Record<string, string>>(() => incompleteStepErrors(incomplete, locationProfessionalSchema, form));
+  const [incompleteNotice, setIncompleteNotice] = useState(incomplete);
 
   // Raw input is kept in the draft on every edit (no validation).
   useEffect(() => {
@@ -75,6 +85,7 @@ function LocationProfessionalStep() {
       return;
     }
     setErrors({});
+    setIncompleteNotice(false);
     saveStep('location', result.data);
     router.push('/onboarding/additional-details');
   }
@@ -88,6 +99,7 @@ function LocationProfessionalStep() {
       subtitle="Where you live and what you do"
     >
       <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+        {incompleteNotice ? <FormError>{INCOMPLETE_STEP_MESSAGE}</FormError> : null}
         <LocationProfessionalFields form={form} errors={errors} onChange={update} />
         <div className="mt-2 flex justify-end">
           <Button type="submit" size="md" className="min-w-32">
