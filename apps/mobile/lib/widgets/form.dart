@@ -309,7 +309,8 @@ class ErrorBanner extends StatelessWidget {
   }
 }
 
-// A white card with a soft gold border, the app's basic surface.
+// A white card with a hairline border and a soft shadow, the app's basic
+// surface.
 class NkCard extends StatelessWidget {
   const NkCard({super.key, required this.child, this.padding = const EdgeInsets.all(18), this.onTap});
   final Widget child;
@@ -318,11 +319,15 @@ class NkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: NK.lineGold)),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(onTap: onTap, child: Padding(padding: padding, child: child)),
+    final shape = BorderRadius.circular(22);
+    return DecoratedBox(
+      decoration: BoxDecoration(borderRadius: shape, boxShadow: NK.softShadow),
+      child: Material(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: shape, side: const BorderSide(color: Color(0x33C89B3C))),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(onTap: onTap, child: Padding(padding: padding, child: child)),
+      ),
     );
   }
 }
