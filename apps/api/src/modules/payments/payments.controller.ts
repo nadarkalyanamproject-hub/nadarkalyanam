@@ -12,6 +12,7 @@ import {
   StreamableFile,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import {
   type CreateOrderRequest,
   createOrderRequestSchema,
@@ -78,6 +79,9 @@ export class PaymentsController {
   // only — see main.ts). 200 for processed, duplicate and ignored events,
   // so the provider stops retrying; 400 for a bad signature, an unknown
   // order or a mismatched amount.
+  // Not rate limited either: all provider calls come from a few IPs, and a
+  // dropped webhook would leave a paid order unconfirmed.
+  @SkipThrottle({ burst: true, sustained: true })
   @Post('payments/webhook')
   @HttpCode(200)
   handleWebhook(

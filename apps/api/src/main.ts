@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication, NestExpressBodyParserOptions } from '@nestjs/platform-express';
+import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module.js';
 import { parseCorsOrigins } from './common/cors-origins.js';
@@ -23,6 +24,11 @@ const jsonParserOptions: NestExpressBodyParserOptions & {
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true, rawBody: true });
+  // Security headers (HSTS, nosniff, frame-ancestors none, no X-Powered-By).
+  // The API only returns JSON and files, so the default CSP is safe here.
+  // Cross-origin resource policy is relaxed because the web and admin apps
+  // sit on other origins and may load files (photos, CSVs) straight from it.
+  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   app.useBodyParser('json', jsonParserOptions);
   app.useLogger(app.get(Logger));
   app.setGlobalPrefix('api/v1');
