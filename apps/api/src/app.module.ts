@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { HttpThrottlerGuard } from './common/http-throttler.guard.js';
 import { LoggerModule } from 'nestjs-pino';
 import { validateEnv } from './modules/config/env.schema.js';
 import { AdminModule } from './modules/admin/admin.module.js';
@@ -45,6 +48,18 @@ import { VerificationModule } from './modules/verification/verification.module.j
         level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
       },
     }),
+    // A general per-IP request limit on every route, on top of the stricter
+    // OTP limits in auth. It is generous on purpose: Indian mobile carriers
+    // put many phones behind one IP (CGNAT), and the chat screen polls every
+    // few seconds. It stops floods and bulk scraping, not normal use.
+    // Counts are kept in memory, so each API instance limits on its own.
+    ThrottlerModule.forRoot({
+      throttlers: [
+        { name: 'burst', ttl: 10_000, limit: 100 },
+        { name: 'sustained', ttl: 60_000, limit: 300 },
+      ],
+      errorMessage: 'Too many requests. Please wait a moment and try again.',
+    }),
     PrismaModule,
     RedisModule,
     QueueModule,
@@ -73,5 +88,6 @@ import { VerificationModule } from './modules/verification/verification.module.j
     CallsModule,
     AdminModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: HttpThrottlerGuard }],
 })
 export class AppModule {}

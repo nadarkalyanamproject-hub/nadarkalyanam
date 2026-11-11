@@ -4,10 +4,13 @@ import {
   HealthCheckService,
   type HealthIndicatorResult,
 } from '@nestjs/terminus';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { Redis } from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { REDIS_CLIENT } from '../redis/redis.constants.js';
 
+// Not rate limited: the host's health checks come from a few fixed IPs.
+@SkipThrottle({ burst: true, sustained: true })
 @Controller('health')
 export class HealthController {
   constructor(
