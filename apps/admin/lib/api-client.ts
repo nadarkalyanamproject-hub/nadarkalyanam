@@ -448,3 +448,87 @@ export function updateAdmin(accessToken: string, adminId: string, payload: Updat
 export function adminRequest<T>(accessToken: string, path: string, init: RequestInit = {}): Promise<T> {
   return request<T>(path, { ...init, headers: { ...authHeaders(accessToken), ...(init.headers as Record<string, string> | undefined) } });
 }
+
+
+// --- Photo Moderation Queue ---------------------------------------------
+
+export interface QueuedPhoto {
+  id: string;
+  url: string;
+  profileId: string;
+  userId: string;
+  memberName: string | null;
+  phoneNumber: string;
+  isPrimary: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export function listPendingPhotos(
+  accessToken: string,
+  params: { offset?: number; limit?: number } = {},
+): Promise<{ items: QueuedPhoto[]; total: number }> {
+  return request(`/admin/photos/pending${toQueryString({ ...params })}`, { headers: authHeaders(accessToken) });
+}
+
+export function approveQueuedPhoto(accessToken: string, photoId: string): Promise<{ id: string; status: string }> {
+  return request(`/admin/photos/${photoId}/approve`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+  });
+}
+
+export function rejectQueuedPhoto(
+  accessToken: string,
+  photoId: string,
+  reason: string,
+): Promise<{ id: string; status: string; rejectionReason: string }> {
+  return request(`/admin/photos/${photoId}/reject`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ reason }),
+  });
+}
+
+// --- Verification Queue -------------------------------------------------
+
+export interface QueuedVerification {
+  id: string;
+  userId: string;
+  memberName: string | null;
+  phoneNumber: string;
+  providerReference: string;
+  status: 'PENDING' | 'SUCCEEDED' | 'FAILED' | 'EXPIRED';
+  isProfileVerified: boolean;
+  createdAt: string;
+  decidedAt: string | null;
+}
+
+export function listVerifications(
+  accessToken: string,
+  params: { offset?: number; limit?: number; status?: string } = {},
+): Promise<{ items: QueuedVerification[]; total: number }> {
+  return request(`/admin/verifications${toQueryString({ ...params })}`, { headers: authHeaders(accessToken) });
+}
+
+export function approveVerification(
+  accessToken: string,
+  requestId: string,
+): Promise<{ id: string; status: string; decidedAt: string }> {
+  return request(`/admin/verifications/${requestId}/approve`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+  });
+}
+
+export function rejectVerification(
+  accessToken: string,
+  requestId: string,
+  reason?: string,
+): Promise<{ id: string; status: string; decidedAt: string }> {
+  return request(`/admin/verifications/${requestId}/reject`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ reason }),
+  });
+}

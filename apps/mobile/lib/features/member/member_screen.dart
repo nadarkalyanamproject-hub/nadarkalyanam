@@ -54,30 +54,83 @@ class _MemberView extends ConsumerWidget {
           slivers: [
             SliverAppBar(
               pinned: true,
-              expandedHeight: MediaQuery.of(context).size.width * 1.05,
-              backgroundColor: NK.butter,
-              actions: [_MoreMenu(member: m)],
-              flexibleSpace: FlexibleSpaceBar(background: _Photos(urls: m.photoUrls)),
+              stretch: true,
+              expandedHeight: MediaQuery.of(context).size.width * 1.1,
+              backgroundColor: NK.ivory,
+              leading: Padding(
+                padding: const EdgeInsets.all(8),
+                child: _RoundButton(icon: Icons.arrow_back_rounded, tooltip: 'Back', onTap: () => Navigator.of(context).maybePop()),
+              ),
+              actions: [_MoreMenu(member: m), const SizedBox(width: 4)],
+              flexibleSpace: FlexibleSpaceBar(
+                stretchModes: const [StretchMode.zoomBackground],
+                background: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _Photos(urls: m.photoUrls),
+                    // Soft shade under the status bar so the buttons read on any photo.
+                    const IgnorePointer(
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: SizedBox(
+                          height: 120,
+                          width: double.infinity,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [Color(0x66000000), Color(0x00000000)],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // The page's ivory sheet curving up over the photo.
+                    const IgnorePointer(
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        child: SizedBox(
+                          height: 28,
+                          width: double.infinity,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: NK.ivory,
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 18, 16, 40),
+              padding: const EdgeInsets.fromLTRB(18, 2, 18, 40),
               sliver: SliverList.list(
                 children: [
                   Row(
                     children: [
-                      Flexible(child: Text(m.fullName, style: serif(28, color: NK.ink))),
+                      Flexible(child: Text(m.fullName, style: serif(32, color: NK.ink))),
                       if (m.isVerified) ...[const SizedBox(width: 6), const Icon(Icons.verified_rounded, color: NK.gold)],
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    [if (m.age > 0) '${m.age} yrs', ?m.height?.split(' (').first, ?m.city, ?m.state].join(' · '),
-                    style: const TextStyle(color: NK.muted, fontSize: 15),
+                  const SizedBox(height: 6),
+                  const Ornament(),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 6,
+                    children: [
+                      if (m.age > 0) _Fact(icon: Icons.cake_outlined, text: '${m.age} yrs'),
+                      if (m.height != null) _Fact(icon: Icons.height_rounded, text: m.height!.split(' (').first),
+                      if (m.city != null || m.state != null)
+                        _Fact(icon: Icons.location_on_outlined, text: [?m.city, ?m.state].join(', ')),
+                      if (m.profession != null) _Fact(icon: Icons.work_outline_rounded, text: m.profession!),
+                    ],
                   ),
-                  if (m.profession != null) ...[
-                    const SizedBox(height: 2),
-                    Text(m.profession!, style: const TextStyle(color: NK.muted, fontSize: 15)),
-                  ],
                   if (m.preferenceFit != null && m.preferenceFit!.total > 0) ...[
                     const SizedBox(height: 12),
                     _FitLine(fit: m.preferenceFit!, label: 'of your preferences match'),
@@ -417,20 +470,25 @@ class _Block extends StatelessWidget {
               children: [
                 SectionIcon(icon, size: 36),
                 const SizedBox(width: 12),
-                Expanded(child: Text(title, style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w700, color: NK.maroon))),
+                Expanded(child: Text(title, style: serif(22, color: NK.maroon))),
               ],
             ),
-            if (text != null) ...[const SizedBox(height: 12), Text(text!, style: const TextStyle(height: 1.55))],
-            for (final e in filled)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Row(
+            const SizedBox(height: 4),
+            if (text != null) ...[const SizedBox(height: 10), Text(text!, style: const TextStyle(height: 1.6, fontSize: 14.5))],
+            for (var i = 0; i < filled.length; i++)
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(border: i == 0 ? null : const Border(top: BorderSide(color: Color(0x80EADFCF)))),
+                child: Builder(builder: (_) {
+                  final e = filled[i];
+                  return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(width: 128, child: Text(e.key, style: const TextStyle(color: NK.muted, fontSize: 13.5))),
                     Expanded(child: Text(e.value!, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))),
                   ],
-                ),
+                  );
+                }),
               ),
             ?child,
           ],
@@ -512,6 +570,52 @@ class _TheirPreferences extends StatelessWidget {
   }
 }
 
+// A frosted white circle for buttons drawn over the photo; it stays
+// readable once the bar collapses onto ivory too.
+class _RoundButton extends StatelessWidget {
+  const _RoundButton({required this.icon, this.onTap, this.tooltip});
+  final IconData icon;
+  final VoidCallback? onTap;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final circle = Container(
+      width: 40,
+      height: 40,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Color(0xE6FFFFFF),
+        boxShadow: [BoxShadow(color: Color(0x332B1B14), blurRadius: 10, offset: Offset(0, 3))],
+      ),
+      child: Icon(icon, color: NK.ink, size: 22),
+    );
+    if (onTap == null) return circle;
+    return Tooltip(
+      message: tooltip ?? '',
+      child: GestureDetector(onTap: onTap, behavior: HitTestBehavior.opaque, child: circle),
+    );
+  }
+}
+
+class _Fact extends StatelessWidget {
+  const _Fact({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 17, color: NK.goldText),
+        const SizedBox(width: 5),
+        Text(text, style: const TextStyle(color: NK.muted, fontSize: 14.5, fontWeight: FontWeight.w500)),
+      ],
+    );
+  }
+}
+
 class _MoreMenu extends ConsumerWidget {
   const _MoreMenu({required this.member});
   final MemberProfile member;
@@ -519,7 +623,8 @@ class _MoreMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return PopupMenuButton<String>(
-      icon: const CircleAvatar(backgroundColor: Colors.white70, child: Icon(Icons.more_vert_rounded, color: NK.ink)),
+      tooltip: 'More',
+      icon: const _RoundButton(icon: Icons.more_vert_rounded),
       onSelected: (choice) async {
         if (choice == 'report') {
           await showReportSheet(context, ref, targetType: 'PROFILE', targetId: member.id, name: member.fullName);

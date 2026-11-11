@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { verificationStatusEnum } from './verification.js';
 
 export const suspendMemberRequestSchema = z.object({
   reason: z.string().min(1, 'reason is required'),
@@ -143,3 +144,64 @@ export const summaryReportRequestSchema = z.object({
     .refine((days) => (MEMBER_ACTIVITY_WINDOWS as readonly number[]).includes(days), 'Use 7, 30 or 90'),
 });
 export type SummaryReportRequest = z.infer<typeof summaryReportRequestSchema>;
+
+
+// --- Admin Photo Moderation Queue -------------------------------------------
+
+export const adminPendingPhotosQuerySchema = z.object({
+  offset: z.coerce.number().int().min(0).default(0),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type AdminPendingPhotosQuery = z.infer<typeof adminPendingPhotosQuerySchema>;
+
+export const adminPendingPhotoItemSchema = z.object({
+  id: z.string(),
+  url: z.string(),
+  profileId: z.string(),
+  userId: z.string(),
+  memberName: z.string().nullable(),
+  phoneNumber: z.string(),
+  isPrimary: z.boolean(),
+  sortOrder: z.number(),
+  createdAt: z.string(),
+});
+export type AdminPendingPhotoItem = z.infer<typeof adminPendingPhotoItemSchema>;
+
+export const adminPendingPhotosResponseSchema = z.object({
+  items: z.array(adminPendingPhotoItemSchema),
+  total: z.number(),
+});
+export type AdminPendingPhotosResponse = z.infer<typeof adminPendingPhotosResponseSchema>;
+
+// --- Admin Verification Queue -----------------------------------------------
+
+export const adminVerificationsQuerySchema = z.object({
+  offset: z.coerce.number().int().min(0).default(0),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  status: verificationStatusEnum.optional(),
+});
+export type AdminVerificationsQuery = z.infer<typeof adminVerificationsQuerySchema>;
+
+export const adminVerificationItemSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  memberName: z.string().nullable(),
+  phoneNumber: z.string(),
+  providerReference: z.string(),
+  status: verificationStatusEnum,
+  isProfileVerified: z.boolean(),
+  createdAt: z.string(),
+  decidedAt: z.string().nullable(),
+});
+export type AdminVerificationItem = z.infer<typeof adminVerificationItemSchema>;
+
+export const adminVerificationsResponseSchema = z.object({
+  items: z.array(adminVerificationItemSchema),
+  total: z.number(),
+});
+export type AdminVerificationsResponse = z.infer<typeof adminVerificationsResponseSchema>;
+
+export const adminRejectVerificationRequestSchema = z.object({
+  reason: z.string().trim().max(500).optional(),
+});
+export type AdminRejectVerificationRequest = z.infer<typeof adminRejectVerificationRequestSchema>;

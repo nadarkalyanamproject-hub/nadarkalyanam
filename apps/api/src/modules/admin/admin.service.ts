@@ -1,5 +1,10 @@
 import { ConflictException, Injectable, NotFoundException, NotImplementedException } from '@nestjs/common';
-import type { AccountStatus, MemberActivityResponse } from '@nadar-kalyanam/schemas';
+import type {
+  AccountStatus,
+  AdminVerificationItem,
+  MemberActivityResponse,
+  VerificationStatus,
+} from '@nadar-kalyanam/schemas';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PhotosService } from '../photos/photos.service.js';
@@ -12,6 +17,32 @@ export interface MemberListFilters {
   status?: AccountStatus;
   verified?: boolean;
   sort?: 'newest' | 'oldest';
+}
+
+// An agent decides a verification request only while it is PENDING: a
+// decided request (by the provider or another agent) is never overwritten,
+// so a stale screen can't revive a FAILED request or strip a SUCCEEDED one.
+function assertVerificationPending(status: VerificationStatus) {
+  if (status !== 'PENDING') {
+    throw new ConflictException(`This request has already been decided (${status})`);
+  }
+}
+
+// Conditional on PENDING inside the transaction, so two agents (or an agent
+// and the provider callback) racing on one request can't both apply.
+async function decidePendingVerification(
+  tx: Prisma.TransactionClient,
+  requestId: string,
+  status: 'SUCCEEDED' | 'FAILED',
+  decidedAt: Date,
+) {
+  const { count } = await tx.verificationRequest.updateMany({
+    where: { id: requestId, status: 'PENDING' },
+    data: { status, decidedAt },
+  });
+  if (count === 0) {
+    throw new ConflictException('This request has already been decided');
+  }
 }
 
 // FR-9.5 / FR-11.4: suspend/reinstate are reachable by both Moderator and
@@ -283,9 +314,10 @@ export class AdminService {
     userId: string,
     photoId: string,
     decision: { approve: true } | { approve: false; reason: string },
+    options: { pendingOnly?: boolean } = {},
   ) {
     await this.getActionableMember(userId, decision.approve ? 'approve photo' : 'reject photo');
-    const photo = await this.photosService.moderatePhoto(userId, photoId, decision);
+    const photo = await this.photosService.moderatePhoto(userId, photoId, decision, options);
     await this.auditLog.record(
       adminId,
       decision.approve ? 'member.photo.approve' : 'member.photo.reject',
@@ -293,7 +325,151 @@ export class AdminService {
       photoId,
       decision.approve ? { userId } : { userId, reason: decision.reason },
     );
+    this.notifications.notify({
+      recipientUserId: userId,
+      type: decision.approve ? 'PHOTO_APPROVED' : 'PHOTO_REJECTED',
+      targetType: 'ProfilePhoto',
+      data: decision.approve ? undefined : { reason: decision.reason },
+    });
     return photo;
+  }
+
+  async listPendingPhotos(offset = 0, limit = 20) {
+    return this.photosService.listPendingPhotos(offset, limit);
+  }
+
+  async moderatePhotoFromQueue(
+    adminId: string,
+    photoId: string,
+    decision: { approve: true } | { approve: false; reason: string },
+  ) {
+    const photo = await this.photosService.findPhotoWithProfile(photoId);
+    if (!photo) {
+      throw new NotFoundException('Photo not found');
+    }
+    return this.moderateMemberPhoto(adminId, photo.profile.userId, photoId, decision, { pendingOnly: true });
+  }
+
+  async listVerifications(
+    offset = 0,
+    limit = 20,
+    status?: VerificationStatus,
+  ): Promise<{ items: AdminVerificationItem[]; total: number }> {
+    const where = status ? { status } : {};
+    const [total, requests] = await Promise.all([
+      this.prisma.verificationRequest.count({ where }),
+      this.prisma.verificationRequest.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: offset,
+        take: limit,
+        include: {
+          user: {
+            select: {
+              id: true,
+              phoneNumber: true,
+              status: true,
+              profile: {
+                select: {
+                  fullName: true,
+                  isVerified: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const items: AdminVerificationItem[] = requests.map((req) => ({
+      id: req.id,
+      userId: req.userId,
+      memberName: req.user.profile?.fullName ?? null,
+      phoneNumber: req.user.phoneNumber,
+      providerReference: req.providerReference,
+      status: req.status,
+      isProfileVerified: req.user.profile?.isVerified ?? false,
+      createdAt: req.createdAt.toISOString(),
+      decidedAt: req.decidedAt?.toISOString() ?? null,
+    }));
+
+    return { items, total };
+  }
+
+  async approveVerification(adminId: string, requestId: string) {
+    const request = await this.prisma.verificationRequest.findUnique({
+      where: { id: requestId },
+      include: { user: true },
+    });
+    if (!request) {
+      throw new NotFoundException('Verification request not found');
+    }
+    assertVerificationPending(request.status);
+    await this.getActionableMember(request.userId, 'approve verification');
+
+    const decidedAt = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await decidePendingVerification(tx, requestId, 'SUCCEEDED', decidedAt);
+      await tx.profile.updateMany({
+        where: { userId: request.userId },
+        data: { isVerified: true },
+      });
+    });
+
+    this.notifications.notify({
+      recipientUserId: request.userId,
+      type: 'VERIFICATION_APPROVED',
+      targetType: 'Account',
+    });
+
+    await this.auditLog.record(adminId, 'verification.approve', 'VerificationRequest', requestId, {
+      userId: request.userId,
+    });
+
+    return { id: requestId, status: 'SUCCEEDED', decidedAt: decidedAt.toISOString() };
+  }
+
+  async rejectVerification(adminId: string, requestId: string, reason?: string) {
+    const request = await this.prisma.verificationRequest.findUnique({
+      where: { id: requestId },
+      include: { user: true },
+    });
+    if (!request) {
+      throw new NotFoundException('Verification request not found');
+    }
+    assertVerificationPending(request.status);
+    await this.getActionableMember(request.userId, 'reject verification');
+
+    const decidedAt = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await decidePendingVerification(tx, requestId, 'FAILED', decidedAt);
+
+      // FR-8.6 Guardrail: A failed verification request must never downgrade
+      // a profile that has another SUCCEEDED verification request.
+      const anySucceeded = await tx.verificationRequest.findFirst({
+        where: { userId: request.userId, status: 'SUCCEEDED', id: { not: requestId } },
+      });
+      if (!anySucceeded) {
+        await tx.profile.updateMany({
+          where: { userId: request.userId },
+          data: { isVerified: false },
+        });
+      }
+    });
+
+    this.notifications.notify({
+      recipientUserId: request.userId,
+      type: 'VERIFICATION_REJECTED',
+      targetType: 'Account',
+      data: reason ? { reason } : undefined,
+    });
+
+    await this.auditLog.record(adminId, 'verification.reject', 'VerificationRequest', requestId, {
+      userId: request.userId,
+      reason,
+    });
+
+    return { id: requestId, status: 'FAILED', decidedAt: decidedAt.toISOString() };
   }
 
   // Platform-overview landing page. The status breakdown covers all four

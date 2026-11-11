@@ -28,6 +28,10 @@ export function notificationDestination(n: NotificationTarget): NotificationDest
         ? { kind: 'navigate', href: `/browse/${n.targetId}` }
         : { kind: 'unavailable', message: 'This profile is no longer available.' };
     case 'ADMIN_PHOTO_REMOVED':
+    case 'PHOTO_APPROVED':
+    case 'PHOTO_REJECTED':
+    case 'VERIFICATION_APPROVED':
+    case 'VERIFICATION_REJECTED':
     case 'ACCOUNT_SUSPENDED':
     case 'ACCOUNT_REINSTATED':
     case 'REMOVAL_SCHEDULED':

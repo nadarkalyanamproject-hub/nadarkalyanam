@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Bell, ChevronDown, Crown, Flag, IndianRupee, LayoutDashboard, LogOut, Menu, Receipt, ScrollText, ShieldCheck, Tags, Users, WalletCards, X } from 'lucide-react';
+import { Bell, Camera, ChevronDown, Crown, Flag, IndianRupee, LayoutDashboard, LogOut, Menu, Receipt, ScrollText, ShieldCheck, Tags, Users, WalletCards, X } from 'lucide-react';
 import { useAdminAuth } from '../app/providers/admin-auth-provider';
 import { listReports, logoutAdmin } from '../lib/api-client';
 import { useCurrentAdmin } from '../lib/use-current-admin';
@@ -13,6 +13,8 @@ import { useCurrentAdmin } from '../lib/use-current-admin';
 const NAV_ITEMS = [
   { href: '/', label: 'Dashboard', permission: 'members.view', icon: LayoutDashboard },
   { href: '/members', label: 'Members', permission: 'members.view', icon: Users },
+  { href: '/photos', label: 'Photos', permission: 'photos.moderate', icon: Camera },
+  { href: '/verifications', label: 'Verifications', permission: 'verification.review', icon: ShieldCheck },
   { href: '/reports', label: 'Reports', permission: 'reports.review', icon: Flag },
   { href: '/plans', label: 'Plans', permission: 'plans.manage', icon: Tags },
   { href: '/subscriptions', label: 'Subscriptions', permission: 'subscriptions.manage', icon: WalletCards },
