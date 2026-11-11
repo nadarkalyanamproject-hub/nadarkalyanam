@@ -9,6 +9,10 @@ export const notificationTypeEnum = z.enum([
   'PROFILE_VIEWED',
   'NEW_MESSAGE',
   'ADMIN_PHOTO_REMOVED',
+  'PHOTO_APPROVED',
+  'PHOTO_REJECTED',
+  'VERIFICATION_APPROVED',
+  'VERIFICATION_REJECTED',
   'ACCOUNT_SUSPENDED',
   'ACCOUNT_REINSTATED',
   'REMOVAL_SCHEDULED',
@@ -23,7 +27,7 @@ export const notificationTypeEnum = z.enum([
 ]);
 export type NotificationType = z.infer<typeof notificationTypeEnum>;
 
-export const notificationTargetTypeEnum = z.enum(['Interest', 'Conversation', 'Profile', 'Account', 'Payment', 'Order']);
+export const notificationTargetTypeEnum = z.enum(['Interest', 'Conversation', 'Profile', 'Account', 'Payment', 'Order', 'ProfilePhoto']);
 export type NotificationTargetType = z.infer<typeof notificationTargetTypeEnum>;
 
 // Who caused it — name and signed photo URL only. System/admin notices use

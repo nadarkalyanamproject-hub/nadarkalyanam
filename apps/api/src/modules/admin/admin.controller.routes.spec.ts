@@ -32,6 +32,12 @@ const NEW_ROUTES: { handler: Handler; method: RequestMethod; path: string; permi
   { handler: 'listRoles', method: RequestMethod.GET, path: 'roles', permission: PERMISSIONS.ADMIN_USERS_MANAGE },
   { handler: 'createAdmin', method: RequestMethod.POST, path: 'admins', permission: PERMISSIONS.ADMIN_USERS_MANAGE },
   { handler: 'updateAdmin', method: RequestMethod.PATCH, path: 'admins/:id', permission: PERMISSIONS.ADMIN_USERS_MANAGE },
+  { handler: 'listPendingPhotos', method: RequestMethod.GET, path: 'photos/pending', permission: PERMISSIONS.PHOTOS_MODERATE },
+  { handler: 'approveQueuedPhoto', method: RequestMethod.POST, path: 'photos/:id/approve', permission: PERMISSIONS.PHOTOS_MODERATE },
+  { handler: 'rejectQueuedPhoto', method: RequestMethod.POST, path: 'photos/:id/reject', permission: PERMISSIONS.PHOTOS_MODERATE },
+  { handler: 'listVerifications', method: RequestMethod.GET, path: 'verifications', permission: PERMISSIONS.VERIFICATION_REVIEW },
+  { handler: 'approveVerification', method: RequestMethod.POST, path: 'verifications/:id/approve', permission: PERMISSIONS.VERIFICATION_REVIEW },
+  { handler: 'rejectVerification', method: RequestMethod.POST, path: 'verifications/:id/reject', permission: PERMISSIONS.VERIFICATION_REVIEW },
 ];
 
 // Tokens are just labels here: the mocked JwtService maps each to the

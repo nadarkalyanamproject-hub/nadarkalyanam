@@ -10,6 +10,12 @@ import {
   memberActivityQuerySchema,
   type AdminAuditLogsQuery,
   adminAuditLogsQuerySchema,
+  type AdminPendingPhotosQuery,
+  adminPendingPhotosQuerySchema,
+  type AdminVerificationsQuery,
+  adminVerificationsQuerySchema,
+  type AdminRejectVerificationRequest,
+  adminRejectVerificationRequestSchema,
   type AdminMembersQuery,
   adminMembersQuerySchema,
   type AdminReportsQuery,
@@ -187,6 +193,56 @@ export class AdminController {
     @Body(new ZodValidationPipe(rejectPhotoRequestSchema)) body: RejectPhotoRequest,
   ) {
     return this.adminService.moderateMemberPhoto(admin.adminId, userId, photoId, { approve: false, reason: body.reason });
+  }
+
+  // Cross-member photo moderation queue
+  @Get('photos/pending')
+  @RequirePermission(PERMISSIONS.PHOTOS_MODERATE)
+  listPendingPhotos(@Query(new ZodValidationPipe(adminPendingPhotosQuerySchema)) query: AdminPendingPhotosQuery) {
+    return this.adminService.listPendingPhotos(query.offset, query.limit);
+  }
+
+  @Post('photos/:id/approve')
+  @HttpCode(200)
+  @RequirePermission(PERMISSIONS.PHOTOS_MODERATE)
+  approveQueuedPhoto(@CurrentAdmin() admin: AuthenticatedAdmin, @Param('id') photoId: string) {
+    return this.adminService.moderatePhotoFromQueue(admin.adminId, photoId, { approve: true });
+  }
+
+  @Post('photos/:id/reject')
+  @HttpCode(200)
+  @RequirePermission(PERMISSIONS.PHOTOS_MODERATE)
+  rejectQueuedPhoto(
+    @CurrentAdmin() admin: AuthenticatedAdmin,
+    @Param('id') photoId: string,
+    @Body(new ZodValidationPipe(rejectPhotoRequestSchema)) body: RejectPhotoRequest,
+  ) {
+    return this.adminService.moderatePhotoFromQueue(admin.adminId, photoId, { approve: false, reason: body.reason });
+  }
+
+  // Identity verification review queue
+  @Get('verifications')
+  @RequirePermission(PERMISSIONS.VERIFICATION_REVIEW)
+  listVerifications(@Query(new ZodValidationPipe(adminVerificationsQuerySchema)) query: AdminVerificationsQuery) {
+    return this.adminService.listVerifications(query.offset, query.limit, query.status);
+  }
+
+  @Post('verifications/:id/approve')
+  @HttpCode(200)
+  @RequirePermission(PERMISSIONS.VERIFICATION_REVIEW)
+  approveVerification(@CurrentAdmin() admin: AuthenticatedAdmin, @Param('id') id: string) {
+    return this.adminService.approveVerification(admin.adminId, id);
+  }
+
+  @Post('verifications/:id/reject')
+  @HttpCode(200)
+  @RequirePermission(PERMISSIONS.VERIFICATION_REVIEW)
+  rejectVerification(
+    @CurrentAdmin() admin: AuthenticatedAdmin,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(adminRejectVerificationRequestSchema)) body: AdminRejectVerificationRequest,
+  ) {
+    return this.adminService.rejectVerification(admin.adminId, id, body?.reason);
   }
 
   @Post('members/:userId/suspend')

@@ -10,6 +10,7 @@ export const PERMISSIONS = {
   MEMBERS_REINSTATE: 'members.reinstate',
   MEMBERS_REMOVE: 'members.remove',
   REPORTS_REVIEW: 'reports.review',
+  PHOTOS_MODERATE: 'photos.moderate',
   VERIFICATION_REVIEW: 'verification.review',
   PAYMENTS_REFUND: 'payments.refund',
   FINANCE_DASHBOARD_VIEW: 'finance.dashboard.view',
