@@ -94,19 +94,19 @@ export default function PhotosPage() {
     <AdminShell>
       <div className="flex flex-col gap-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Photo Moderation</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[30px]">Photo Moderation</h1>
+          <p className="mt-1.5 max-w-3xl text-[15px] leading-relaxed text-muted-foreground">
             Review member photos before they become visible to other members.
           </p>
         </div>
 
         {error && (
-          <div role="alert" className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive">
+          <div role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">
             {error}
           </div>
         )}
         {message && (
-          <div role="status" className="rounded-lg bg-emerald-500/10 p-4 text-sm text-emerald-800">
+          <div role="status" className="rounded-xl bg-good-soft px-4 py-3 text-sm text-good">
             {message}
           </div>
         )}
@@ -178,7 +178,7 @@ export default function PhotosPage() {
                 <div className="mt-4 flex gap-2">
                   <Button
                     size="sm"
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="flex-1 bg-good hover:bg-good/90 text-white"
                     disabled={!canModerate || pendingId === photo.id}
                     onClick={() => void handleApprove(photo)}
                   >

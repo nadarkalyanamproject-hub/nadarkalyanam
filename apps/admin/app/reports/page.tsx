@@ -130,7 +130,10 @@ export default function ReportsPage() {
     <AdminShell>
       <div className="flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold text-foreground">Reports</h1>
+          <div>
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[30px]">Reports</h1>
+            <p className="mt-1.5 text-[15px] text-muted-foreground">Profiles and messages members reported. Work through the open queue first.</p>
+          </div>
           <Select
             aria-label="Report status"
             className="w-56"
@@ -151,7 +154,7 @@ export default function ReportsPage() {
         {error && <Card className="rounded-2xl p-4 text-sm text-destructive">{error}</Card>}
         {message && <Card className="rounded-2xl p-4 text-sm text-muted-foreground">{message}</Card>}
         {reports === null && !error && (
-          <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading…</Card>
+          <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading</Card>
         )}
 
         {reports && reports.length === 0 && (
@@ -170,7 +173,7 @@ export default function ReportsPage() {
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <div className="flex items-center gap-2">
                     <StatusBadge status={report.status} />
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <span className="text-[13px] font-medium text-muted-foreground">
                       {report.targetType === 'MESSAGE' ? 'Message report' : 'Profile report'}
                     </span>
                     <span className="text-xs text-muted-foreground">{formatDisplayDateTime(report.createdAt)}</span>

@@ -95,7 +95,10 @@ export default function AuditLogsPage() {
   return (
     <AdminShell>
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-bold text-foreground">Audit log</h1>
+        <div>
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[30px]">Audit log</h1>
+            <p className="mt-1.5 text-[15px] text-muted-foreground">Every change staff made in this console, newest first.</p>
+          </div>
 
         <Card className="rounded-2xl p-4 shadow-sm">
           <form

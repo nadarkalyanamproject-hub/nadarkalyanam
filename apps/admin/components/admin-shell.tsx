@@ -3,27 +3,80 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Bell, Camera, ChevronDown, Crown, Flag, Hourglass, IndianRupee, LayoutDashboard, LogOut, Menu, Receipt, ScrollText, ShieldCheck, Tags, Users, WalletCards, X } from 'lucide-react';
+import {
+  Bell,
+  Camera,
+  ChevronDown,
+  Crown,
+  Flag,
+  Hourglass,
+  IndianRupee,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Receipt,
+  ScrollText,
+  Search,
+  ShieldCheck,
+  Tags,
+  UserCog,
+  Users,
+  WalletCards,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
+import { cn } from '@nadar-kalyanam/ui';
 import { useAdminAuth } from '../app/providers/admin-auth-provider';
 import { listReports, logoutAdmin } from '../lib/api-client';
 import { useCurrentAdmin } from '../lib/use-current-admin';
+import { CommandBar, openCommandBar } from './command-bar';
+import { Avatar, Kbd } from './ui/kit';
+
+interface NavItem {
+  href: string;
+  label: string;
+  permission: string;
+  icon: LucideIcon;
+}
 
 // Each item is shown only to admins holding the permission its API routes
-// require, so nobody is offered a page that would just 403.
-const NAV_ITEMS = [
-  { href: '/', label: 'Dashboard', permission: 'members.view', icon: LayoutDashboard },
-  { href: '/members', label: 'Members', permission: 'members.view', icon: Users },
-  { href: '/photos', label: 'Photos', permission: 'photos.moderate', icon: Camera },
-  { href: '/verifications', label: 'Verifications', permission: 'verification.review', icon: ShieldCheck },
-  { href: '/reports', label: 'Reports', permission: 'reports.review', icon: Flag },
-  { href: '/plans', label: 'Plans', permission: 'plans.manage', icon: Tags },
-  { href: '/subscriptions', label: 'Subscriptions', permission: 'subscriptions.manage', icon: WalletCards },
-  { href: '/orders', label: 'Orders', permission: 'finance.dashboard.view', icon: Receipt },
-  { href: '/left-at-payment', label: 'Left at payment', permission: 'finance.dashboard.view', icon: Hourglass },
-  { href: '/finance', label: 'Finance', permission: 'finance.dashboard.view', icon: IndianRupee },
-  { href: '/vip-enquiries', label: 'VIP enquiries', permission: 'vip.manage', icon: Crown },
-  { href: '/audit-logs', label: 'Audit Log', permission: 'admin_users.manage', icon: ScrollText },
-  { href: '/admins', label: 'Admins', permission: 'admin_users.manage', icon: ShieldCheck },
+// require, so nobody is offered a page that would just 403. Grouped the way
+// staff think about the work.
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+  {
+    label: 'Overview',
+    items: [{ href: '/', label: 'Dashboard', permission: 'members.view', icon: LayoutDashboard }],
+  },
+  {
+    label: 'Members',
+    items: [
+      { href: '/members', label: 'Members', permission: 'members.view', icon: Users },
+      { href: '/photos', label: 'Photos', permission: 'photos.moderate', icon: Camera },
+      { href: '/verifications', label: 'Verifications', permission: 'verification.review', icon: ShieldCheck },
+      { href: '/reports', label: 'Reports', permission: 'reports.review', icon: Flag },
+    ],
+  },
+  {
+    label: 'Money',
+    items: [
+      { href: '/finance', label: 'Finance', permission: 'finance.dashboard.view', icon: IndianRupee },
+      { href: '/orders', label: 'Orders', permission: 'finance.dashboard.view', icon: Receipt },
+      { href: '/left-at-payment', label: 'Left at payment', permission: 'finance.dashboard.view', icon: Hourglass },
+      { href: '/subscriptions', label: 'Subscriptions', permission: 'subscriptions.manage', icon: WalletCards },
+      { href: '/plans', label: 'Plans', permission: 'plans.manage', icon: Tags },
+    ],
+  },
+  {
+    label: 'Sales',
+    items: [{ href: '/vip-enquiries', label: 'VIP enquiries', permission: 'vip.manage', icon: Crown }],
+  },
+  {
+    label: 'Administration',
+    items: [
+      { href: '/admins', label: 'Admins', permission: 'admin_users.manage', icon: UserCog },
+      { href: '/audit-logs', label: 'Audit log', permission: 'admin_users.manage', icon: ScrollText },
+    ],
+  },
 ];
 
 // The pendant mark, as in the member app's logo (apps/web/components/brand/
@@ -55,24 +108,16 @@ function Emblem({ className = 'h-8 w-auto' }: { className?: string }) {
 
 function Brand() {
   return (
-    <Link href="/" className="flex items-center gap-2.5">
-      <Emblem />
+    <Link href="/" className="flex items-center gap-2.5 rounded-lg">
+      <Emblem className="h-7 w-auto" />
       <span className="leading-tight">
-        <span className="block text-sm font-bold text-primary">Nadar Kalyanam</span>
-        <span className="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Admin</span>
+        <span className="block text-[14px] font-semibold tracking-[-0.01em] text-foreground">Nadar Kalyanam</span>
+        <span className="block text-[11px] font-medium text-faint">Admin console</span>
       </span>
     </Link>
   );
 }
 
-// "SUPER_ADMIN" -> "SA"
-const initials = (roleName: string) =>
-  roleName
-    .split(/[_\s]+/)
-    .filter(Boolean)
-    .map((part) => part[0]!.toUpperCase())
-    .slice(0, 2)
-    .join('');
 const roleLabel = (roleName: string) => roleName.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -99,21 +144,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Bell count: reports still needing attention (open or in review) — the
-  // same figure as the dashboard's "Pending reports", read from the Reports
-  // queue's own totals, so only admins who can review reports see it.
+  // Bell count: reports still needing attention (open or in review), the
+  // same figure as the dashboard's "Pending reports".
   useEffect(() => {
     if (!data.accessToken || !canReviewReports) return;
     let cancelled = false;
-    Promise.all([
-      listReports(data.accessToken, { status: 'OPEN', limit: 1 }),
-      listReports(data.accessToken, { status: 'IN_REVIEW', limit: 1 }),
-    ])
+    Promise.all([listReports(data.accessToken, { status: 'OPEN', limit: 1 }), listReports(data.accessToken, { status: 'IN_REVIEW', limit: 1 })])
       .then(([open, inReview]) => {
         if (!cancelled) setOpenReports(open.total + inReview.total);
       })
       .catch(() => {
-        // No badge rather than a wrong one.
+        // No count rather than a wrong one.
       });
     return () => {
       cancelled = true;
@@ -134,49 +175,76 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     };
   }, [menuOpen]);
 
-  const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
+  const groups = NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((item) => can(item.permission)) })).filter((g) => g.items.length > 0);
+  const commandPages = groups.flatMap((g) => g.items.map((i) => ({ href: i.href, label: i.label, group: g.label })));
+  const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`));
+
   const nav = (
-    <nav className="flex flex-col gap-1" aria-label="Admin">
-      {NAV_ITEMS.filter((item) => can(item.permission)).map(({ href, label, icon: Icon }) => {
-        const active = isActive(href);
-        return (
-          <Link
-            key={href}
-            href={href}
-            onClick={() => setDrawerOpen(false)}
-            aria-current={active ? 'page' : undefined}
-            className={`flex items-center gap-3 rounded-lg border-l-4 px-3 py-2.5 text-sm transition-colors ${
-              active
-                ? 'border-primary bg-muted font-semibold text-primary'
-                : 'border-transparent font-medium text-foreground hover:bg-muted/60'
-            }`}
-          >
-            <Icon className={`h-4.5 w-4.5 ${active ? 'text-primary' : 'text-muted-foreground'}`} aria-hidden="true" />
-            {label}
-          </Link>
-        );
-      })}
+    <nav className="flex flex-col gap-5" aria-label="Admin">
+      {groups.map((group) => (
+        <div key={group.label}>
+          <p className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-wide text-faint">{group.label}</p>
+          <div className="flex flex-col gap-0.5">
+            {group.items.map(({ href, label, icon: Icon }) => {
+              const active = isActive(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setDrawerOpen(false)}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2 text-[14px] transition-colors',
+                    active ? 'bg-black/[0.06] font-semibold text-foreground' : 'font-medium text-ink-soft hover:bg-black/[0.035] hover:text-foreground',
+                  )}
+                >
+                  <Icon className={cn('h-[18px] w-[18px]', active ? 'text-primary' : 'text-faint')} strokeWidth={active ? 2.2 : 1.9} aria-hidden="true" />
+                  <span className="flex-1">{label}</span>
+                  {href === '/reports' && openReports !== null && openReports > 0 && (
+                    <span className="text-[12px] font-semibold tabular-nums text-bad">{openReports > 99 ? '99+' : openReports}</span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </nav>
   );
 
+  const adminName = admin?.email ?? '';
+
   return (
-    <div className="min-h-screen bg-secondary lg:flex">
+    <div className="min-h-screen bg-background lg:flex">
+      <CommandBar pages={commandPages} accessToken={data.accessToken ?? null} canSearchMembers={can('members.view')} />
+
       {/* Desktop: persistent sidebar */}
-      <aside className="hidden w-60 shrink-0 border-r border-border bg-card lg:block" data-testid="admin-sidebar">
-        <div className="sticky top-0 flex h-screen flex-col gap-6 px-4 py-5">
-          <Brand />
+      <aside className="hidden w-64 shrink-0 border-r border-black/[0.06] bg-card/70 backdrop-blur-xl lg:block" data-testid="admin-sidebar">
+        <div className="thin-scroll sticky top-0 flex h-screen flex-col gap-7 overflow-y-auto px-3 py-5">
+          <div className="px-2">
+            <Brand />
+          </div>
           {nav}
+          {admin && (
+            <div className="mt-auto flex items-center gap-3 rounded-xl px-2 py-2">
+              <Avatar name={adminName} size="md" />
+              <div className="min-w-0">
+                <p className="truncate text-[13px] font-medium text-foreground">{admin.email}</p>
+                <p className="text-[12px] text-muted-foreground">{roleLabel(admin.roleName)}</p>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
 
       {/* Below desktop: the same sidebar as a drawer */}
       {drawerOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <button type="button" aria-label="Close menu" className="absolute inset-0 bg-black/30" onClick={() => setDrawerOpen(false)} />
-          <aside className="relative flex h-full w-64 max-w-[80vw] flex-col gap-6 bg-card px-4 py-5 shadow-xl" data-testid="admin-drawer">
-            <div className="flex items-center justify-between">
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button type="button" aria-label="Close menu" className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-fade-in" onClick={() => setDrawerOpen(false)} />
+          <aside className="thin-scroll relative flex h-full w-72 max-w-[85vw] flex-col gap-7 overflow-y-auto bg-card px-3 py-5 shadow-pop" data-testid="admin-drawer">
+            <div className="flex items-center justify-between px-2">
               <Brand />
-              <button type="button" aria-label="Close menu" onClick={() => setDrawerOpen(false)} className="rounded-md p-1.5 text-muted-foreground hover:bg-muted">
+              <button type="button" aria-label="Close menu" onClick={() => setDrawerOpen(false)} className="grid h-9 w-9 place-items-center rounded-full bg-black/[0.05] text-ink-soft hover:bg-black/[0.09]">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -186,33 +254,51 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-card px-4 sm:px-6">
-          <div className="flex items-center gap-2 lg:invisible">
-            <button type="button" aria-label="Open menu" onClick={() => setDrawerOpen(true)} className="rounded-md p-1.5 text-foreground hover:bg-muted lg:hidden">
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-black/[0.06] bg-card/80 px-4 backdrop-blur-xl sm:px-6">
+          <div className="flex items-center gap-2">
+            <button type="button" aria-label="Open menu" onClick={() => setDrawerOpen(true)} className="grid h-9 w-9 place-items-center rounded-full text-ink-soft hover:bg-black/[0.05] lg:hidden">
               <Menu className="h-5 w-5" />
             </button>
             <span className="lg:hidden">
               <Brand />
             </span>
+            <button
+              type="button"
+              onClick={openCommandBar}
+              className="hidden h-9 w-80 items-center gap-2 rounded-lg border border-black/[0.06] bg-black/[0.04] pl-3 pr-1.5 text-[13px] text-muted-foreground transition-colors hover:bg-black/[0.07] hover:text-ink-soft lg:flex"
+              aria-label="Search (Ctrl K)"
+            >
+              <Search className="h-4 w-4" aria-hidden="true" />
+              <span className="flex-1 text-left">Search members or pages</span>
+              <span className="flex items-center gap-0.5" aria-hidden="true">
+                <Kbd>Ctrl</Kbd>
+                <Kbd>K</Kbd>
+              </span>
+            </button>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5">
+            <button type="button" onClick={openCommandBar} className="grid h-9 w-9 place-items-center rounded-full text-ink-soft hover:bg-black/[0.05] lg:hidden" aria-label="Search">
+              <Search className="h-5 w-5" />
+            </button>
             {canReviewReports && (
               <Link
                 href="/reports"
-                className="relative rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="relative grid h-9 w-9 place-items-center rounded-full text-ink-soft hover:bg-black/[0.05] hover:text-foreground"
                 aria-label={openReports ? `${openReports} open reports` : 'Reports'}
                 data-testid="header-bell"
               >
                 <Bell className="h-5 w-5" />
                 {openReports !== null && openReports > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground" data-testid="header-bell-count">
+                  <span
+                    className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-bad px-1 text-[10px] font-semibold text-white"
+                    data-testid="header-bell-count"
+                  >
                     {openReports > 99 ? '99+' : openReports}
                   </span>
                 )}
               </Link>
             )}
-            {admin && <span className="hidden text-sm text-muted-foreground md:inline" data-testid="header-email">{admin.email}</span>}
             <div className="relative" ref={menuRef}>
               <button
                 type="button"
@@ -220,29 +306,36 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
                 aria-label="Account menu"
-                className="flex items-center gap-1 rounded-full p-0.5 hover:bg-muted"
+                className={cn('flex h-9 items-center gap-2 rounded-full pl-1 pr-2 transition-colors hover:bg-black/[0.05]', menuOpen && 'bg-black/[0.05]')}
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground" data-testid="header-avatar">
-                  {admin ? initials(admin.roleName) : ''}
-                </span>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                <span data-testid="header-avatar">{admin ? <Avatar name={adminName} size="sm" /> : <span className="block h-7 w-7 rounded-full bg-muted" />}</span>
+                {admin && (
+                  <span className="hidden max-w-[200px] truncate text-[13px] font-medium text-foreground md:block" data-testid="header-email">
+                    {admin.email}
+                  </span>
+                )}
+                <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform', menuOpen && 'rotate-180')} />
               </button>
               {menuOpen && (
-                <div role="menu" className="absolute right-0 top-full z-40 mt-2 w-64 rounded-xl border border-border bg-card p-1.5 shadow-lg">
+                <div role="menu" className="absolute right-0 top-full z-50 mt-2 w-72 origin-top-right overflow-hidden rounded-[18px] border border-black/[0.06] bg-card/95 p-1.5 shadow-pop backdrop-blur-xl animate-menu-in">
                   {admin && (
-                    <div className="border-b border-border px-3 py-2.5">
-                      <p className="truncate text-sm font-semibold text-foreground">{admin.email}</p>
-                      <p className="text-xs text-muted-foreground">{roleLabel(admin.roleName)}</p>
+                    <div className="flex items-center gap-3 px-3 py-3">
+                      <Avatar name={adminName} size="lg" />
+                      <div className="min-w-0">
+                        <p className="truncate text-[15px] font-semibold text-foreground">{admin.email}</p>
+                        <p className="text-[13px] text-muted-foreground">{roleLabel(admin.roleName)}</p>
+                      </div>
                     </div>
                   )}
+                  <div className="my-1 h-px bg-border" />
                   <button
                     type="button"
                     role="menuitem"
                     onClick={() => void handleLogout()}
-                    className="mt-1 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-[14px] font-medium text-foreground transition-colors hover:bg-black/[0.04]"
                   >
                     <LogOut className="h-4 w-4 text-muted-foreground" />
-                    Log out
+                    Sign out
                   </button>
                 </div>
               )}
@@ -250,7 +343,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         {/* Wide tables scroll inside the content area instead of the whole page. */}
-        <main className="mx-auto w-full min-w-0 max-w-6xl overflow-x-auto px-4 py-6 sm:px-6">{children}</main>
+        <main className="mx-auto w-full min-w-0 max-w-[1240px] overflow-x-auto px-4 py-6 sm:px-8 sm:py-9">{children}</main>
       </div>
     </div>
   );
