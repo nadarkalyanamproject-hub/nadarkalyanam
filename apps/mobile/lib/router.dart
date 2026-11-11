@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -122,33 +123,119 @@ class _TabsState extends ConsumerState<_Tabs> {
   Widget build(BuildContext context) {
     final badges = ref.watch(badgesProvider);
     final shell = widget.shell;
-    Widget icon(IconData data, {String? count, bool dot = false}) =>
-        Badge(isLabelVisible: count != null || dot, label: count == null ? null : Text(count), backgroundColor: NK.maroon, child: Icon(data));
 
     return Scaffold(
       body: shell,
-      bottomNavigationBar: DecoratedBox(
-        decoration: const BoxDecoration(border: Border(top: BorderSide(color: NK.line))),
-        child: NavigationBar(
-          selectedIndex: shell.currentIndex,
-          onDestinationSelected: (i) => shell.goBranch(i, initialLocation: i == shell.currentIndex),
-          destinations: [
-            const NavigationDestination(
-                icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded, color: NK.maroon), label: 'Home'),
-            const NavigationDestination(
-                icon: Icon(Icons.favorite_border_rounded), selectedIcon: Icon(Icons.favorite_rounded, color: NK.maroon), label: 'Matches'),
-            NavigationDestination(
-              icon: icon(Icons.star_border_rounded, dot: badges.newInterests),
-              selectedIcon: const Icon(Icons.star_rounded, color: NK.maroon),
-              label: 'Interests',
+      bottomNavigationBar: _NavBar(
+        current: shell.currentIndex,
+        onTap: (i) {
+          HapticFeedback.selectionClick();
+          shell.goBranch(i, initialLocation: i == shell.currentIndex);
+        },
+        items: [
+          const _NavItem(Icons.home_outlined, Icons.home_rounded, 'Home'),
+          const _NavItem(Icons.favorite_border_rounded, Icons.favorite_rounded, 'Matches'),
+          _NavItem(Icons.star_border_rounded, Icons.star_rounded, 'Interests', dot: badges.newInterests),
+          _NavItem(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Messages', count: badgeText(badges.messages)),
+          const _NavItem(Icons.person_outline_rounded, Icons.person_rounded, 'Me'),
+        ],
+      ),
+    );
+  }
+}
+
+class _NavItem {
+  const _NavItem(this.icon, this.selectedIcon, this.label, {this.count, this.dot = false});
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+  final String? count;
+  final bool dot;
+}
+
+// A deep maroon bar with rounded top corners. The selected tab sits in a
+// gold pill; the others are soft white.
+class _NavBar extends StatelessWidget {
+  const _NavBar({required this.current, required this.onTap, required this.items});
+  final int current;
+  final ValueChanged<int> onTap;
+  final List<_NavItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).padding.bottom;
+    return Container(
+      padding: EdgeInsets.fromLTRB(8, 10, 8, bottom > 0 ? bottom : 10),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(colors: [NK.maroonDeep, NK.maroonNight], begin: Alignment.topCenter, end: Alignment.bottomCenter),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        boxShadow: [BoxShadow(color: Color(0x332B1B14), blurRadius: 20, offset: Offset(0, -4))],
+      ),
+      child: Row(
+        children: [
+          for (var i = 0; i < items.length; i++)
+            Expanded(child: _NavButton(item: items[i], selected: i == current, onTap: () => onTap(i))),
+        ],
+      ),
+    );
+  }
+}
+
+class _NavButton extends StatelessWidget {
+  const _NavButton({required this.item, required this.selected, required this.onTap});
+  final _NavItem item;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? NK.maroonDeep : Colors.white.withValues(alpha: 0.72);
+    final badge = item.count != null || item.dot;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: item.count == null ? item.label : '${item.label}, ${item.count} unread',
+      excludeSemantics: true,
+      child: InkResponse(
+        onTap: onTap,
+        radius: 36,
+        highlightShape: BoxShape.rectangle,
+        containedInkWell: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 260),
+              curve: Curves.easeOutCubic,
+              width: selected ? 56 : 40,
+              height: 32,
+              decoration: BoxDecoration(
+                gradient: selected ? NK.goldGradient : null,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Center(
+                child: Badge(
+                  isLabelVisible: badge,
+                  label: item.count == null ? null : Text(item.count!),
+                  backgroundColor: NK.goldLight,
+                  textColor: NK.maroonDeep,
+                  smallSize: 8,
+                  child: Icon(selected ? item.selectedIcon : item.icon, color: color, size: 23),
+                ),
+              ),
             ),
-            NavigationDestination(
-              icon: icon(Icons.chat_bubble_outline_rounded, count: badgeText(badges.messages)),
-              selectedIcon: icon(Icons.chat_bubble_rounded, count: badgeText(badges.messages)),
-              label: 'Messages',
+            const SizedBox(height: 4),
+            Text(
+              item.label,
+              maxLines: 1,
+              overflow: TextOverflow.fade,
+              softWrap: false,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                color: selected ? NK.goldLight : Colors.white.withValues(alpha: 0.72),
+              ),
             ),
-            const NavigationDestination(
-                icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded, color: NK.maroon), label: 'Me'),
           ],
         ),
       ),

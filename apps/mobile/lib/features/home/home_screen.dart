@@ -10,6 +10,7 @@ import '../../data/models.dart';
 import '../../state/session.dart';
 import '../../theme.dart';
 import '../../widgets/form.dart';
+import '../../widgets/hero.dart';
 import '../../widgets/logo.dart';
 import '../../widgets/member.dart';
 import '../../widgets/top_actions.dart';
@@ -27,7 +28,7 @@ class HomeScreen extends ConsumerWidget {
     final session = ref.watch(sessionProvider);
     final profile = session.profile;
     final membership = ref.watch(membershipProvider);
-    final first = (profile?.fullName ?? '').split(' ').first;
+    final first = firstName(profile?.fullName ?? '');
 
     // Matching is open once there's no pre-launch date and the member isn't
     // locked out for want of a plan.
@@ -122,12 +123,8 @@ class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.of(context).padding.top;
-    return Container(
-      padding: EdgeInsets.fromLTRB(18, top + 10, 8, 26),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(colors: [NK.maroonBright, NK.maroonDeep], begin: Alignment.topLeft, end: Alignment.bottomRight),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
-      ),
+    return HeroBackdrop(
+      padding: EdgeInsets.fromLTRB(18, top + 10, 8, 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -138,24 +135,22 @@ class _Hero extends StatelessWidget {
               IconTheme(data: const IconThemeData(color: Colors.white), child: const TopActions()),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           Row(
             children: [
               GestureDetector(
                 onTap: () => context.push('/me/profile'),
-                child: Container(
-                  padding: const EdgeInsets.all(2.5),
-                  decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [NK.goldLight, NK.gold])),
-                  child: MemberAvatar(url: photoUrl, radius: 30),
-                ),
+                child: MemberAvatar(url: photoUrl, radius: 32, ring: true),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(first.isEmpty ? 'Vanakkam' : 'Vanakkam, $first', style: serif(28, color: Colors.white)),
+                    Text('VANAKKAM', style: eyebrow(color: NK.goldLight)),
                     const SizedBox(height: 2),
+                    Text(first.isEmpty ? 'Welcome' : first, style: serif(32, color: Colors.white)),
+                    const SizedBox(height: 3),
                     Text(subtitle, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13.5)),
                   ],
                 ),
@@ -163,14 +158,18 @@ class _Hero extends StatelessWidget {
             ],
           ),
           if (score < 100) ...[
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
             InkWell(
               onTap: () => context.push('/me/profile'),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(18),
               child: Container(
-                padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+                padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
                 margin: const EdgeInsets.only(right: 10),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: NK.goldLight.withValues(alpha: 0.3)),
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -328,13 +327,10 @@ class _OpensCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final days = opensAt.difference(DateTime.now()).inDays + 1;
-    return Container(
-      width: double.infinity,
+    return HeroBackdrop(
+      radius: BorderRadius.circular(26),
       padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(colors: [NK.maroon, NK.maroonDeep], begin: Alignment.topLeft, end: Alignment.bottomRight),
-      ),
+      shadow: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -365,22 +361,40 @@ class _OfferCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final start = offer.startsAt;
     final end = offer.endsAt?.subtract(const Duration(days: 1));
-    return NkCard(
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(colors: [Colors.white, NK.butter], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        border: Border.all(color: NK.gold.withValues(alpha: 0.55)),
+        boxShadow: NK.softShadow,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.workspace_premium_outlined, color: NK.gold),
-              const SizedBox(width: 8),
+              Container(
+                width: 42,
+                height: 42,
+                decoration: const BoxDecoration(shape: BoxShape.circle, gradient: NK.goldGradient),
+                child: const Icon(Icons.workspace_premium_rounded, color: NK.maroonDeep, size: 22),
+              ),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text('Launch offer: ${offer.planName} free', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('LAUNCH OFFER', style: eyebrow()),
+                    Text('${offer.planName} free', style: serif(24, color: NK.maroon)),
+                  ],
+                ),
               ),
             ],
           ),
           if (start != null && end != null) ...[
             const SizedBox(height: 4),
-            Text('${_day(start)} – ${_day(end)}', style: const TextStyle(color: NK.muted)),
+            Text('${_day(start)} to ${_day(end)}', style: const TextStyle(color: NK.muted)),
           ],
           const SizedBox(height: 14),
           if (offer.earned)

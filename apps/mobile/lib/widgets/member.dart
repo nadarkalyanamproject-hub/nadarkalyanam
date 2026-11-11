@@ -23,20 +23,40 @@ String relativeTime(DateTime d) {
   return displayDate(d);
 }
 
-String firstName(String fullName) => fullName.split(' ').first;
+// The first name, skipping a title such as "Dr." or "Mrs.".
+String firstName(String fullName) {
+  const titles = {'dr', 'mr', 'mrs', 'ms', 'miss', 'er', 'prof', 'thiru', 'selvi', 'tmt'};
+  final words = fullName.trim().split(RegExp(r'\s+'));
+  final title = words.isNotEmpty && titles.contains(words.first.toLowerCase().replaceAll('.', ''));
+  return title && words.length > 1 ? words[1] : (words.isEmpty ? '' : words.first);
+}
 
 class MemberAvatar extends StatelessWidget {
-  const MemberAvatar({super.key, required this.url, this.radius = 26});
+  const MemberAvatar({super.key, required this.url, this.radius = 26, this.ring = false});
   final String? url;
   final double radius;
+  // A thin gold ring around the photo.
+  final bool ring;
 
   @override
-  Widget build(BuildContext context) => CircleAvatar(
-        radius: radius,
-        backgroundColor: NK.butter,
-        foregroundImage: url == null ? null : NetworkImage(url!),
-        child: Icon(Icons.person_outline_rounded, color: NK.maroon, size: radius),
-      );
+  Widget build(BuildContext context) {
+    final avatar = CircleAvatar(
+      radius: radius,
+      backgroundColor: NK.butter,
+      foregroundImage: url == null ? null : NetworkImage(url!),
+      child: Icon(Icons.person_outline_rounded, color: NK.maroon, size: radius),
+    );
+    if (!ring) return avatar;
+    return Container(
+      padding: const EdgeInsets.all(2.5),
+      decoration: const BoxDecoration(shape: BoxShape.circle, gradient: NK.goldGradient),
+      child: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+        child: avatar,
+      ),
+    );
+  }
 }
 
 // A member's photo filling its box, with a soft placeholder when they have
@@ -73,85 +93,125 @@ class MemberGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      elevation: 2,
-      shadowColor: const Color(0x222B1B14),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: NK.lineGold)),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => context.push('/member/${member.profileId}'),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  MemberPhoto(url: member.photoUrl),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        stops: const [0.5, 1],
-                        // Maroon over the cream placeholder; it reads muddy in black.
-                        colors: [Colors.transparent, member.photoUrl == null ? const Color(0xE65C0C13) : const Color(0xCC1A0F0A)],
-                      ),
-                    ),
+    // The photo fills the whole card; name, place, work and the action sit
+    // on a dark fade at the bottom, like a portrait print.
+    final shape = BorderRadius.circular(24);
+    return DecoratedBox(
+      decoration: BoxDecoration(borderRadius: shape, boxShadow: NK.softShadow),
+      child: Material(
+        color: NK.butter,
+        shape: RoundedRectangleBorder(borderRadius: shape),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => context.push('/member/${member.profileId}'),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              MemberPhoto(url: member.photoUrl),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0.35, 0.62, 1],
+                    // Maroon over the cream placeholder; it reads muddy in black.
+                    colors: member.photoUrl == null
+                        ? const [Color(0x005C0C13), Color(0x995C0C13), Color(0xF23D070C)]
+                        : const [Color(0x001A0F0A), Color(0x8C1A0F0A), Color(0xF21A0F0A)],
                   ),
-                  if (badge != null)
-                    Positioned(
-                      left: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(color: NK.goldLight, borderRadius: BorderRadius.circular(999)),
-                        child: Text(badge!, style: const TextStyle(color: NK.maroonDeep, fontSize: 11, fontWeight: FontWeight.w800)),
-                      ),
+                ),
+              ),
+              // A thin gold frame just inside the edge.
+              IgnorePointer(
+                child: Container(
+                  margin: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: NK.goldLight.withValues(alpha: 0.35)),
+                  ),
+                ),
+              ),
+              if (badge != null)
+                Positioned(
+                  left: 12,
+                  top: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      gradient: NK.goldGradient,
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 8, offset: Offset(0, 2))],
                     ),
-                  Positioned(
-                    left: 10,
-                    right: 10,
-                    bottom: 8,
-                    child: Row(
+                    child: Text(badge!, style: const TextStyle(color: NK.maroonDeep, fontSize: 11, fontWeight: FontWeight.w800)),
+                  ),
+                ),
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
                       children: [
                         Flexible(
                           child: Text(
                             [firstName(member.fullName), if (member.age > 0) '${member.age}'].join(', '),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
+                            style: serif(22, color: Colors.white),
                           ),
                         ),
-                        if (member.isVerified) ...[const SizedBox(width: 4), const Icon(Icons.verified_rounded, color: NK.goldLight, size: 16)],
+                        if (member.isVerified) ...[const SizedBox(width: 5), const Icon(Icons.verified_rounded, color: NK.goldLight, size: 17)],
                       ],
                     ),
-                  ),
-                ],
+                    if (member.place != null)
+                      _CardLine(icon: Icons.location_on_outlined, text: member.place!),
+                    if (member.work != null)
+                      _CardLine(icon: Icons.work_outline_rounded, text: member.work!),
+                    const SizedBox(height: 10),
+                    RelationshipButton(
+                      profileId: member.profileId,
+                      relationship: member.relationship,
+                      conversationId: member.conversationId,
+                      compact: true,
+                      onDark: true,
+                      onChanged: onChanged,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
-              child: Text(member.place ?? ' ',
-                  maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: NK.ink, fontSize: 12.5, fontWeight: FontWeight.w600)),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 1, 10, 6),
-              child: Text(member.work ?? ' ', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: NK.muted, fontSize: 12)),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-              child: RelationshipButton(
-                profileId: member.profileId,
-                relationship: member.relationship,
-                conversationId: member.conversationId,
-                compact: true,
-                onChanged: onChanged,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _CardLine extends StatelessWidget {
+  const _CardLine({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Row(
+        children: [
+          Icon(icon, size: 13, color: NK.goldLight),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.88), fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -167,12 +227,15 @@ class RelationshipButton extends ConsumerStatefulWidget {
     required this.relationship,
     this.conversationId,
     this.compact = false,
+    this.onDark = false,
     this.onChanged,
   });
   final String profileId;
   final Relationship relationship;
   final String? conversationId;
   final bool compact;
+  // Drawn over a photo: lighter, translucent styles that read on dark.
+  final bool onDark;
   final VoidCallback? onChanged;
 
   @override
@@ -205,6 +268,7 @@ class _RelationshipButtonState extends ConsumerState<RelationshipButton> {
     final height = widget.compact ? 38.0 : 52.0;
     final text = TextStyle(fontSize: widget.compact ? 13 : 16, fontWeight: FontWeight.w700);
     final size = Size.fromHeight(height);
+    if (widget.onDark) return _darkButton(size, text);
     switch (current) {
       case Relationship.connected:
         return FilledButton.icon(
@@ -238,6 +302,68 @@ class _RelationshipButtonState extends ConsumerState<RelationshipButton> {
         );
     }
   }
+
+  // The same four states, styled to sit on a photo.
+  Widget _darkButton(Size size, TextStyle text) {
+    Widget pill({required Widget child, VoidCallback? onTap, Color? fill, Gradient? gradient, Color fg = Colors.white}) {
+      return SizedBox(
+        height: size.height,
+        width: double.infinity,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: fill,
+            gradient: gradient,
+            borderRadius: BorderRadius.circular(999),
+            border: gradient == null ? Border.all(color: Colors.white.withValues(alpha: 0.35)) : null,
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            shape: const StadiumBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onTap,
+              child: DefaultTextStyle.merge(
+                style: text.copyWith(color: fg),
+                child: IconTheme.merge(data: IconThemeData(color: fg, size: 16), child: Center(child: child)),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget label(IconData icon, String t) => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [Icon(icon), const SizedBox(width: 6), Flexible(child: Text(t, maxLines: 1, overflow: TextOverflow.ellipsis))],
+        );
+
+    switch (current) {
+      case Relationship.connected:
+        return pill(
+          gradient: const LinearGradient(colors: [Color(0xFF2A9461), NK.success]),
+          onTap: () => widget.conversationId == null ? context.go('/messages') : context.push('/messages/${widget.conversationId}'),
+          child: label(Icons.chat_bubble_outline_rounded, 'Message'),
+        );
+      case Relationship.received:
+        return pill(
+          gradient: NK.goldGradient,
+          fg: NK.maroonDeep,
+          onTap: () => context.go('/interests'),
+          child: label(Icons.mark_email_unread_outlined, 'Respond'),
+        );
+      case Relationship.sent:
+        return pill(fill: Colors.white.withValues(alpha: 0.16), child: label(Icons.check_rounded, 'Interest sent'));
+      case Relationship.none:
+        return pill(
+          gradient: NK.goldGradient,
+          fg: NK.maroonDeep,
+          onTap: busy ? null : _send,
+          child: busy
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: NK.maroonDeep))
+              : label(Icons.favorite_rounded, 'Send interest'),
+        );
+    }
+  }
 }
 
 // A grid of member cards that sizes itself inside a scroll view.
@@ -257,7 +383,7 @@ class MemberGrid extends StatelessWidget {
         crossAxisCount: 2,
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
-        childAspectRatio: 0.58,
+        childAspectRatio: 0.64,
       ),
       itemCount: members.length,
       itemBuilder: (_, i) => MemberGridCard(member: members[i], onChanged: onChanged, badge: badgeFor?.call(members[i])),
@@ -274,13 +400,14 @@ class MemberStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 290,
+      height: 310,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 18),
+        // Room above and below so the cards' shadows aren't cut off.
+        padding: const EdgeInsets.fromLTRB(18, 4, 18, 20),
         itemCount: members.length,
         separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (_, i) => SizedBox(width: 168, child: MemberGridCard(member: members[i], onChanged: onChanged)),
+        itemBuilder: (_, i) => SizedBox(width: 184, child: MemberGridCard(member: members[i], onChanged: onChanged)),
       ),
     );
   }
@@ -300,13 +427,20 @@ class EmptyState extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            width: 72,
-            height: 72,
-            decoration: const BoxDecoration(color: NK.butter, shape: BoxShape.circle),
-            child: Icon(icon, color: NK.gold, size: 34),
+            width: 84,
+            height: 84,
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: NK.lineGold)),
+            child: Container(
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(colors: [NK.butter, NK.goldPale], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              ),
+              child: Icon(icon, color: NK.goldText, size: 32),
+            ),
           ),
-          const SizedBox(height: 16),
-          Text(title, textAlign: TextAlign.center, style: serif(22, color: NK.ink)),
+          const SizedBox(height: 18),
+          Text(title, textAlign: TextAlign.center, style: serif(25, color: NK.ink)),
           if (message != null) ...[
             const SizedBox(height: 8),
             Text(message!, textAlign: TextAlign.center, style: const TextStyle(color: NK.muted, height: 1.5)),
@@ -373,26 +507,51 @@ class SectionTitle extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: serif(23, color: NK.maroon)),
-                const SizedBox(height: 4),
-                Container(
-                  width: 34,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(2),
-                    gradient: const LinearGradient(colors: [NK.gold, NK.goldLight]),
-                  ),
-                ),
+                Text(title, style: serif(25, color: NK.ink)),
+                const SizedBox(height: 5),
+                const Ornament(),
                 if (subtitle != null) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 6),
                   Text(subtitle!, style: const TextStyle(color: NK.muted, fontSize: 13)),
                 ],
               ],
             ),
           ),
-          if (onMore != null) TextButton(onPressed: onMore, child: const Text('See all')),
+          if (onMore != null)
+            TextButton(
+              onPressed: onMore,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [Text('See all'), SizedBox(width: 2), Icon(Icons.arrow_forward_rounded, size: 16)],
+              ),
+            ),
         ],
       ),
+    );
+  }
+}
+
+// A short gold rule with a diamond, under section headings.
+class Ornament extends StatelessWidget {
+  const Ornament({super.key, this.color = NK.gold});
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 18, height: 1.4, color: color),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Transform.rotate(angle: 0.785398, child: Container(width: 5, height: 5, color: color)),
+        ),
+        Container(
+          width: 22,
+          height: 1.4,
+          decoration: BoxDecoration(gradient: LinearGradient(colors: [color, color.withValues(alpha: 0)])),
+        ),
+      ],
     );
   }
 }
