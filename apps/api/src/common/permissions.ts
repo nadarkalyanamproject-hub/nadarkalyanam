@@ -21,6 +21,10 @@ export const PERMISSIONS = {
   PLANS_MANAGE: 'plans.manage',
   SUBSCRIPTIONS_MANAGE: 'subscriptions.manage',
   VIP_MANAGE: 'vip.manage',
+  // Reading members' chat messages. Kept apart from members.view because
+  // these are private words: only Super Admin has it by default, and every
+  // conversation opened is written to the audit log.
+  MESSAGES_VIEW: 'messages.view',
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

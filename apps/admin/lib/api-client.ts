@@ -532,3 +532,67 @@ export function rejectVerification(
     body: JSON.stringify({ reason }),
   });
 }
+
+// --- Member activity (everything about one member) ---------------------
+
+export interface PersonRef {
+  userId: string;
+  fullName: string | null;
+  phoneNumber: string;
+}
+
+interface Listed<T> {
+  items: T[];
+  total: number;
+}
+
+export interface MemberHistory {
+  limit: number;
+  interests: {
+    sent: { id: string; member: PersonRef; status: string; createdAt: string; respondedAt: string | null }[];
+    sentTotal: number;
+    received: { id: string; member: PersonRef; status: string; createdAt: string; respondedAt: string | null }[];
+    receivedTotal: number;
+  };
+  shortlists: {
+    made: { id: string; member: PersonRef; createdAt: string }[];
+    madeTotal: number;
+    by: { id: string; member: PersonRef; createdAt: string }[];
+    byTotal: number;
+  };
+  blocks: {
+    made: { id: string; member: PersonRef; createdAt: string }[];
+    by: { id: string; member: PersonRef; createdAt: string }[];
+  };
+  reports: {
+    made: { id: string; targetType: string; against: PersonRef | null; reason: string; status: string; createdAt: string; resolvedAt: string | null }[];
+    madeTotal: number;
+    against: { id: string; targetType: string; reporter: PersonRef; reason: string; status: string; createdAt: string; resolvedAt: string | null }[];
+    againstTotal: number;
+  };
+  conversations: { id: string; with: PersonRef | null; messageCount: number; startedAt: string; lastMessageAt: string | null }[];
+  calls: Listed<{ id: string; direction: 'OUTGOING' | 'INCOMING'; with: PersonRef; status: string; startedAt: string; durationSeconds: number | null }>;
+  sessions: { id: string; deviceLabel: string | null; createdAt: string; expiresAt: string; revokedAt: string | null; active: boolean }[];
+  devices: { id: string; platform: string; pushEnabled: boolean; createdAt: string }[];
+  notifications: Listed<{ id: string; type: string; read: boolean; createdAt: string }> & { unread: number };
+  poruthamReports: { id: string; member: PersonRef; createdAt: string; order: { id: string; status: string; amountInPaise: number } | null }[];
+  orders: Listed<{ id: string; kind: string; planName: string | null; amountInPaise: number; status: string; createdAt: string; paidAt: string | null; refundedAt: string | null }>;
+  adminActions: Listed<{ id: string; action: string; admin: string; metadata: Record<string, unknown>; createdAt: string }>;
+}
+
+export function getMemberHistory(accessToken: string, userId: string): Promise<MemberHistory> {
+  return request(`/admin/members/${userId}/activity`, { headers: authHeaders(accessToken) });
+}
+
+export interface MemberConversation {
+  id: string;
+  startedAt: string;
+  participants: PersonRef[];
+  total: number;
+  messages: { id: string; senderId: string; body: string; status: string; createdAt: string }[];
+}
+
+// Needs messages.view. The API records every call in the audit log.
+export function getMemberConversation(accessToken: string, userId: string, conversationId: string): Promise<MemberConversation> {
+  return request(`/admin/members/${userId}/conversations/${conversationId}/messages`, { headers: authHeaders(accessToken) });
+}

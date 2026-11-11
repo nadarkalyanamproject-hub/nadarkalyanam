@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button, Card, Select } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../../components/admin-shell';
 import { ReasonDialog } from '../../components/billing-ui';
+import { StatusBadge } from '../../components/status-badge';
 import {
   ApiError,
   approveVerification,
@@ -18,13 +19,6 @@ import { useAdminAuth } from '../providers/admin-auth-provider';
 import { useRequireAdminAuth } from '../../lib/use-require-admin-auth';
 
 const PAGE_SIZE = 20;
-
-const STATUS_BADGES: Record<string, string> = {
-  PENDING: 'bg-amber-100 text-amber-800',
-  SUCCEEDED: 'bg-emerald-100 text-emerald-800',
-  FAILED: 'bg-red-100 text-red-800',
-  EXPIRED: 'bg-muted text-muted-foreground',
-};
 
 export default function VerificationsPage() {
   const { ready } = useRequireAdminAuth();
@@ -199,23 +193,13 @@ export default function VerificationsPage() {
                     </td>
                     <td className="px-4 py-3">
                       {item.isProfileVerified ? (
-                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
-                          Verified
-                        </span>
+                        <StatusBadge status="VERIFIED" />
                       ) : (
-                        <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                          Not Verified
-                        </span>
+                        <StatusBadge status="NOT_VERIFIED" />
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          STATUS_BADGES[item.status] ?? 'bg-muted text-muted-foreground'
-                        }`}
-                      >
-                        {item.status}
-                      </span>
+                      <StatusBadge status={item.status} />
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                       {item.providerReference}

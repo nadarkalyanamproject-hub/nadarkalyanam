@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { formatDisplayDateTime, type VipEnquiryStatus } from '@nadar-kalyanam/schemas';
 import { Button, Card, Select, Textarea } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../../components/admin-shell';
+import { StatusBadge } from '../../components/status-badge';
 import { GrantDialog } from '../../components/billing-ui';
 import { ApiError } from '../../lib/api-client';
 import {
@@ -95,9 +96,7 @@ function EnquiryDetail({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold" data-testid="vip-detail-status">
-          {enquiry.status}
-        </span>
+        <StatusBadge status={enquiry.status} testId="vip-detail-status" />
         <span className="text-muted-foreground" data-testid="vip-detail-assignee">
           {enquiry.assignedAdminEmail ? `Assigned to ${enquiry.assignedAdminEmail}` : 'Unassigned'}
         </span>
@@ -377,9 +376,7 @@ export default function VipEnquiriesPage() {
                       <p className="text-xs text-muted-foreground">{e.phone}</p>
                     </td>
                     <td className="px-4 py-2">
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold" data-testid="vip-status">
-                        {e.status}
-                      </span>
+                      <StatusBadge status={e.status} testId="vip-status" />
                     </td>
                     <td className="px-4 py-2 text-muted-foreground">{e.assignedAdminEmail ?? 'Unassigned'}</td>
                     <td className="px-4 py-2 text-muted-foreground">{e.noteCount}</td>

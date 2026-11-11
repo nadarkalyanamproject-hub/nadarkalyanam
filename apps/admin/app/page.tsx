@@ -9,6 +9,7 @@ import { AdminShell } from '../components/admin-shell';
 import { CHART_COLORS, DonutChart, LineChart } from '../components/charts';
 import { RecentActivity } from '../components/recent-activity';
 import { GenerateReport } from '../components/generate-report';
+import { StatusText } from '../components/status-badge';
 import {
   ApiError,
   getDashboardStats,
@@ -255,9 +256,7 @@ export default function AdminHome() {
                     </p>
                   </div>
                   {stats.pendingReportsCount > 0 && (
-                    <span className="rounded-full bg-destructive px-3 py-1 text-xs font-semibold text-destructive-foreground">
-                      Needs review
-                    </span>
+                    <StatusText tone="bad" label="Needs review" />
                   )}
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
