@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { formatDisplayDateTime, type OrderStatus } from '@nadar-kalyanam/schemas';
 import { Button, Card, Input, Select } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../../components/admin-shell';
+import { StatusBadge } from '../../components/status-badge';
 import { Dialog, ReasonDialog, StateBadge } from '../../components/billing-ui';
 import { ApiError } from '../../lib/api-client';
 import {
@@ -184,7 +185,7 @@ export default function OrdersPage() {
                     <td className="px-3 py-2"><MemberCell order={o} /></td>
                     <td className="px-3 py-2">{o.plan.name}</td>
                     <td className="px-3 py-2">{rupees(o.amountInPaise)}</td>
-                    <td className="px-3 py-2 text-xs font-semibold">{o.status}</td>
+                    <td className="px-3 py-2"><StatusBadge status={o.status} /></td>
                     <td className="px-3 py-2 text-xs">{formatDate(o.createdAt)}</td>
                     <td className="px-3 py-2 text-right">
                       <Button type="button" size="sm" variant="outline" onClick={() => void openDetail(o.id)}>Details</Button>
@@ -212,7 +213,7 @@ export default function OrdersPage() {
             <dt className="text-muted-foreground">Member</dt><dd>{detail.member.fullName ?? '(no profile)'} · {detail.member.phoneNumber}</dd>
             <dt className="text-muted-foreground">Plan</dt><dd>{detail.plan.name}</dd>
             <dt className="text-muted-foreground">Amount</dt><dd>{rupees(detail.amountInPaise)}</dd>
-            <dt className="text-muted-foreground">Status</dt><dd>{detail.status}</dd>
+            <dt className="text-muted-foreground">Status</dt><dd><StatusBadge status={detail.status} /></dd>
             <dt className="text-muted-foreground">Paid</dt><dd>{formatDate(detail.paidAt)}</dd>
             <dt className="text-muted-foreground">Plan from order</dt><dd>{detail.subscription ? <StateBadge state={detail.subscription.state} /> : 'None'}</dd>
             {detail.refundedAt && (<><dt className="text-muted-foreground">Refunded</dt><dd>{formatDate(detail.refundedAt)} by {detail.refundedByEmail ?? 'payment provider'}: {detail.refundReason}</dd></>)}

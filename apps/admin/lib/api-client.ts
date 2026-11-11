@@ -576,7 +576,7 @@ export interface MemberHistory {
   devices: { id: string; platform: string; pushEnabled: boolean; createdAt: string }[];
   notifications: Listed<{ id: string; type: string; read: boolean; createdAt: string }> & { unread: number };
   poruthamReports: { id: string; member: PersonRef; createdAt: string; order: { id: string; status: string; amountInPaise: number } | null }[];
-  orders: Listed<{ id: string; kind: string; planName: string | null; amountInPaise: number; status: string; createdAt: string; paidAt: string | null; refundedAt: string | null }>;
+  orders: Listed<{ id: string; kind: string; planName: string | null; amountInPaise: number; status: string; createdAt: string; paidAt: string | null; refundedAt: string | null; leftAtPayment: boolean }>;
   adminActions: Listed<{ id: string; action: string; admin: string; metadata: Record<string, unknown>; createdAt: string }>;
 }
 

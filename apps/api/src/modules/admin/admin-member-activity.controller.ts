@@ -1,6 +1,7 @@
 import { Controller, Get, NotFoundException, Param, UseGuards } from '@nestjs/common';
 import { PERMISSIONS } from '../../common/permissions.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { UNPAID_CHECKOUT_AFTER_MS } from './billing/unpaid-checkouts.js';
 import { AuditLogService } from './audit-log.service.js';
 import { CurrentAdmin } from './decorators/current-admin.decorator.js';
 import { RequirePermission } from './decorators/require-permission.decorator.js';
@@ -233,6 +234,8 @@ export class AdminMemberActivityController {
           createdAt: iso(o.createdAt),
           paidAt: iso(o.paidAt),
           refundedAt: iso(o.refundedAt),
+          // Same rule as the Left at payment list.
+          leftAtPayment: o.status === 'CREATED' && now - o.createdAt.getTime() >= UNPAID_CHECKOUT_AFTER_MS,
         })),
         total: ordersTotal,
       },

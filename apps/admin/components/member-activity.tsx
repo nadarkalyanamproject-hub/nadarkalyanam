@@ -304,7 +304,11 @@ export function MemberActivity({ userId }: { userId: string }) {
                   <span key="id" className="font-mono text-xs text-muted-foreground">{o.id.slice(0, 8)}</span>,
                   o.kind === 'HOROSCOPE_MATCH' ? 'Porutham report' : (o.planName ?? 'Membership'),
                   <span key="a" className="tabular-nums">{rupees(o.amountInPaise)}</span>,
-                  <StatusBadge key="s" status={o.status} />,
+                  o.leftAtPayment ? (
+                    <StatusText key="s" tone="waiting" label="Left at payment" />
+                  ) : (
+                    <StatusBadge key="s" status={o.status} />
+                  ),
                   when(o.createdAt),
                   when(o.paidAt),
                   when(o.refundedAt),
