@@ -14,7 +14,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Receipt,
+  ReceiptIndianRupee,
   ScrollText,
   Search,
   ShieldCheck,
@@ -60,7 +60,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: 'Money',
     items: [
       { href: '/finance', label: 'Finance', permission: 'finance.dashboard.view', icon: IndianRupee },
-      { href: '/orders', label: 'Orders', permission: 'finance.dashboard.view', icon: Receipt },
+      { href: '/orders', label: 'Orders', permission: 'finance.dashboard.view', icon: ReceiptIndianRupee },
       { href: '/left-at-payment', label: 'Left at payment', permission: 'finance.dashboard.view', icon: Hourglass },
       { href: '/subscriptions', label: 'Subscriptions', permission: 'subscriptions.manage', icon: WalletCards },
       { href: '/plans', label: 'Plans', permission: 'plans.manage', icon: Tags },
