@@ -195,7 +195,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   aria-current={active ? 'page' : undefined}
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-[14px] transition-colors',
-                    active ? 'bg-black/[0.06] font-semibold text-foreground' : 'font-medium text-ink-soft hover:bg-black/[0.035] hover:text-foreground',
+                    active ? 'bg-gold-soft font-semibold text-primary' : 'font-medium text-ink-soft hover:bg-black/[0.035] hover:text-foreground',
                   )}
                 >
                   <Icon className={cn('h-[18px] w-[18px]', active ? 'text-primary' : 'text-faint')} strokeWidth={active ? 2.2 : 1.9} aria-hidden="true" />

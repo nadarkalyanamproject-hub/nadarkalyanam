@@ -159,13 +159,13 @@ export default function AdminHome() {
                   <div className="flex flex-col gap-4">
                     <LineChart
                       title="New signups per day"
-                      color={CHART_COLORS.blue}
+                      color={CHART_COLORS.maroon}
                       testId="chart-signups"
                       points={current.data.points.map((p) => ({ date: p.date, value: p.newSignups }))}
                     />
                     <LineChart
                       title="Total members"
-                      color={CHART_COLORS.blue}
+                      color={CHART_COLORS.maroon}
                       testId="chart-total"
                       points={current.data.points.map((p) => ({ date: p.date, value: p.totalMembers }))}
                     />
@@ -201,10 +201,10 @@ export default function AdminHome() {
                   <DonutChart
                     centerLabel="members"
                     segments={[
-                      { label: 'Active', value: stats.membersByStatus.active, color: CHART_COLORS.blue },
-                      { label: 'Suspended', value: stats.membersByStatus.suspended, color: CHART_COLORS.orange },
-                      { label: 'Pending deletion', value: stats.membersByStatus.pendingDeletion, color: CHART_COLORS.aqua },
-                      { label: 'Deleted (anonymized)', value: stats.membersByStatus.deleted, color: CHART_COLORS.yellow },
+                      { label: 'Active', value: stats.membersByStatus.active, color: CHART_COLORS.maroon },
+                      { label: 'Suspended', value: stats.membersByStatus.suspended, color: CHART_COLORS.gold },
+                      { label: 'Pending deletion', value: stats.membersByStatus.pendingDeletion, color: CHART_COLORS.teal },
+                      { label: 'Deleted (anonymized)', value: stats.membersByStatus.deleted, color: CHART_COLORS.slate },
                     ]}
                   />
                 </SectionCard>

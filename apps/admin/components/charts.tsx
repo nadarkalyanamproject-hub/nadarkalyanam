@@ -3,12 +3,12 @@
 import { formatDisplayDate } from '@nadar-kalyanam/schemas';
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 
-// Inline-SVG charts for the admin dashboard — no chart library. Colors come
-// from a validated categorical palette (adjacent-pair colorblind-safe on a
-// white surface); every value is also readable as text (legend counts,
-// end labels, table view), so color never carries meaning alone.
-export const CHART_COLORS = { blue: '#2a78d6', orange: '#eb6834', aqua: '#1baf7a', yellow: '#eda100' } as const;
-const INK = { primary: '#0b0b0b', secondary: '#52514e', muted: '#898781', grid: '#e1e0d9', axis: '#c3c2b7', surface: '#ffffff' };
+// Inline-SVG charts for the admin dashboard, no chart library. Colours come
+// from the Nadar Kalyanam palette (maroon, gold, teal, warm grey); every
+// value is also readable as text (legend counts, end labels, table view),
+// so colour never carries meaning alone.
+export const CHART_COLORS = { maroon: '#8b1118', gold: '#d99a16', teal: '#1b8a7a', slate: '#8f8277' } as const;
+const INK = { primary: '#241c1a', secondary: '#4a3d36', muted: '#8f8277', grid: '#ece4d3', axis: '#dfd3bb', surface: '#ffffff' };
 
 // ---------------------------------------------------------------- Donut ----
 

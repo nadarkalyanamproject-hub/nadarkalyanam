@@ -62,7 +62,7 @@ export default function FinancePage() {
               <StatCard testId="fin-expiring" label="Expiring in 7 days" value={String(dash.expiringNext7Days)} icon={<CalendarClock />} hint="Plans running now that end within a week" />
             </div>
             <SectionCard title="Revenue" description="Gross revenue per day, in rupees">
-              <LineChart title="Gross revenue per day (₹)" points={dash.revenuePerDay.map((p) => ({ date: p.date, value: p.grossInPaise / 100 }))} color={CHART_COLORS.blue} testId="fin-chart" />
+              <LineChart title="Gross revenue per day (₹)" points={dash.revenuePerDay.map((p) => ({ date: p.date, value: p.grossInPaise / 100 }))} color={CHART_COLORS.maroon} testId="fin-chart" />
             </SectionCard>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <SectionCard testId="fin-statuses" title="Orders created, by status">
