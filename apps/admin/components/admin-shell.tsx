@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -81,23 +81,26 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
 
 // The pendant mark, as in the member app's logo (apps/web/components/brand/
 // logo.tsx) and the app icon (app/icon.svg).
-function Emblem({ className = 'h-8 w-auto' }: { className?: string }) {
+export function Emblem({ className = 'h-8 w-auto' }: { className?: string }) {
+  // Unique per instance: a page can show the mark more than once, and a
+  // duplicate id pointing at a hidden copy would leave the others unfilled.
+  const gradientId = `nk-emblem-${useId().replace(/:/g, '')}`;
   return (
     <svg viewBox="0 10 100 118" className={className} aria-hidden="true">
       <defs>
-        <linearGradient id="nk-emblem" gradientUnits="userSpaceOnUse" x1="20" y1="10" x2="80" y2="128">
+        <linearGradient id={gradientId} gradientUnits="userSpaceOnUse" x1="20" y1="10" x2="80" y2="128">
           <stop offset="0" stopColor="#D9B45C" />
           <stop offset=".55" stopColor="#C89B3C" />
           <stop offset="1" stopColor="#B98B32" />
         </linearGradient>
       </defs>
-      <g fill="url(#nk-emblem)">
+      <g fill={`url(#${gradientId})`}>
         <path
           fillRule="evenodd"
           d="M6 128V32A22 22 0 0 1 50 32A22 22 0 0 1 94 32V128ZM13.5 82V33A14.5 14.5 0 0 1 42.5 33V82ZM57.5 82V33A14.5 14.5 0 0 1 86.5 33V82ZM14 90H43V128H14ZM57 90H86V128H57Z"
         />
-        <polyline points="14,90 28.5,118 43,90" fill="none" stroke="url(#nk-emblem)" strokeWidth="6.5" />
-        <polyline points="57,90 71.5,118 86,90" fill="none" stroke="url(#nk-emblem)" strokeWidth="6.5" />
+        <polyline points="14,90 28.5,118 43,90" fill="none" stroke={`url(#${gradientId})`} strokeWidth="6.5" />
+        <polyline points="57,90 71.5,118 86,90" fill="none" stroke={`url(#${gradientId})`} strokeWidth="6.5" />
         <path d="M18.8 63H37.2V66.2L34.2 69V70.4L37.2 73.4V77.4H18.8V73.4L21.8 70.4V69L18.8 66.2Z M22.8 63V53.2A5.2 5.2 0 0 1 33.2 53.2V63Z" />
         <path d="M69.2 41.2L69.8 38.4H70.7L71.3 35.2H72.7L73.3 38.4H74.2L74.8 41.2Z M67.4 48Q72 46 76.6 48L75.3 58.4L77.9 74.4H66.1L68.7 58.4Z M64.8 74.6H79.2V77.4H64.8Z" />
         <circle cx="72" cy="43" r="2.8" />
