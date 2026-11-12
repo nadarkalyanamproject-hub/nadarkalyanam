@@ -58,7 +58,7 @@ export function BasicDetailsEditSection({
 
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-      <BasicDetailsFields form={form} errors={errors} onChange={update} identityLocked={identityLocked} />
+      <BasicDetailsFields form={form} errors={errors} onChange={update} identityLocked={identityLocked} progressive={false} />
 
       {formError ? <FormError>{formError}</FormError> : null}
 

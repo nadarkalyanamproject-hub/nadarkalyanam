@@ -63,6 +63,7 @@ export function AdditionalDetailsEditSection({
         form={form}
         errors={errors}
         onChange={update}
+        progressive={false}
         writeAbout={() =>
           buildAboutDraft({
             fullName: profile.fullName,

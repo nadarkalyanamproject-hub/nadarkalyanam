@@ -91,7 +91,7 @@ services:
       mc alias set local http://minio:9000 nadar_minio nadar_minio_password &&
       mc mb --ignore-existing local/nadar-kalyanam-photos &&
       mc anonymous set download local/nadar-kalyanam-photos &&
-      mc admin config set local api cors_allow_origin=http://localhost:3002 &&
+      mc admin config set local api cors_allow_origin=http://localhost:3005,http://localhost:3002,http://localhost:3001 &&
       mc admin service restart local --json
       "
 

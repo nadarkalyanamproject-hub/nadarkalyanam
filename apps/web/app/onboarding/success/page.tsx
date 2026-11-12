@@ -3,9 +3,10 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRequireAuth } from '../../../lib/use-require-auth';
+import { PHOTO_STEP_HREF } from '../../../lib/post-profile';
 
-// How long the welcome animation plays before the member is taken to the plans
-// page to choose a membership (then Home after paying).
+// How long the welcome animation plays before the member is taken to the
+// Add Profile Photos step (then the plans page, then Home after paying).
 const REDIRECT_MS = 2600;
 // With reduced motion the animation is skipped, so don't make them wait.
 const REDUCED_MOTION_REDIRECT_MS = 900;
@@ -14,7 +15,7 @@ const REDUCED_MOTION_REDIRECT_MS = 900;
 const PETALS = [0, 45, 90, 135, 180, 225, 270, 315];
 
 // Shown for a moment right after sign-up: a check mark draws itself, petals
-// burst out, then the member goes to the plans page. `replace`, so Back from
+// burst out, then the member goes to Add Profile Photos. `replace`, so Back from
 // there never lands on this screen again.
 export default function OnboardingSuccessPage() {
   const { ready } = useRequireAuth();
@@ -22,9 +23,9 @@ export default function OnboardingSuccessPage() {
 
   useEffect(() => {
     if (!ready) return;
-    router.prefetch('/membership');
+    router.prefetch(PHOTO_STEP_HREF);
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const timer = window.setTimeout(() => router.replace('/membership?welcome=1'), reduced ? REDUCED_MOTION_REDIRECT_MS : REDIRECT_MS);
+    const timer = window.setTimeout(() => router.replace(PHOTO_STEP_HREF), reduced ? REDUCED_MOTION_REDIRECT_MS : REDIRECT_MS);
     return () => window.clearTimeout(timer);
   }, [ready, router]);
 
@@ -76,8 +77,16 @@ export default function OnboardingSuccessPage() {
           Welcome to Nadar Kalyanam
         </h1>
         <p className="mt-2 text-sm text-nk-muted motion-safe:animate-nk-fade-up [animation-delay:150ms] sm:text-base">
-          Your profile is ready. Taking you to your matches…
+          Your profile is ready. Continuing to photo upload…
         </p>
+
+        <button
+          type="button"
+          onClick={() => router.replace(PHOTO_STEP_HREF)}
+          className="mt-6 text-sm font-medium text-nk-maroon hover:underline"
+        >
+          Continue &rarr;
+        </button>
       </div>
     </main>
   );

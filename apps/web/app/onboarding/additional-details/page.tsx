@@ -36,8 +36,6 @@ type FormState = AdditionalDetailsFormState;
 
 const incompleteHref = (step: EarlierStep) => `${step.href}?${INCOMPLETE_PARAM}=1`;
 
-// This step's own fields from server validation issues ("additional.about"
-// -> about); anything for another section stays in the form-level message.
 function fieldErrorsFor(issues: ApiIssue[], section: 'additional' | 'lifestyle'): Record<string, string> {
   const errors: Record<string, string> = {};
   for (const issue of issues) {
@@ -51,12 +49,11 @@ function fieldErrorsFor(issues: ApiIssue[], section: 'additional' | 'lifestyle')
 const EMPTY_FORM: FormState = {
   familyType: '',
   netWorth: '',
+  ancestralOrigin: '',
+  ancestralOriginOther: '',
   about: '',
 };
 
-// Mounts the step only once the saved draft has been loaded from
-// localStorage, so the form can start from it (see basic-details). The
-// guard and submit logic below are unchanged.
 export default function AdditionalDetailsPage() {
   const { hydrated } = useRegistration();
   return hydrated ? <AdditionalDetailsStep /> : null;
@@ -72,7 +69,7 @@ function AdditionalDetailsStep() {
     ...(data.additional as unknown as Partial<FormState>),
     ...(data.stepInputs?.additional as Partial<FormState> | undefined),
   }));
-  // Optional Lifestyle & Habits, sent with this step when anything is picked.
+
   const [lifestyle, setLifestyle] = useState<LifestyleFormState>(() =>
     lifestyleFormFromDraft(data.stepInputs?.lifestyle),
   );
@@ -80,41 +77,22 @@ function AdditionalDetailsStep() {
   const [lifestyleErrors, setLifestyleErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>();
   const [submitting, setSubmitting] = useState(false);
-  // A successful submit already knows exactly where to go (/onboarding/success)
-  // and navigates there itself. Without this, clearWizardDraft() below
-  // re-renders this same page with basicDetails/personal/location now
-  // undefined, and the guard effect right below fires too, racing the
-  // explicit router.push and sending everyone back to step 1 instead.
   const skipWizardGuardRef = useRef(false);
 
   useEffect(() => {
     if (skipWizardGuardRef.current) return;
-    // Same draft fields get wiped by a 401 (clearAuth resets the whole
-    // draft, not just the auth fields) — createProfile below is an
-    // authenticated call that could itself 401. That already has its own
-    // navigation in flight via the shared claim; this guard must not also
-    // redirect for that change. (AppHeader no longer renders during the
-    // wizard, so logout can't fire from here — but the claim check still
-    // guards the 401 path, which doesn't depend on AppHeader being mounted.)
     if (consumeAuthRedirectClaim()) return;
     if (!ready) return;
-    // The profile was created meanwhile (e.g. Finish in another tab, which
-    // also clears the shared draft): nothing is missing, so go home.
     if (data.hasProfile) {
       router.replace('/');
       return;
     }
-    // Each earlier step must pass its own schema, not merely exist: a draft
-    // saved by an older wizard, or edited elsewhere, is sent back to the
-    // first step it's incomplete on, with that step's fields marked.
     const incomplete = firstIncompleteStep({ basicDetails: data.basicDetails, personal: data.personal, location: data.location });
     if (incomplete) router.replace(incompleteHref(incomplete));
   }, [ready, data.hasProfile, data.basicDetails, data.personal, data.location, router]);
 
-  // Raw input is kept in the draft on every edit (no validation). Writes
-  // only stepInputs, which the guard above doesn't read.
   useEffect(() => {
-    saveStepInput('additional', form);
+    saveStepInput('additional', form as unknown as Record<string, string>);
   }, [form, saveStepInput]);
 
   useEffect(() => {
@@ -129,27 +107,45 @@ function AdditionalDetailsStep() {
     setForm((prev: FormState) => ({ ...prev, [key]: value }));
   }
 
-  // Back keeps this step's input exactly as typed (no validation) and never
-  // touches the rest of the draft.
+  const isFamilyTypeValid = Boolean(form.familyType && form.familyType.trim() !== '');
+  const isAncestralOriginValid = Boolean(form.ancestralOrigin && form.ancestralOrigin.trim() !== '');
+  const isAboutValid = Boolean(form.about && form.about.trim().length >= 50);
+  const isComplete = isFamilyTypeValid && isAncestralOriginValid && isAboutValid;
+
   function handleBack() {
-    saveStepInput('additional', form);
+    saveStepInput('additional', form as unknown as Record<string, string>);
     router.push('/onboarding/location-professional-details');
   }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (submitting) return;
     setFormError(undefined);
 
-    const result = additionalDetailsSchema.safeParse(form);
+    const stepErrors: Record<string, string> = {};
+    if (!isFamilyTypeValid) stepErrors.familyType = 'Family status is required';
+    if (!isAncestralOriginValid) stepErrors.ancestralOrigin = 'Ancestral origin is required';
+    if (!isAboutValid) stepErrors.about = 'Write at least 50 characters';
+
+    const result = additionalDetailsSchema.safeParse({
+      familyType: form.familyType,
+      netWorth: form.netWorth || undefined,
+      about: form.about,
+    });
     const lifestyleResult = lifestyleSchema.safeParse(lifestyle);
-    setErrors(result.success ? {} : toFieldErrors(result.error));
+
+    const combinedErrors = {
+      ...(result.success ? {} : toFieldErrors(result.error)),
+      ...stepErrors,
+    };
+
+    setErrors(combinedErrors);
     setLifestyleErrors(lifestyleResult.success ? {} : toFieldErrors(lifestyleResult.error));
-    if (!result.success || !lifestyleResult.success) return;
+    if (!result.success || Object.keys(stepErrors).length > 0 || !lifestyleResult.success) return;
+
     saveStep('additional', result.data);
 
-    // Validate the whole request with the server's schema first: an
-    // incomplete draft goes back to the step it's missing from and never
-    // reaches the API.
+    // Validate the whole request with the server's schema first
     const check = checkProfilePayload(
       buildProfilePayload(data, result.data, isLifestyleFormEmpty(lifestyle) ? undefined : lifestyleResult.data),
     );
@@ -170,7 +166,6 @@ function AdditionalDetailsStep() {
       skipWizardGuardRef.current = true;
       markProfileCreated();
       clearWizardDraft();
-      // replace: Back from the welcome screen / Home never reopens the wizard.
       router.replace('/onboarding/success');
     } catch (error) {
       if (error instanceof ApiError && error.issues.length) {
@@ -191,7 +186,7 @@ function AdditionalDetailsStep() {
       title="Additional Details"
       subtitle="Your family, a bit about you and your lifestyle"
     >
-      <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+      <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
         <AdditionalDetailsFields
           form={form}
           errors={errors}
@@ -199,6 +194,7 @@ function AdditionalDetailsStep() {
           writeAbout={() => buildAboutDraft({ ...data.basicDetails, ...data.location, familyType: form.familyType, profileFor: data.profileForPrefill })}
         />
 
+        {/* Optional Lifestyle & Habits section */}
         <div className="mt-2 border-t border-nk-line pt-5">
           <h3 className="text-base font-bold text-nk-ink">Lifestyle &amp; habits</h3>
           <p className="mt-0.5 text-xs text-nk-muted">Optional. You can add or change these later from My Profile.</p>
@@ -207,8 +203,7 @@ function AdditionalDetailsStep() {
 
         {formError ? <FormError>{formError}</FormError> : null}
 
-        {/* The final action keeps its full-width, large treatment. */}
-        <Button type="submit" size="lg" disabled={submitting} className="mt-2">
+        <Button type="submit" size="lg" disabled={submitting || !isComplete} className="mt-2">
           {submitting ? 'Creating your profile...' : 'Finish & Create Profile'}
         </Button>
       </form>

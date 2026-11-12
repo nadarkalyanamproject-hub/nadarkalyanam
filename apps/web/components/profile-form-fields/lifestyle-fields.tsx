@@ -1,7 +1,8 @@
 'use client';
 
 import { DIETS, HABIT_FREQUENCIES, HOBBIES, MAX_HOBBIES, type Lifestyle } from '@nadar-kalyanam/schemas';
-import { Field, Select } from '@nadar-kalyanam/ui';
+import { Field } from '@nadar-kalyanam/ui';
+import { SmartDropdown } from '../ui/smart-dropdown';
 import { useSubjectLabels } from './profile-for';
 
 // Lifestyle & Habits fields, shared by onboarding step 4 and My Profile.
@@ -63,28 +64,24 @@ export function LifestyleFields({
 
   const habitSelect = (key: HabitKey, label: string, options: readonly string[]) => (
     <Field label={subject.label(label)} htmlFor={`lifestyle-${key}`} error={errors[key]}>
-      <Select
+      <SmartDropdown
         id={`lifestyle-${key}`}
-        invalid={Boolean(errors[key])}
+        name={key}
         value={form[key]}
-        onChange={(e) => onChange({ ...form, [key]: e.target.value })}
-      >
-        <option value="">Select</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </Select>
+        onChange={(val) => onChange({ ...form, [key]: val })}
+        options={options}
+        placeholder="Select"
+        invalid={Boolean(errors[key])}
+      />
     </Field>
   );
 
   return (
     <>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {habitSelect('diet', 'Diet', DIETS)}
-        {habitSelect('smoking', 'Smoking', HABIT_FREQUENCIES)}
-        {habitSelect('drinking', 'Drinking', HABIT_FREQUENCIES)}
+        {habitSelect('diet', 'Food preference', DIETS)}
+        {habitSelect('smoking', 'Smoking habits', HABIT_FREQUENCIES)}
+        {habitSelect('drinking', 'Drinking habits', HABIT_FREQUENCIES)}
       </div>
 
       <Field label={subject.label('Hobbies & interests')} htmlFor="lifestyle-hobbies" error={errors.hobbies} hint={`Pick up to ${MAX_HOBBIES}.`}>

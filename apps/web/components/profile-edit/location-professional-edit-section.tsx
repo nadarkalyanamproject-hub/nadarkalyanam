@@ -37,7 +37,24 @@ export function LocationProfessionalEditSection({
     event.preventDefault();
     setFormError(undefined);
 
-    const result = locationProfessionalSchema.safeParse(form);
+    const resolvedCity = form.city === 'Others' && form.cityOther?.trim() ? form.cityOther.trim() : form.city;
+    const resolvedEducation = form.educationLevel === 'Other' && form.educationLevelOther?.trim() ? form.educationLevelOther.trim() : form.educationLevel;
+    const resolvedDetail = form.educationDetail === 'Other' && form.educationDetailOther?.trim() ? form.educationDetailOther.trim() : form.educationDetail;
+    const resolvedEmployment = form.employedIn === 'Other' && form.employedInOther?.trim() ? form.employedInOther.trim() : form.employedIn;
+    const resolvedOccupation = form.profession === 'Other' && form.professionOther?.trim() ? form.professionOther.trim() : form.profession;
+    const resolvedIncome = form.annualIncomeRange === 'Other' && form.annualIncomeRangeOther?.trim() ? form.annualIncomeRangeOther.trim() : form.annualIncomeRange;
+
+    const payload = {
+      ...form,
+      city: resolvedCity,
+      educationLevel: resolvedEducation,
+      educationDetail: resolvedDetail,
+      profession: resolvedOccupation,
+      employedIn: resolvedEmployment,
+      annualIncomeRange: resolvedIncome,
+    };
+
+    const result = locationProfessionalSchema.safeParse(payload);
     if (!result.success) {
       setErrors(toFieldErrors(result.error));
       return;
@@ -58,7 +75,7 @@ export function LocationProfessionalEditSection({
 
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-      <LocationProfessionalFields form={form} errors={errors} onChange={update} />
+      <LocationProfessionalFields form={form} errors={errors} onChange={update} progressive={false} />
 
       {formError ? <FormError>{formError}</FormError> : null}
 

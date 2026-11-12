@@ -58,7 +58,7 @@ export function PersonalReligiousEditSection({
 
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-      <PersonalReligiousFields form={form} errors={errors} onChange={update} />
+      <PersonalReligiousFields form={form} errors={errors} onChange={update} progressive={false} />
 
       {formError ? <FormError>{formError}</FormError> : null}
 

@@ -13,6 +13,7 @@ import { getOverallCompletionPercent } from '../../../lib/onboarding-progress';
 import { toFieldErrors } from '../../../lib/zod-errors';
 import { INCOMPLETE_STEP_MESSAGE, incompleteStepErrors, useIncompleteVisit } from '../../../lib/incomplete-step';
 import { useRequireAuth } from '../../../lib/use-require-auth';
+import { useLeaveFinishedWizard } from '../../../lib/use-leave-finished-wizard';
 import { useRegistration } from '../../providers/registration-provider';
 import { useIdentityStatus } from '../../../lib/identity-status';
 import { logout } from '../../../lib/api-client';
@@ -25,16 +26,14 @@ const EMPTY_FORM: FormState = {
   gender: '',
   dateOfBirth: '',
   religion: '',
-  casteCommunity: '',
   email: '',
+  casteCommunity: '',
 };
 
 // The form's initial values come from the saved draft, which the provider
 // loads from localStorage only after mount — so the step mounts after that.
-// (Initializing any earlier is how a reload used to show an empty form.)
 export default function BasicDetailsPage() {
   const { hydrated } = useRegistration();
-  // Suspense: the step reads ?incomplete via useSearchParams.
   return hydrated ? (
     <Suspense fallback={null}>
       <BasicDetailsStep />
@@ -45,6 +44,7 @@ export default function BasicDetailsPage() {
 function BasicDetailsStep() {
   const router = useRouter();
   const { ready } = useRequireAuth();
+  const leavingFinishedWizard = useLeaveFinishedWizard(ready);
   const { data, saveStep, saveStepInput, clearAuth } = useRegistration();
   const [leaving, setLeaving] = useState(false);
 
@@ -52,13 +52,15 @@ function BasicDetailsStep() {
   // typed (even unsaved/invalid) is what comes back.
   const [form, setForm] = useState<FormState>(() => ({
     ...EMPTY_FORM,
-    fullName: data.fullNamePrefill ?? EMPTY_FORM.fullName,
+    fullName: data.basicDetails?.fullName ?? data.fullNamePrefill ?? EMPTY_FORM.fullName,
     gender: data.basicDetails?.gender ?? data.genderPrefill ?? EMPTY_FORM.gender,
-    ...(data.basicDetails as unknown as Partial<FormState>),
+    dateOfBirth: data.basicDetails?.dateOfBirth ?? EMPTY_FORM.dateOfBirth,
+    religion: data.basicDetails?.religion ?? EMPTY_FORM.religion,
+    email: data.basicDetails?.email ?? EMPTY_FORM.email,
+    casteCommunity: data.basicDetails?.casteCommunity ?? EMPTY_FORM.casteCommunity,
     ...(data.stepInputs?.basicDetails as Partial<FormState> | undefined),
   }));
-  // Sent back from the last step because this step's saved data is
-  // incomplete: mark what's missing straight away.
+
   const incomplete = useIncompleteVisit();
   const [errors, setErrors] = useState<Record<string, string>>(() => incompleteStepErrors(incomplete, basicDetailsSchema, form));
   const [incompleteNotice, setIncompleteNotice] = useState(incomplete);
@@ -66,13 +68,11 @@ function BasicDetailsStep() {
   // Verified with DigiLocker: name and date of birth come from the ID.
   const values: FormState = identity ? { ...form, fullName: identity.name, dateOfBirth: identity.dateOfBirth } : form;
 
-  // Every edit is also kept in the draft (unvalidated), so browser Back and
-  // reload keep it too.
   useEffect(() => {
     saveStepInput('basicDetails', form);
   }, [form, saveStepInput]);
 
-  if (!ready) return null;
+  if (!ready || leavingFinishedWizard) return null;
 
   const activePercent = getOverallCompletionPercent(data, 1, values);
 
@@ -80,9 +80,14 @@ function BasicDetailsStep() {
     setForm((prev: FormState) => ({ ...prev, [key]: value }));
   }
 
-  // There's no step before this one, and while signed in without a profile
-  // every member page sends them back here, so Back signs out (as the
-  // header's Log out does) and returns to the landing page.
+  const isFullNameValid = Boolean(values.fullName && values.fullName.trim().length >= 2);
+  const isGenderValid = Boolean(values.gender && ['MALE', 'FEMALE', 'OTHER'].includes(values.gender));
+  const isDobValid = Boolean(values.dateOfBirth && /^\d{4}-\d{2}-\d{2}$/.test(values.dateOfBirth));
+  const isReligionValid = Boolean(values.religion && values.religion.trim() !== '');
+  const isEmailValid = Boolean(values.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()));
+  const isCasteValid = Boolean(values.casteCommunity && values.casteCommunity.trim() !== '');
+  const isComplete = isFullNameValid && isGenderValid && isDobValid && isReligionValid && isEmailValid && isCasteValid;
+
   async function handleBack() {
     if (leaving) return;
     setLeaving(true);
@@ -99,13 +104,23 @@ function BasicDetailsStep() {
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    const result = basicDetailsSchema.safeParse(values);
+    const result = basicDetailsSchema.safeParse({
+      fullName: values.fullName,
+      gender: values.gender,
+      dateOfBirth: values.dateOfBirth,
+      religion: values.religion,
+      email: values.email,
+      casteCommunity: values.casteCommunity,
+    });
+
     if (!result.success) {
       setErrors(toFieldErrors(result.error));
       return;
     }
+
     setErrors({});
     setIncompleteNotice(false);
+
     saveStep('basicDetails', result.data);
     router.push('/onboarding/personal-religious-details');
   }
@@ -120,11 +135,11 @@ function BasicDetailsStep() {
       title="Basic Details"
       subtitle="Tell us a little about yourself"
     >
-      <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
+      <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
         {incompleteNotice ? <FormError>{INCOMPLETE_STEP_MESSAGE}</FormError> : null}
         <BasicDetailsFields form={values} errors={errors} onChange={update} identityLocked={Boolean(identity)} />
         <div className="mt-2 flex justify-end">
-          <Button type="submit" size="md" className="min-w-32">
+          <Button type="submit" size="md" className="min-w-32" disabled={!isComplete}>
             Next
           </Button>
         </div>
