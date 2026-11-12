@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Bell, Camera, ChevronDown, Crown, Flag, IndianRupee, LayoutDashboard, LogOut, Menu, Receipt, ScrollText, ShieldCheck, Tags, Users, WalletCards, X } from 'lucide-react';
+import { Bell, Camera, ChevronDown, Crown, Flag, Hourglass, IndianRupee, LayoutDashboard, LogOut, Menu, Receipt, ScrollText, ShieldCheck, Tags, Users, WalletCards, X } from 'lucide-react';
 import { useAdminAuth } from '../app/providers/admin-auth-provider';
 import { listReports, logoutAdmin } from '../lib/api-client';
 import { useCurrentAdmin } from '../lib/use-current-admin';
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { href: '/plans', label: 'Plans', permission: 'plans.manage', icon: Tags },
   { href: '/subscriptions', label: 'Subscriptions', permission: 'subscriptions.manage', icon: WalletCards },
   { href: '/orders', label: 'Orders', permission: 'finance.dashboard.view', icon: Receipt },
+  { href: '/left-at-payment', label: 'Left at payment', permission: 'finance.dashboard.view', icon: Hourglass },
   { href: '/finance', label: 'Finance', permission: 'finance.dashboard.view', icon: IndianRupee },
   { href: '/vip-enquiries', label: 'VIP enquiries', permission: 'vip.manage', icon: Crown },
   { href: '/audit-logs', label: 'Audit Log', permission: 'admin_users.manage', icon: ScrollText },

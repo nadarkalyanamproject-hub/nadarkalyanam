@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { formatDisplayDate, formatDisplayDateTime, COMPLEXIONS, NADAR_SUBCATEGORIES, RELIGIONS, type CreateProfileRequest } from '@nadar-kalyanam/schemas';
 import { Button, Card, Field, Input, Select, Textarea } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../../../components/admin-shell';
@@ -24,6 +24,8 @@ import { useRequireAdminAuth } from '../../../lib/use-require-admin-auth';
 import { useCurrentAdmin } from '../../../lib/use-current-admin';
 import { MemberMembership } from '../../../components/member-membership';
 import { MemberPreferencesHoroscope } from '../../../components/member-preferences-horoscope';
+import { MemberActivity } from '../../../components/member-activity';
+import Link from 'next/link';
 
 type FormState = {
   fullName: string;
@@ -52,6 +54,22 @@ type FormState = {
   familyType: string;
   about: string;
 };
+
+// The profile fields in the order and words staff read them, grouped.
+const PROFILE_SECTIONS: { title: string; fields: [keyof FormState, string][] }[] = [
+  { title: 'Basic details', fields: [['fullName', 'Full name'], ['gender', 'Gender'], ['dateOfBirth', 'Date of birth'], ['email', 'Email'], ['religion', 'Religion'], ['casteCommunity', 'Nadar subcategory']] },
+  { title: 'Personal', fields: [['height', 'Height'], ['physicalStatus', 'Physical status'], ['complexion', 'Complexion'], ['maritalStatus', 'Marital status'], ['previousMarriageDetails', 'Previous marriage'], ['dosham', 'Dosham'], ['doshamDetails', 'Dosham details']] },
+  { title: 'Location', fields: [['city', 'City'], ['state', 'State'], ['country', 'Country']] },
+  { title: 'Education and work', fields: [['educationLevel', 'Education level'], ['educationDetail', 'Education detail'], ['profession', 'Profession'], ['employedIn', 'Employed in'], ['annualIncomeRange', 'Annual income'], ['annualIncomeCurrency', 'Income currency']] },
+  { title: 'Family and about', fields: [['familyType', 'Family type'], ['about', 'About']] },
+];
+const CODE_WORDS: Record<string, string> = {
+  MALE: 'Male', FEMALE: 'Female', OTHER: 'Other', NORMAL: 'Normal', PHYSICALLY_CHALLENGED: 'Physically challenged',
+  NEVER_MARRIED: 'Never married', DIVORCED: 'Divorced', WIDOWED: 'Widowed', AWAITING_DIVORCE: 'Awaiting divorce',
+  YES: 'Yes', NO: 'No', DONT_KNOW: "Don't know",
+};
+const showValue = (key: keyof FormState, value: string) =>
+  !value ? '' : key === 'dateOfBirth' ? formatDisplayDate(value) : (CODE_WORDS[value] ?? value);
 
 function toFormState(details: Record<string, unknown>, member: MemberDetail): FormState {
   const location = (details.location as Record<string, unknown>) ?? {};
@@ -124,7 +142,7 @@ export default function MemberDetailPage() {
   const { ready } = useRequireAdminAuth();
   const { data } = useAdminAuth();
   const { can } = useCurrentAdmin();
-  const router = useRouter();
+
   const params = useParams<{ userId: string }>();
 
   const [member, setMember] = useState<MemberDetail | null>(null);
@@ -135,6 +153,8 @@ export default function MemberDetailPage() {
   const [actionPending, setActionPending] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | undefined>();
   const [showRemoveForm, setShowRemoveForm] = useState(false);
+  const [showSuspendForm, setShowSuspendForm] = useState(false);
+  const [suspendReason, setSuspendReason] = useState('');
   const [removeReason, setRemoveReason] = useState('');
   const [photoToRemove, setPhotoToRemove] = useState<string | null>(null);
   const [photoReason, setPhotoReason] = useState('');
@@ -187,10 +207,11 @@ export default function MemberDetailPage() {
         await reinstateMember(data.accessToken, params.userId);
         setActionMessage('Member reinstated.');
       } else {
-        const reason = window.prompt('Reason for suspending this member:');
-        if (!reason) return;
-        await suspendMember(data.accessToken, params.userId, reason);
-        setActionMessage('Member suspended.');
+        if (!suspendReason.trim()) return;
+        await suspendMember(data.accessToken, params.userId, suspendReason.trim());
+        setActionMessage('Member suspended. They are signed out and hidden from other members.');
+        setShowSuspendForm(false);
+        setSuspendReason('');
       }
       reload();
     } catch (err) {
@@ -297,13 +318,16 @@ export default function MemberDetailPage() {
   const isDeleted = member?.status === 'DELETED';
   const canModeratePhotos = can('members.edit');
   const isPendingDeletion = member?.status === 'PENDING_DELETION';
+  const primaryPhoto = member?.profile?.photos.find((p) => p.isPrimary)?.url ?? member?.profile?.photos[0]?.url;
 
   return (
     <AdminShell>
       <div className="flex flex-col gap-6">
-        <Button type="button" variant="outline" size="sm" onClick={() => router.push('/members')}>
-          ← Back to members
-        </Button>
+        <nav className="text-sm text-muted-foreground" aria-label="Breadcrumb">
+          <Link href="/members" className="hover:text-foreground hover:underline">Members</Link>
+          <span className="mx-2">/</span>
+          <span className="text-foreground">{member?.profile?.fullName ?? 'Member'}</span>
+        </nav>
 
         {member === null && !error && (
           <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading…</Card>
@@ -314,13 +338,34 @@ export default function MemberDetailPage() {
           <>
             <Card className="rounded-2xl p-6 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-xl font-bold text-foreground">
-                    {member.profile?.fullName ?? '(no profile yet)'}
-                  </h1>
-                  <p className="text-sm text-muted-foreground">{member.phoneNumber}</p>
-                  <div className="mt-1">
-                    <StatusBadge status={member.status} />
+                <div className="flex items-center gap-4">
+                  {primaryPhoto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={primaryPhoto} alt="" className="h-16 w-16 rounded-md border border-border object-cover" />
+                  ) : (
+                    <div className="h-16 w-16 rounded-md border border-border bg-muted" />
+                  )}
+                  <div>
+                    <h1 className="text-xl font-semibold text-foreground">{member.profile?.fullName ?? 'No profile yet'}</h1>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                      <span>{member.phoneNumber}</span>
+                      <StatusBadge status={member.status} />
+                      {member.profile && (
+                        <StatusBadge
+                          status={member.profile.isVerified ? 'VERIFIED' : 'NOT_VERIFIED'}
+                          label={member.profile.isVerified ? 'Verified profile' : 'Not verified'}
+                        />
+                      )}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Joined {formatDisplayDate(member.createdAt)}
+                      {member.profile && (
+                        <>
+                          {' '}
+                          · Profile {member.profile.completionScore}% complete · Visible to {member.profile.visibility.toLowerCase().replace(/_/g, ' ')}
+                        </>
+                      )}
+                    </p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -334,9 +379,9 @@ export default function MemberDetailPage() {
                     variant="outline"
                     size="sm"
                     disabled={actionPending || isDeleted || isPendingDeletion}
-                    onClick={() => void handleToggleActive()}
+                    onClick={() => (member.status === 'SUSPENDED' ? void handleToggleActive() : setShowSuspendForm((v) => !v))}
                   >
-                    {member.status === 'SUSPENDED' ? 'Activate' : 'Deactivate'}
+                    {member.status === 'SUSPENDED' ? 'Reinstate' : 'Suspend'}
                   </Button>
                   <Button
                     type="button"
@@ -375,6 +420,26 @@ export default function MemberDetailPage() {
                 </p>
               )}
               {actionMessage && <p className="mt-3 text-sm text-muted-foreground">{actionMessage}</p>}
+
+              {showSuspendForm && member.status !== 'SUSPENDED' && (
+                <div className="mt-4 border-l-2 border-[#DC2626] bg-muted/40 p-4">
+                  <p className="text-sm font-semibold text-foreground">Suspend this member</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    They are signed out everywhere and hidden from other members until reinstated. The reason is kept in the audit log.
+                  </p>
+                  <Field label="Reason (required)" htmlFor="suspendReason" className="mt-3">
+                    <Textarea id="suspendReason" rows={2} value={suspendReason} onChange={(e) => setSuspendReason(e.target.value)} />
+                  </Field>
+                  <div className="mt-3 flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => setShowSuspendForm(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="button" disabled={!suspendReason.trim() || actionPending} onClick={() => void handleToggleActive()}>
+                      Suspend member
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {showRemoveForm && (
                 <div className="mt-4 rounded-xl border border-destructive/40 bg-destructive/5 p-4">
@@ -424,7 +489,7 @@ export default function MemberDetailPage() {
 
             {member.profile && !editing && (
               <Card className="rounded-2xl p-6 shadow-sm">
-                <h2 className="mb-4 text-lg font-bold text-primary">Profile</h2>
+                <h2 className="mb-2 text-lg font-semibold text-foreground">Profile</h2>
                 {member.profile.photos.length > 0 && (
                   <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {member.profile.photos.map((photo) => (
@@ -432,23 +497,10 @@ export default function MemberDetailPage() {
                         <div className="relative aspect-square overflow-hidden rounded-lg border border-border">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={photo.url} alt="" className="h-full w-full object-cover" />
-                          {photo.isPrimary && (
-                            <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                              Primary
-                            </span>
-                          )}
-                          <span
-                            data-testid="admin-photo-status"
-                            className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                              photo.status === 'APPROVED'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : photo.status === 'PENDING'
-                                  ? 'bg-amber-100 text-amber-900'
-                                  : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {photo.status === 'APPROVED' ? 'Approved' : photo.status === 'PENDING' ? 'Pending review' : 'Rejected'}
-                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <StatusBadge status={photo.status} label={photo.status === 'PENDING' ? 'Pending review' : undefined} testId="admin-photo-status" />
+                          {photo.isPrimary && <span className="text-xs font-semibold text-foreground">Main photo</span>}
                         </div>
                         {photo.status === 'REJECTED' && photo.rejectionReason && (
                           <p className="text-xs text-muted-foreground">Reason: {photo.rejectionReason}</p>
@@ -557,20 +609,28 @@ export default function MemberDetailPage() {
                     ))}
                   </div>
                 )}
-                <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
-                  {Object.entries(form ?? {}).map(([key, value]) => (
-                    <div key={key}>
-                      <dt className="text-xs uppercase tracking-wide text-muted-foreground">{key}</dt>
-                      <dd className="mt-0.5 text-foreground">{value || '—'}</dd>
+                {form &&
+                  PROFILE_SECTIONS.map((section) => (
+                    <div key={section.title} className="border-t border-border py-4 first:border-t-0">
+                      <h3 className="mb-3 text-sm font-semibold text-foreground">{section.title}</h3>
+                      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+                        {section.fields.map(([key, label]) => (
+                          <div key={key} className={key === 'about' ? 'sm:col-span-3' : undefined}>
+                            <dt className="text-xs text-muted-foreground">{label}</dt>
+                            <dd className="mt-0.5 whitespace-pre-wrap text-foreground">
+                              {showValue(key, form[key]) || <span className="text-muted-foreground">Not given</span>}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
                     </div>
                   ))}
-                </dl>
               </Card>
             )}
 
             {member.profile && editing && form && (
               <Card className="rounded-2xl p-6 shadow-sm">
-                <h2 className="mb-4 text-lg font-bold text-primary">Edit profile</h2>
+                <h2 className="mb-4 text-lg font-semibold text-foreground">Edit profile</h2>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {(
                     [
@@ -669,6 +729,7 @@ export default function MemberDetailPage() {
                 </div>
               </Card>
             )}
+            {can('members.view') && <MemberActivity userId={member.id} />}
           </>
         )}
       </div>

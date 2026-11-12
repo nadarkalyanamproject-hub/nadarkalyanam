@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Card, Field, Input, Select } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../../components/admin-shell';
+import { StatusBadge } from '../../components/status-badge';
 import {
   ApiError,
   createAdmin,
@@ -195,13 +196,7 @@ export default function AdminsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                              admin.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-muted text-muted-foreground'
-                            }`}
-                          >
-                            {admin.isActive ? 'Active' : 'Deactivated'}
-                          </span>
+                          <StatusBadge status={admin.isActive ? 'ACTIVE' : 'DEACTIVATED'} />
                           <Button
                             type="button"
                             variant="outline"
