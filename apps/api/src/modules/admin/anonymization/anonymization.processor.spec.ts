@@ -5,8 +5,8 @@ const { QueueMock, WorkerMock, upsertJobScheduler, createBullConnection } = vi.h
   const upsertJobScheduler = vi.fn().mockResolvedValue(undefined);
   return {
     upsertJobScheduler,
-    QueueMock: vi.fn().mockImplementation(() => ({ upsertJobScheduler, close: vi.fn() })),
-    WorkerMock: vi.fn().mockImplementation(() => ({ on: vi.fn(), close: vi.fn() })),
+    QueueMock: vi.fn().mockImplementation(function () { return { upsertJobScheduler, close: vi.fn() }; }),
+    WorkerMock: vi.fn().mockImplementation(function () { return { on: vi.fn(), close: vi.fn() }; }),
     createBullConnection: vi.fn(() => ({})),
   };
 });
