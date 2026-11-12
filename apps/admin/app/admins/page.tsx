@@ -18,6 +18,9 @@ import { useCurrentAdmin } from '../../lib/use-current-admin';
 import { useAdminAuth } from '../providers/admin-auth-provider';
 import { useRequireAdminAuth } from '../../lib/use-require-admin-auth';
 
+// "SUPER_ADMIN" -> "Super Admin"
+const roleLabel = (name: string) => name.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
 export default function AdminsPage() {
   const { ready } = useRequireAdminAuth();
   const { data } = useAdminAuth();
@@ -102,13 +105,16 @@ export default function AdminsPage() {
   return (
     <AdminShell>
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-bold text-foreground">Admins</h1>
+        <div>
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[30px]">Admins</h1>
+            <p className="mt-1.5 text-[15px] text-muted-foreground">Staff who can sign in to this console, their roles and whether they are active.</p>
+          </div>
 
         {error && <Card className="rounded-2xl p-4 text-sm text-destructive">{error}</Card>}
         {message && <Card className="rounded-2xl p-4 text-sm text-muted-foreground">{message}</Card>}
 
         <Card className="rounded-2xl p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-primary">Add admin</h2>
+          <h2 className="text-[17px] font-semibold text-foreground">Add admin</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Admins log in with this phone number via OTP. Use a number that isn&apos;t a member&apos;s matrimonial
             account — no profile is created for it.
@@ -138,7 +144,7 @@ export default function AdminsPage() {
                 <option value="">Select a role</option>
                 {roles.map((role) => (
                   <option key={role.id} value={role.id}>
-                    {role.name}
+                    {roleLabel(role.name)}
                   </option>
                 ))}
               </Select>
@@ -151,7 +157,7 @@ export default function AdminsPage() {
           </form>
         </Card>
 
-        {admins === null && !error && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading…</Card>}
+        {admins === null && !error && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading</Card>}
 
         {admins && (
           <Card className="overflow-x-auto rounded-2xl p-0 shadow-sm">
@@ -184,12 +190,12 @@ export default function AdminsPage() {
                           title={isMe ? 'You cannot change your own role' : undefined}
                           onChange={(e) => {
                             const next = roles.find((role) => role.id === e.target.value);
-                            void handleUpdate(admin, { roleId: e.target.value }, `${admin.email} is now ${next?.name}.`);
+                            void handleUpdate(admin, { roleId: e.target.value }, `${admin.email} is now ${next ? roleLabel(next.name) : ''}.`);
                           }}
                         >
                           {roles.map((role) => (
                             <option key={role.id} value={role.id}>
-                              {role.name}
+                              {roleLabel(role.name)}
                             </option>
                           ))}
                         </Select>

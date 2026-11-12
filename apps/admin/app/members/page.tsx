@@ -60,7 +60,10 @@ export default function MembersPage() {
     <AdminShell>
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">Members</h1>
+          <div>
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[30px]">Members</h1>
+            <p className="mt-1.5 text-[15px] text-muted-foreground">Everyone who signed up. Open a member to see their full record and history.</p>
+          </div>
         </div>
 
         <Card className="flex flex-col gap-3 rounded-2xl p-4 shadow-sm">
@@ -115,7 +118,7 @@ export default function MembersPage() {
         </Card>
 
         {error && <Card className="rounded-2xl p-6 text-sm text-destructive">{error}</Card>}
-        {members === null && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading…</Card>}
+        {members === null && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading</Card>}
 
         {members && (
           <Card className="overflow-hidden rounded-2xl p-0 shadow-sm">

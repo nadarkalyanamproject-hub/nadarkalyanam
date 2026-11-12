@@ -1,15 +1,14 @@
 'use client';
 
 import { formatDisplayDate } from '@nadar-kalyanam/schemas';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, ScrollText, ShieldCheck, Users } from 'lucide-react';
-import { Card } from '@nadar-kalyanam/ui';
+import { ArrowUpRight, BadgeCheck, ChevronRight, Flag, ScrollText, ShieldCheck, UserPlus, Users } from 'lucide-react';
 import { AdminShell } from '../components/admin-shell';
 import { CHART_COLORS, DonutChart, LineChart } from '../components/charts';
 import { RecentActivity } from '../components/recent-activity';
 import { GenerateReport } from '../components/generate-report';
-import { StatusText } from '../components/status-badge';
+import { ErrorNote, LoadingCard, PageHeader, SectionCard, Segmented, StatCard } from '../components/ui/kit';
 import {
   ApiError,
   getDashboardStats,
@@ -24,25 +23,26 @@ import { useCurrentAdmin } from '../lib/use-current-admin';
 const WINDOWS = [7, 30, 90] as const;
 type Window = (typeof WINDOWS)[number];
 
-function StatCard({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <Card className="rounded-2xl p-5 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-      {children}
-    </Card>
-  );
+function greeting(): string {
+  const hour = Number(new Intl.DateTimeFormat('en-IN', { hour: 'numeric', hour12: false, timeZone: 'Asia/Kolkata' }).format(new Date()));
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
 }
+
+const todayLabel = () => new Intl.DateTimeFormat('en-IN', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata' }).format(new Date());
 
 // A real week-over-week figure; green + arrow only when it actually went up.
 function Delta({ value, text, zeroText }: { value: number; text: string; zeroText: string }) {
   return value > 0 ? (
-    <p className="mt-1 flex items-center gap-1 text-xs font-medium text-[#006300]" data-testid="delta">
-      <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />+{value.toLocaleString('en-IN')} {text}
-    </p>
+    <span className="inline-flex items-center gap-1" data-testid="delta">
+      <span className="inline-flex items-center gap-0.5 font-medium tabular-nums text-good">
+        <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />+{value.toLocaleString('en-IN')}
+      </span>
+      {text}
+    </span>
   ) : (
-    <p className="mt-1 text-xs text-muted-foreground" data-testid="delta">
-      {zeroText}
-    </p>
+    <span data-testid="delta">{zeroText}</span>
   );
 }
 
@@ -53,7 +53,7 @@ export default function AdminHome() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [error, setError] = useState<string | undefined>();
   const [windowDays, setWindowDays] = useState<Window>(30);
-  // Keyed by window, so switching shows "Loading…" until that window's data arrives.
+  // Keyed by window, so switching shows "Loading" until that window's data arrives.
   const [activity, setActivity] = useState<{ days: Window; data?: MemberActivity; error?: string } | null>(null);
 
   useEffect(() => {
@@ -90,87 +90,67 @@ export default function AdminHome() {
   const current = activity?.days === windowDays ? activity : null;
 
   const quickActions = [
-    { href: '/members', label: 'View All Members', icon: Users, permission: 'members.view' },
-    { href: '/audit-logs', label: 'View Audit Logs', icon: ScrollText, permission: 'admin_users.manage' },
-    { href: '/admins', label: 'Manage Admins', icon: ShieldCheck, permission: 'admin_users.manage' },
+    { href: '/members', label: 'Find a member', icon: Users, permission: 'members.view' },
+    { href: '/audit-logs', label: 'Audit log', icon: ScrollText, permission: 'admin_users.manage' },
+    { href: '/admins', label: 'Manage admins', icon: ShieldCheck, permission: 'admin_users.manage' },
   ].filter((action) => can(action.permission));
 
   return (
     <AdminShell>
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <PageHeader title={greeting()} description={`Here is how Nadar Kalyanam is doing, ${todayLabel()}.`} />
 
-        {error && <Card className="rounded-2xl p-6 text-sm text-destructive">{error}</Card>}
-        {!stats && !error && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading…</Card>}
+        {error && <ErrorNote>{error}</ErrorNote>}
+        {!stats && !error && <LoadingCard />}
 
         {stats && (
           <>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <StatCard label="Total members">
-                <p className="mt-2 text-3xl font-bold text-foreground" data-testid="stat-total">
-                  {stats.totalMembers.toLocaleString('en-IN')}
-                </p>
-                {/* Accounts are never deleted (removal anonymizes the row), so
-                    this week's growth is exactly this week's signups. */}
-                <Delta value={stats.newSignupsLast7Days} text="this week" zeroText="No new members this week" />
-              </StatCard>
-
-              <StatCard label="Status breakdown">
-                <div className="mt-3">
-                  <DonutChart
-                    centerLabel="members"
-                    segments={[
-                      { label: 'Active', value: stats.membersByStatus.active, color: CHART_COLORS.blue },
-                      { label: 'Suspended', value: stats.membersByStatus.suspended, color: CHART_COLORS.orange },
-                      { label: 'Pending deletion', value: stats.membersByStatus.pendingDeletion, color: CHART_COLORS.aqua },
-                      { label: 'Deleted (anonymized)', value: stats.membersByStatus.deleted, color: CHART_COLORS.yellow },
-                    ]}
-                  />
-                </div>
-              </StatCard>
-
-              <StatCard label="New signups (7 days)">
-                <p className="mt-2 text-3xl font-bold text-foreground" data-testid="stat-new">
-                  {stats.newSignupsLast7Days.toLocaleString('en-IN')}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground" data-testid="stat-new-previous">
-                  {stats.newSignupsPrevious7Days.toLocaleString('en-IN')} in the 7 days before
-                </p>
-              </StatCard>
-
-              <StatCard label="Verified profiles">
-                <p className="mt-2 text-3xl font-bold text-foreground" data-testid="stat-verified">
-                  {stats.verifiedProfilesCount.toLocaleString('en-IN')}
-                </p>
-                <Delta value={stats.verificationsLast7Days} text="verified this week" zeroText="No verifications completed this week" />
-              </StatCard>
+              {/* Accounts are never deleted (removal anonymizes the row), so
+                  this week's growth is exactly this week's signups. */}
+              <StatCard
+                label="Total members"
+                value={stats.totalMembers.toLocaleString('en-IN')}
+                testId="stat-total"
+                icon={<Users />}
+                tone="accent"
+                href="/members"
+                hint={<Delta value={stats.newSignupsLast7Days} text="this week" zeroText="No new members this week" />}
+              />
+              <StatCard
+                label="New signups, 7 days"
+                value={stats.newSignupsLast7Days.toLocaleString('en-IN')}
+                testId="stat-new"
+                icon={<UserPlus />}
+                hint={<span data-testid="stat-new-previous">{stats.newSignupsPrevious7Days.toLocaleString('en-IN')} in the 7 days before</span>}
+              />
+              <StatCard
+                label="Verified profiles"
+                value={stats.verifiedProfilesCount.toLocaleString('en-IN')}
+                testId="stat-verified"
+                icon={<BadgeCheck />}
+                tone="good"
+                hint={<Delta value={stats.verificationsLast7Days} text="verified this week" zeroText="No verifications completed this week" />}
+              />
+              <StatCard
+                label="Reports to review"
+                value={stats.pendingReportsCount}
+                icon={<Flag />}
+                tone={stats.pendingReportsCount > 0 ? 'bad' : 'neutral'}
+                href="/reports"
+                hint={stats.pendingReportsCount > 0 ? 'Open the reports queue' : 'No open reports right now'}
+              />
             </div>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              <Card className="rounded-2xl p-5 shadow-sm lg:col-span-2" data-testid="member-activity">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-sm font-semibold text-foreground">Member activity</h2>
-                    <p className="text-xs text-muted-foreground">Per day, India time</p>
-                  </div>
-                  <div className="flex rounded-lg border border-border p-0.5" role="group" aria-label="Time range">
-                    {WINDOWS.map((days) => (
-                      <button
-                        key={days}
-                        type="button"
-                        aria-pressed={windowDays === days}
-                        onClick={() => setWindowDays(days)}
-                        className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
-                          windowDays === days ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        {days} days
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {!current && <p className="py-16 text-center text-sm text-muted-foreground">Loading…</p>}
+              <SectionCard
+                className="lg:col-span-2"
+                testId="member-activity"
+                title="Member activity"
+                description="Per day, India time"
+                actions={<Segmented label="Time range" value={windowDays} onChange={setWindowDays} options={WINDOWS.map((d) => ({ value: d, label: `${d} days` }))} />}
+              >
+                {!current && <p className="py-16 text-center text-sm text-muted-foreground">Loading</p>}
                 {current?.error && <p className="py-16 text-center text-sm text-destructive">{current.error}</p>}
                 {current?.data && (
                   // Two charts on a shared date axis rather than one chart with
@@ -179,13 +159,13 @@ export default function AdminHome() {
                   <div className="flex flex-col gap-4">
                     <LineChart
                       title="New signups per day"
-                      color={CHART_COLORS.blue}
+                      color={CHART_COLORS.maroon}
                       testId="chart-signups"
                       points={current.data.points.map((p) => ({ date: p.date, value: p.newSignups }))}
                     />
                     <LineChart
                       title="Total members"
-                      color={CHART_COLORS.blue}
+                      color={CHART_COLORS.maroon}
                       testId="chart-total"
                       points={current.data.points.map((p) => ({ date: p.date, value: p.totalMembers }))}
                     />
@@ -193,11 +173,11 @@ export default function AdminHome() {
                       <summary className="cursor-pointer text-muted-foreground hover:text-foreground">View as table</summary>
                       <div className="mt-2 max-h-64 overflow-auto rounded-lg border border-border">
                         <table className="w-full text-left tabular-nums" data-testid="activity-table">
-                          <thead className="sticky top-0 bg-muted">
+                          <thead className="sticky top-0 bg-card">
                             <tr>
-                              <th className="px-3 py-1.5 font-semibold">Date</th>
-                              <th className="px-3 py-1.5 text-right font-semibold">New signups</th>
-                              <th className="px-3 py-1.5 text-right font-semibold">Total members</th>
+                              <th className="px-3 py-1.5">Date</th>
+                              <th className="px-3 py-1.5 text-right">New signups</th>
+                              <th className="px-3 py-1.5 text-right">Total members</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -214,85 +194,74 @@ export default function AdminHome() {
                     </details>
                   </div>
                 )}
-              </Card>
+              </SectionCard>
 
-              <Card className="rounded-2xl p-5 shadow-sm" data-testid="quick-actions">
-                <h2 className="mb-3 text-sm font-semibold text-foreground">Quick actions</h2>
-                <div className="flex flex-col gap-2">
-                  {quickActions.map(({ href, label, icon: Icon }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50"
-                    >
-                      <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
-                      {label}
-                    </Link>
-                  ))}
-                  {data.accessToken && <GenerateReport accessToken={data.accessToken} />}
-                </div>
-              </Card>
+              <div className="flex flex-col gap-4">
+                <SectionCard title="Members by status">
+                  <DonutChart
+                    centerLabel="members"
+                    segments={[
+                      { label: 'Active', value: stats.membersByStatus.active, color: CHART_COLORS.maroon },
+                      { label: 'Suspended', value: stats.membersByStatus.suspended, color: CHART_COLORS.gold },
+                      { label: 'Pending deletion', value: stats.membersByStatus.pendingDeletion, color: CHART_COLORS.teal },
+                      { label: 'Deleted (anonymized)', value: stats.membersByStatus.deleted, color: CHART_COLORS.slate },
+                    ]}
+                  />
+                </SectionCard>
+                <SectionCard title="Quick actions" testId="quick-actions">
+                  <div className="-mx-2 flex flex-col">
+                    {quickActions.map(({ href, label, icon: Icon }) => (
+                      <Link
+                        key={href}
+                        href={href}
+                        className="flex items-center gap-3 rounded-xl px-2 py-2.5 text-[14px] font-medium text-foreground transition-colors hover:bg-black/[0.03]"
+                      >
+                        <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                        <span className="flex-1">{label}</span>
+                        <ChevronRight className="h-4 w-4 text-faint" aria-hidden="true" />
+                      </Link>
+                    ))}
+                    {data.accessToken && (
+                      <div className="mt-2 px-2">
+                        <GenerateReport accessToken={data.accessToken} />
+                      </div>
+                    )}
+                  </div>
+                </SectionCard>
+              </div>
             </div>
 
-            <Link href="/reports" className="block">
-              <Card
-                className={`rounded-2xl p-5 shadow-sm transition-colors ${
-                  stats.pendingReportsCount > 0
-                    ? 'border-2 border-destructive bg-destructive/5 hover:bg-destructive/10'
-                    : 'hover:bg-muted/40'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Pending reports
-                    </p>
-                    <p
-                      className={`mt-2 text-3xl font-bold ${
-                        stats.pendingReportsCount > 0 ? 'text-destructive' : 'text-foreground'
-                      }`}
-                    >
-                      {stats.pendingReportsCount}
-                    </p>
-                  </div>
-                  {stats.pendingReportsCount > 0 && (
-                    <StatusText tone="bad" label="Needs review" />
-                  )}
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {stats.pendingReportsCount > 0 ? 'Go to Reports queue →' : 'No open reports right now.'}
-                </p>
-              </Card>
-            </Link>
-
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {data.accessToken && <RecentActivity accessToken={data.accessToken} />}
-            <Card className="overflow-hidden rounded-2xl p-0 shadow-sm">
-              <div className="border-b border-border px-5 py-3">
-                <h2 className="text-sm font-semibold text-foreground">Recent signups</h2>
-              </div>
-              {stats.recentSignups.length === 0 ? (
-                <p className="px-5 py-6 text-center text-sm text-muted-foreground">No members yet.</p>
-              ) : (
-                <table className="w-full text-sm">
-                  <tbody>
-                    {stats.recentSignups.map((signup) => (
-                      <tr key={signup.id} className="border-t border-border first:border-t-0 hover:bg-muted/40">
-                        <td className="px-5 py-3">
-                          <Link href={`/members/${signup.id}`} className="font-medium text-primary hover:underline">
-                            {signup.fullName ?? '(no profile yet)'}
-                          </Link>
-                        </td>
-                        <td className="px-5 py-3 text-muted-foreground">{signup.phoneNumber}</td>
-                        <td className="px-5 py-3 text-right text-muted-foreground">
-                          {formatDisplayDate(signup.createdAt)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </Card>
+              {data.accessToken && <RecentActivity accessToken={data.accessToken} />}
+              <SectionCard
+                title="Recent signups"
+                flush
+                actions={
+                  <Link href="/members" className="text-[13px] font-medium text-primary hover:underline">
+                    All members
+                  </Link>
+                }
+              >
+                {stats.recentSignups.length === 0 ? (
+                  <p className="px-5 py-6 text-center text-sm text-muted-foreground">No members yet.</p>
+                ) : (
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {stats.recentSignups.map((signup) => (
+                        <tr key={signup.id} className="border-t border-border">
+                          <td className="px-5 py-3">
+                            <Link href={`/members/${signup.id}`} className="font-medium text-foreground hover:text-primary">
+                              {signup.fullName ?? '(no profile yet)'}
+                            </Link>
+                          </td>
+                          <td className="px-5 py-3 text-muted-foreground">{signup.phoneNumber}</td>
+                          <td className="px-5 py-3 text-right text-muted-foreground">{formatDisplayDate(signup.createdAt)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </SectionCard>
             </div>
           </>
         )}

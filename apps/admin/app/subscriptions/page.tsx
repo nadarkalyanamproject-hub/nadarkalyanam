@@ -54,8 +54,8 @@ export default function SubscriptionsPage() {
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Subscriptions</h1>
-            <p className="text-sm text-muted-foreground">Paid and granted plans. Queued plans start when the current one ends.</p>
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[30px]">Subscriptions</h1>
+            <p className="mt-1.5 max-w-3xl text-[15px] leading-relaxed text-muted-foreground">Paid and granted plans. Queued plans start when the current one ends.</p>
           </div>
           <Button type="button" onClick={() => setGranting(true)} data-testid="open-grant">
             Grant plan
@@ -80,7 +80,7 @@ export default function SubscriptionsPage() {
         </Card>
         {message && <Card className="rounded-2xl p-4 text-sm text-muted-foreground" role="status">{message}</Card>}
         {error && <Card className="rounded-2xl p-4 text-sm text-destructive" role="alert">{error}</Card>}
-        {items === null && !error && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading…</Card>}
+        {items === null && !error && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading</Card>}
         {items?.length === 0 && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">No subscriptions match.</Card>}
         {items && items.length > 0 && (
           <Card className="overflow-x-auto rounded-2xl">

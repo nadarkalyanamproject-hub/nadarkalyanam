@@ -33,7 +33,7 @@ export function MemberMembership({ userId, memberLabel, disabled }: { userId: st
   return (
     <Card className="rounded-2xl p-6 shadow-sm" data-testid="member-membership">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-bold text-primary">Membership</h2>
+        <h2 className="text-[17px] font-semibold text-foreground">Membership</h2>
         {can('subscriptions.manage') && !disabled && (
           <Button type="button" size="sm" onClick={() => setGranting(true)} data-testid="member-grant">
             Grant plan

@@ -92,7 +92,7 @@ export function RecentActivity({ accessToken }: { accessToken: string }) {
         <h2 className="text-sm font-semibold text-foreground">Recent activity</h2>
       </div>
       {error && <p className="px-5 py-6 text-center text-sm text-destructive">{error}</p>}
-      {!items && !error && <p className="px-5 py-6 text-center text-sm text-muted-foreground">Loading…</p>}
+      {!items && !error && <p className="px-5 py-6 text-center text-sm text-muted-foreground">Loading</p>}
       {items && items.length === 0 && (
         <p className="px-5 py-6 text-center text-sm text-muted-foreground" data-testid="recent-activity-empty">
           No activity yet. New registrations, reports and admin actions will appear here as they happen.

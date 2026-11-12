@@ -330,7 +330,7 @@ export default function MemberDetailPage() {
         </nav>
 
         {member === null && !error && (
-          <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading…</Card>
+          <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading</Card>
         )}
         {error && <Card className="rounded-2xl p-6 text-sm text-destructive">{error}</Card>}
 

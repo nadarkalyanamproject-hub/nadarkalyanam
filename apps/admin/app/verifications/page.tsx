@@ -100,19 +100,19 @@ export default function VerificationsPage() {
     <AdminShell>
       <div className="flex flex-col gap-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Identity Verifications</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[30px]">Identity Verifications</h1>
+          <p className="mt-1.5 max-w-3xl text-[15px] leading-relaxed text-muted-foreground">
             Review and manage member identity verification requests.
           </p>
         </div>
 
         {error && (
-          <div role="alert" className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive">
+          <div role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">
             {error}
           </div>
         )}
         {message && (
-          <div role="status" className="rounded-lg bg-emerald-500/10 p-4 text-sm text-emerald-800">
+          <div role="status" className="rounded-xl bg-good-soft px-4 py-3 text-sm text-good">
             {message}
           </div>
         )}
@@ -212,7 +212,7 @@ export default function VerificationsPage() {
                         <div className="flex justify-end gap-2">
                           <Button
                             size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            className="bg-good hover:bg-good/90 text-white"
                             disabled={!canReview || pendingId === item.id}
                             onClick={() => void handleApprove(item)}
                           >

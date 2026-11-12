@@ -114,11 +114,11 @@ export function OTPInputGroup({
             onKeyDown={(e) => handleKeyDown(index, e)}
             onPaste={handlePaste}
             className={`
-              w-10 h-13 sm:w-12 sm:h-14 text-center text-xl font-bold rounded-xl transition-all duration-200 outline-none
-              bg-[#FFFDF8] text-[#2B1515] border border-[#EADBCA]
-              focus:border-[#8E1B24] focus:ring-2 focus:ring-[#F59E0B]/40 focus:bg-white shadow-sm
-              ${hasError ? '!border-[#C22020] !bg-red-50/50 !text-[#C22020] focus:!ring-red-200' : ''}
-              ${isFilled && !hasError ? 'border-[#8E1B24] bg-white text-[#8E1B24]' : ''}
+              w-11 h-12 sm:w-12 sm:h-13 text-center text-xl font-semibold rounded-xl transition-all duration-200 outline-none
+              bg-card text-ink border border-input
+              focus:border-primary focus:shadow-[0_0_0_4px_var(--color-accent-soft)]
+              ${hasError ? '!border-bad !bg-bad-soft !text-bad' : ''}
+              ${isFilled && !hasError ? 'border-primary text-primary' : ''}
               ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
             `}
             aria-label={`Digit ${index + 1} of ${length}`}

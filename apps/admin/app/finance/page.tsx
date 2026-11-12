@@ -1,25 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { CalendarClock, IndianRupee, TrendingUp, Undo2 } from 'lucide-react';
 import { Card } from '@nadar-kalyanam/ui';
 import { AdminShell } from '../../components/admin-shell';
 import { CHART_COLORS, LineChart } from '../../components/charts';
+import { StatusBadge } from '../../components/status-badge';
+import { ErrorNote, LoadingCard, PageHeader, SectionCard, Segmented, StatCard } from '../../components/ui/kit';
 import { ApiError } from '../../lib/api-client';
 import { getFinanceDashboard, rupees, type FinanceDashboard } from '../../lib/billing-api';
 import { useRequireAdminAuth } from '../../lib/use-require-admin-auth';
 import { useAdminAuth } from '../providers/admin-auth-provider';
 
 const RANGES = [7, 30, 90] as const;
-
-function Stat({ label, value, note, testId }: { label: string; value: string; note?: string; testId: string }) {
-  return (
-    <Card className="rounded-2xl p-4" data-testid={testId}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{value}</p>
-      {note && <p className="mt-0.5 text-xs text-muted-foreground">{note}</p>}
-    </Card>
-  );
-}
 
 export default function FinancePage() {
   const { ready } = useRequireAdminAuth();
@@ -52,56 +45,42 @@ export default function FinancePage() {
   return (
     <AdminShell>
       <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Finance</h1>
-            <p className="text-sm text-muted-foreground">India time. Amounts include taxes. Recorded in this app only — check settlements in your payment gateway.</p>
-          </div>
-          <div className="inline-flex overflow-hidden rounded-lg border border-border" role="group" aria-label="Range">
-            {RANGES.map((r) => (
-              <button
-                key={r}
-                type="button"
-                aria-pressed={days === r}
-                onClick={() => setDays(r)}
-                className={`px-3 py-1.5 text-xs font-semibold ${days === r ? 'bg-primary text-primary-foreground' : 'bg-card text-foreground hover:bg-muted'}`}
-              >
-                {r} days
-              </button>
-            ))}
-          </div>
-        </div>
-        {error && <Card className="rounded-2xl p-4 text-sm text-destructive" role="alert">{error}</Card>}
-        {!dash && !error && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading…</Card>}
+        <PageHeader
+          title="Finance"
+          description="India time. Amounts include taxes. Recorded in this app only, so check settlements in your payment gateway."
+          actions={<Segmented label="Range" value={days} onChange={setDays} options={RANGES.map((r) => ({ value: r, label: `${r} days` }))} />}
+        />
+        {error && <ErrorNote>{error}</ErrorNote>}
+        {!dash && !error && <LoadingCard />}
         {dash && (
           <>
-            {empty && <Card className="rounded-2xl p-4 text-sm text-muted-foreground" data-testid="finance-empty">No orders, refunds or plans in this range yet.</Card>}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Stat testId="fin-gross" label="Gross revenue" value={rupees(dash.grossRevenueInPaise)} note={`${dash.paidOrdersCount} paid ${dash.paidOrdersCount === 1 ? 'order' : 'orders'} (incl. later refunded)`} />
-              <Stat testId="fin-refunded" label="Refunded" value={rupees(dash.refundedInPaise)} note={`${dash.refundedCount} ${dash.refundedCount === 1 ? 'refund' : 'refunds'} recorded`} />
-              <Stat testId="fin-net" label="Net revenue" value={rupees(dash.netRevenueInPaise)} note="Gross minus refunds" />
-              <Stat testId="fin-expiring" label="Expiring in 7 days" value={String(dash.expiringNext7Days)} note="Plans running now that end within a week" />
+            {empty && <Card className="rounded-2xl p-5 text-sm text-muted-foreground" data-testid="finance-empty">No orders, refunds or plans in this range yet.</Card>}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard testId="fin-gross" label="Gross revenue" value={rupees(dash.grossRevenueInPaise)} icon={<IndianRupee />} tone="accent" hint={`${dash.paidOrdersCount} paid ${dash.paidOrdersCount === 1 ? 'order' : 'orders'} (incl. later refunded)`} />
+              <StatCard testId="fin-refunded" label="Refunded" value={rupees(dash.refundedInPaise)} icon={<Undo2 />} hint={`${dash.refundedCount} ${dash.refundedCount === 1 ? 'refund' : 'refunds'} recorded`} />
+              <StatCard testId="fin-net" label="Net revenue" value={rupees(dash.netRevenueInPaise)} icon={<TrendingUp />} tone="good" hint="Gross minus refunds" />
+              <StatCard testId="fin-expiring" label="Expiring in 7 days" value={String(dash.expiringNext7Days)} icon={<CalendarClock />} hint="Plans running now that end within a week" />
             </div>
-            <LineChart title="Gross revenue per day (₹)" points={dash.revenuePerDay.map((p) => ({ date: p.date, value: p.grossInPaise / 100 }))} color={CHART_COLORS.blue} testId="fin-chart" />
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-              <Card className="rounded-2xl p-4" data-testid="fin-statuses">
-                <h2 className="text-sm font-bold">Orders created, by status</h2>
+            <SectionCard title="Revenue" description="Gross revenue per day, in rupees">
+              <LineChart title="Gross revenue per day (₹)" points={dash.revenuePerDay.map((p) => ({ date: p.date, value: p.grossInPaise / 100 }))} color={CHART_COLORS.maroon} testId="fin-chart" />
+            </SectionCard>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <SectionCard testId="fin-statuses" title="Orders created, by status">
                 {Object.keys(dash.ordersByStatus).length === 0 ? (
                   <p className="mt-1 text-sm text-muted-foreground">No orders.</p>
                 ) : (
-                  <ul className="mt-2 space-y-1 text-sm">
+                  <ul className="space-y-2 text-sm">
                     {Object.entries(dash.ordersByStatus).map(([s, n]) => (
-                      <li key={s} className="flex justify-between"><span>{s}</span><span className="tabular-nums">{n}</span></li>
+                      <li key={s} className="flex justify-between"><StatusBadge status={s} /><span className="tabular-nums">{n}</span></li>
                     ))}
                   </ul>
                 )}
-              </Card>
-              <Card className="rounded-2xl p-4" data-testid="fin-active">
-                <h2 className="text-sm font-bold">Active plans now</h2>
+              </SectionCard>
+              <SectionCard testId="fin-active" title="Active plans now">
                 {dash.activeSubscriptionsByPlan.length === 0 ? (
                   <p className="mt-1 text-sm text-muted-foreground">None.</p>
                 ) : (
-                  <ul className="mt-2 space-y-1 text-sm">
+                  <ul className="space-y-2 text-sm">
                     {dash.activeSubscriptionsByPlan.map((p) => (
                       <li key={p.planCode} className="flex justify-between"><span>{p.planName}</span><span className="tabular-nums">{p.count}</span></li>
                     ))}
@@ -112,15 +91,14 @@ export default function FinancePage() {
                     Plus {dash.activeTrialsCount} launch-offer free {dash.activeTrialsCount === 1 ? 'trial' : 'trials'} (not counted above).
                   </p>
                 )}
-              </Card>
-              <Card className="rounded-2xl p-4" data-testid="fin-grants">
-                <h2 className="text-sm font-bold">Admin grants</h2>
-                <p className="mt-1 text-2xl font-bold tabular-nums">{dash.adminGrantsCount}</p>
-                <p className="text-xs text-muted-foreground">
+              </SectionCard>
+              <SectionCard testId="fin-grants" title="Admin grants">
+                <p className="text-[28px] font-semibold leading-none tracking-tight tabular-nums">{dash.adminGrantsCount}</p>
+                <p className="mt-2 text-xs text-muted-foreground">
                   Never added to revenue. {dash.adminGrantsWithPaymentReference} carry an offline payment reference; offline payments are
                   not summed here.
                 </p>
-              </Card>
+              </SectionCard>
             </div>
           </>
         )}

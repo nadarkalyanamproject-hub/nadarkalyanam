@@ -120,8 +120,8 @@ export default function OrdersPage() {
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Orders</h1>
-            <p className="text-sm text-muted-foreground">Membership orders and their payment events. Amounts include taxes.</p>
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[30px]">Orders</h1>
+            <p className="mt-1.5 max-w-3xl text-[15px] leading-relaxed text-muted-foreground">Membership orders and their payment events. Amounts include taxes.</p>
           </div>
           {orders && orders.total > 0 && (
             <Button type="button" variant="outline" size="sm" disabled={exporting} onClick={exportCsv}>
@@ -164,7 +164,7 @@ export default function OrdersPage() {
           <Input type="date" value={to} onChange={(e) => { setTo(e.target.value); setOffset(0); }} aria-label="To" />
         </Card>
 
-        {orders === null && !error && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading…</Card>}
+        {orders === null && !error && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading</Card>}
         {orders?.items.length === 0 && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">No orders match.</Card>}
         {orders && orders.items.length > 0 && (
           <Card className="overflow-x-auto rounded-2xl">

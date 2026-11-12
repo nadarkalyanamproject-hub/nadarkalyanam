@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { formatDisplayDateTime } from '@nadar-kalyanam/schemas';
 import { Button, Card, Input, Select } from '@nadar-kalyanam/ui';
+import { IndianRupee, PhoneCall } from 'lucide-react';
 import { AdminShell } from '../../components/admin-shell';
+import { StatCard } from '../../components/ui/kit';
 import { StatusBadge, StatusText } from '../../components/status-badge';
 import { ApiError } from '../../lib/api-client';
 import { downloadUnpaidCheckoutsCsv, listAllUnpaidCheckouts, listUnpaidCheckouts, rupees, type UnpaidCheckoutsPage } from '../../lib/billing-api';
@@ -64,8 +66,8 @@ export default function LeftAtPaymentPage() {
       <div className="flex flex-col gap-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Left at payment</h1>
-            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[30px]">Left at payment</h1>
+            <p className="mt-1.5 max-w-3xl text-[15px] leading-relaxed text-muted-foreground">
               Members who opened the payment window and did not pay within {result ? result.afterHours / 24 : 2} days. A member leaves this list
               as soon as they pay. Attempts from the last {result?.lookbackDays ?? 180} days are shown.
             </p>
@@ -77,15 +79,8 @@ export default function LeftAtPaymentPage() {
 
         {result && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Card className="rounded-2xl p-5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Members to follow up</p>
-              <p className="mt-2 text-3xl font-bold tabular-nums text-foreground">{result.total}</p>
-            </Card>
-            <Card className="rounded-2xl p-5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Value not paid</p>
-              <p className="mt-2 text-3xl font-bold tabular-nums text-foreground">{rupees(result.totalValueInPaise)}</p>
-              <p className="mt-1 text-xs text-muted-foreground">Price of each member&apos;s latest attempt</p>
-            </Card>
+            <StatCard label="Members to follow up" value={result.total} icon={<PhoneCall />} tone={result.total > 0 ? 'warn' : 'neutral'} hint="Call them about the plan they wanted" />
+            <StatCard label="Value not paid" value={rupees(result.totalValueInPaise)} icon={<IndianRupee />} hint={<>Price of each member&apos;s latest attempt</>} />
           </div>
         )}
 

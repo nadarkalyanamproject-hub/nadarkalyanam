@@ -117,7 +117,7 @@ export function MemberPreferencesHoroscope({ userId, disabled }: { userId: strin
   const h = info?.horoscope ?? null;
   return (
     <Card className="rounded-2xl p-6 shadow-sm" data-testid="member-preferences-horoscope">
-      <h2 className="mb-3 text-lg font-bold text-primary">Partner preferences &amp; horoscope</h2>
+      <h2 className="mb-3 text-[17px] font-semibold text-foreground">Partner preferences &amp; horoscope</h2>
       {error && <p className="text-sm text-destructive">{error}</p>}
       {message && (
         <p className="mb-2 text-sm text-muted-foreground" role="status">

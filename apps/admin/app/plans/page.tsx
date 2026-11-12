@@ -242,7 +242,7 @@ function PlanRow({ plan, onSave }: { plan: AdminPlan; onSave: (p: Pending) => vo
     <Card className="rounded-2xl p-5 shadow-sm" data-testid="plan-row" data-plan-code={plan.code}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{plan.code}</p>
+          <p className="text-[13px] font-medium text-muted-foreground">{plan.code}</p>
           <p className="text-base font-semibold text-foreground">
             {plan.name} · {rupees(plan.priceInPaise)}
             {plan.originalPriceInPaise !== null && (
@@ -331,8 +331,8 @@ export default function PlansPage() {
     <AdminShell>
       <div className="flex flex-col gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Plans</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[30px]">Plans</h1>
+          <p className="mt-1.5 max-w-3xl text-[15px] leading-relaxed text-muted-foreground">
             Edit a plan&apos;s name, description, feature list, price, original (struck-out) price, display order and whether it&apos;s offered. Price applies to new orders only.
             Duration, phone-unlock limit and tier are fixed so existing members keep exactly what they hold.
           </p>
@@ -347,7 +347,7 @@ export default function PlansPage() {
             {error}
           </Card>
         )}
-        {!plans && !error && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading…</Card>}
+        {!plans && !error && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading</Card>}
         {plans?.map((plan) => (
           <PlanRow key={`${plan.id}-${version}`} plan={plan} onSave={setPending} />
         ))}

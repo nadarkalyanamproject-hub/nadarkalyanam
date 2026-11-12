@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
-import { Cormorant_Garamond, Geist, Geist_Mono } from 'next/font/google';
+import { Cormorant_Garamond, Geist_Mono, Inter } from 'next/font/google';
 import { AdminAuthProvider } from './providers/admin-auth-provider';
 import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const inter = Inter({
+  variable: '--font-inter',
   subsets: ['latin'],
 });
 
@@ -33,7 +33,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${cormorantGaramond.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} ${cormorantGaramond.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-background text-foreground">
         <AdminAuthProvider>{children}</AdminAuthProvider>

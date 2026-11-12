@@ -284,8 +284,8 @@ export default function VipEnquiriesPage() {
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">VIP enquiries</h1>
-            <p className="text-sm text-muted-foreground">Members who asked to be called about VIP Assisted, on their registered number.</p>
+            <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[30px]">VIP enquiries</h1>
+            <p className="mt-1.5 max-w-3xl text-[15px] leading-relaxed text-muted-foreground">Members who asked to be called about VIP Assisted, on their registered number.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Select
@@ -353,7 +353,7 @@ export default function VipEnquiriesPage() {
           />
         )}
 
-        {list === null && !error && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading…</Card>}
+        {list === null && !error && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">Loading</Card>}
         {list?.items.length === 0 && <Card className="rounded-2xl p-6 text-sm text-muted-foreground">No enquiries match.</Card>}
         {list && list.items.length > 0 && (
           <Card className="overflow-x-auto rounded-2xl p-0 shadow-sm">
