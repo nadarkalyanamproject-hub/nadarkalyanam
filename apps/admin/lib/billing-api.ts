@@ -285,3 +285,81 @@ export function downloadOrdersCsv(orders: AdminOrder[], filename = 'orders.csv')
   URL.revokeObjectURL(url);
 }
 
+
+// --- Left at payment (opened the payment window, did not pay in 2 days) ---
+
+export interface UnpaidCheckout {
+  userId: string;
+  fullName: string | null;
+  phoneNumber: string;
+  accountStatus: string;
+  currentPlan: string | null;
+  kind: 'MEMBERSHIP' | 'HOROSCOPE_MATCH';
+  wanted: string;
+  amountInPaise: number;
+  attempts: number;
+  lastStatus: 'CREATED' | 'FAILED';
+  firstAttemptAt: string;
+  lastAttemptAt: string;
+  daysSinceLastAttempt: number;
+  lastOrderId: string;
+}
+
+export interface UnpaidCheckoutsPage {
+  afterHours: number;
+  lookbackDays: number;
+  total: number;
+  totalValueInPaise: number;
+  items: UnpaidCheckout[];
+}
+
+export const listUnpaidCheckouts = (t: string, params: { kind?: string; q?: string; offset?: number; limit?: number } = {}) => {
+  const query = new URLSearchParams(
+    Object.entries(params)
+      .filter(([, v]) => v !== undefined && v !== '')
+      .map(([k, v]) => [k, String(v)]),
+  ).toString();
+  return adminRequest<UnpaidCheckoutsPage>(t, `/admin/unpaid-checkouts${query ? `?${query}` : ''}`);
+};
+
+export async function listAllUnpaidCheckouts(t: string, params: { kind?: string; q?: string } = {}): Promise<UnpaidCheckout[]> {
+  const all: UnpaidCheckout[] = [];
+  for (;;) {
+    const page = await listUnpaidCheckouts(t, { ...params, offset: all.length, limit: 50 });
+    all.push(...page.items);
+    if (page.items.length === 0 || all.length >= page.total) return all;
+  }
+}
+
+export function exportUnpaidCheckoutsToCsv(rows: UnpaidCheckout[]): string {
+  const headers = ['Member Name', 'Member Phone', 'Account', 'Wanted', 'Amount (INR)', 'Attempts', 'Result', 'First Attempt (IST)', 'Last Attempt (IST)', 'Days Since', 'Plan Now'];
+  const lines = rows.map((r) =>
+    [
+      csvCell(r.fullName ?? ''),
+      csvCell(r.phoneNumber),
+      csvCell(r.accountStatus),
+      csvCell(r.wanted),
+      (r.amountInPaise / 100).toFixed(2),
+      String(r.attempts),
+      r.lastStatus === 'FAILED' ? 'Payment failed' : 'Not paid',
+      csvDateTime(r.firstAttemptAt),
+      csvDateTime(r.lastAttemptAt),
+      String(r.daysSinceLastAttempt),
+      csvCell(r.currentPlan ?? ''),
+    ].join(','),
+  );
+  return [headers.join(','), ...lines].join('\r\n');
+}
+
+export function downloadUnpaidCheckoutsCsv(rows: UnpaidCheckout[], filename = 'left-at-payment.csv'): void {
+  if (typeof document === 'undefined') return;
+  const blob = new Blob(['﻿' + exportUnpaidCheckoutsToCsv(rows)], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}

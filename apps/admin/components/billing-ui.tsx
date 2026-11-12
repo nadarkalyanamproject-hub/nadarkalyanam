@@ -6,6 +6,7 @@ import { Button, Field, Input, Select, Textarea } from '@nadar-kalyanam/ui';
 import { useAdminAuth } from '../app/providers/admin-auth-provider';
 import { ApiError, listMembers, type MemberSummary } from '../lib/api-client';
 import { grantSubscription, listPlans, rupees, type AdminPlan, type AdminSubscription } from '../lib/billing-api';
+import { StatusBadge } from './status-badge';
 
 export function Dialog({ title, children, onClose, testId }: { title: string; children: ReactNode; onClose: () => void; testId?: string }) {
   return (
@@ -23,15 +24,8 @@ export function Dialog({ title, children, onClose, testId }: { title: string; ch
   );
 }
 
-const STATE_STYLE: Record<SubscriptionState, string> = {
-  ACTIVE: 'bg-emerald-100 text-emerald-800',
-  QUEUED: 'bg-sky-100 text-sky-800',
-  EXPIRED: 'bg-muted text-muted-foreground',
-  CANCELLED: 'bg-red-100 text-red-800',
-};
-
 export function StateBadge({ state }: { state: SubscriptionState }) {
-  return <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATE_STYLE[state]}`}>{state}</span>;
+  return <StatusBadge status={state} />;
 }
 
 // A required-reason confirmation (cancel, refund).

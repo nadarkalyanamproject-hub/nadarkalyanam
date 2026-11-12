@@ -9,8 +9,10 @@ import { PhotosModule } from '../photos/photos.module.js';
 import { ProfilesModule } from '../profiles/profiles.module.js';
 import { VipModule } from '../vip/vip.module.js';
 import { PaymentsModule } from '../payments/payments.module.js';
+import { AdminMemberActivityController } from './admin-member-activity.controller.js';
 import { AdminMemberExtrasController } from './admin-member-extras.controller.js';
 import { AdminBillingController } from './billing/admin-billing.controller.js';
+import { AdminUnpaidCheckoutsController } from './billing/admin-unpaid-checkouts.controller.js';
 import { AdminBillingService } from './billing/admin-billing.service.js';
 import { AdminController } from './admin.controller.js';
 import { AdminUsersService } from './admin-users.service.js';
@@ -34,7 +36,7 @@ import { PermissionsGuard } from './guards/permissions.guard.js';
     HoroscopeModule,
     PaymentsModule,
   ],
-  controllers: [AdminController, AdminBillingController, AdminMemberExtrasController],
+  controllers: [AdminController, AdminBillingController, AdminMemberExtrasController, AdminMemberActivityController, AdminUnpaidCheckoutsController],
   providers: [
     AdminService,
     AdminBillingService,

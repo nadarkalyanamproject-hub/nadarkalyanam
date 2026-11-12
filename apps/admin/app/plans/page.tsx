@@ -9,6 +9,7 @@ import { ApiError } from '../../lib/api-client';
 import { listPlans, rupees, updatePlan, type AdminPlan } from '../../lib/billing-api';
 import { useRequireAdminAuth } from '../../lib/use-require-admin-auth';
 import { useAdminAuth } from '../providers/admin-auth-provider';
+import { StatusBadge } from '../../components/status-badge';
 
 type Pending = {
   plan: AdminPlan;
@@ -254,11 +255,7 @@ function PlanRow({ plan, onSave }: { plan: AdminPlan; onSave: (p: Pending) => vo
             {plan.isAssisted ? ' · assisted' : ''} · order {plan.sortOrder} · {plan.activeSubscriptions} active
           </p>
         </div>
-        <span
-          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${plan.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-muted text-muted-foreground'}`}
-        >
-          {plan.isActive ? 'Active' : 'Inactive'}
-        </span>
+        <StatusBadge status={plan.isActive ? 'ACTIVE' : 'INACTIVE'} />
       </div>
       {!editing && (
         <div className="mt-3 flex flex-wrap gap-2">
