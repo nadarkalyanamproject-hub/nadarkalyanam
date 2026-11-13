@@ -1,0 +1,57 @@
+/* Copied from apps/web/components/brand/brand.css (logo lockup part only). */
+/* Logo lockup (components/brand/logo.tsx). Sizes are in em of the logo's
+   font-size. KALYANAM is the wider line and NADAR sits centred above it; the
+   pendant spans from the top of NADAR to the KALYANAM baseline (measured in
+   Cinzel: caps start 0.148em down, the KALYANAM baseline is at 1.568em). */
+.nk-logo {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.343em;
+  font-family: var(--font-display), serif;
+  white-space: nowrap;
+  line-height: 1;
+}
+.nk-logo-mark {
+  display: block;
+  flex-shrink: 0;
+  height: 1.497em;
+  width: auto;
+  margin-top: 0.056em;
+}
+.nk-logo-word {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* letter-spacing also adds space after the last letter; the negative right
+   margin takes it back so each line centres on its letters. */
+.nk-logo-a {
+  font-size: 0.9em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-right: -0.08em;
+  line-height: 1.02;
+  color: #7a1118;
+}
+.nk-logo-b {
+  font-size: 0.78em;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  margin-right: -0.09em;
+  line-height: 1.02;
+  color: #8a6420;
+}
+.nk-logo-light .nk-logo-a { color: #fff; }
+.nk-logo-light .nk-logo-b { color: #e9c77a; }
+/* Trademark: small caps level with the top of NADAR, just past its last
+   letter. Positioned outside the flow so the lines stay centred. */
+.nk-logo-a { position: relative; }
+.nk-logo-tm {
+  position: absolute;
+  left: 100%;
+  top: 0.13em;
+  margin-left: -0.12em;
+  font-size: 0.25em;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}

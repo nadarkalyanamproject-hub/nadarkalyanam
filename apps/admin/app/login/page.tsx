@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Loader2, ShieldCheck } from 'lucide-react';
-import { Emblem } from '../../components/admin-shell';
+import { Logo, LogoMark } from '../../components/brand/logo';
 import { OTPInputGroup } from '../../components/ui/otp-input-group';
 import { ApiError, requestOtp, verifyOtp } from '../../lib/api-client';
 import { isValidLocalPhone, toE164 } from '../../lib/phone';
@@ -74,12 +74,11 @@ export default function AdminLoginPage() {
     <div className="grid min-h-screen bg-background lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
       {/* Brand panel, wide screens only. */}
       <aside className="relative hidden overflow-hidden bg-primary px-12 py-10 text-primary-foreground lg:flex lg:flex-col">
-        <div className="flex items-center gap-3">
-          <Emblem className="h-9 w-auto" />
-          <span className="leading-tight">
-            <span className="block text-[15px] font-semibold tracking-[-0.01em]">Nadar Kalyanam</span>
-            <span className="block text-[12px] font-medium text-primary-foreground/60">Admin console</span>
-          </span>
+        <div>
+          <Logo light className="text-[34px]" />
+          <p className="mt-3 text-[12px] font-semibold uppercase tracking-[0.18em] text-primary-foreground/60">
+            Admin console
+          </p>
         </div>
 
         <div className="my-auto max-w-md">
@@ -97,18 +96,15 @@ export default function AdminLoginPage() {
         </p>
 
         {/* Large faint emblem as a quiet watermark. */}
-        <Emblem className="pointer-events-none absolute -bottom-16 -right-14 h-[420px] w-auto opacity-[0.07]" />
+        <LogoMark className="pointer-events-none absolute -bottom-16 -right-14 h-[420px] w-auto opacity-[0.07]" />
       </aside>
 
       {/* Form side. */}
       <main className="flex items-center justify-center px-4 py-10 sm:px-8">
         <div className="w-full max-w-[400px] animate-fade-in">
-          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <Emblem className="h-8 w-auto" />
-            <span className="leading-tight">
-              <span className="block text-[14px] font-semibold text-foreground">Nadar Kalyanam</span>
-              <span className="block text-[11px] font-medium text-faint">Admin console</span>
-            </span>
+          <div className="mb-8 flex flex-col items-center lg:hidden">
+            <Logo className="text-[28px]" />
+            <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-faint">Admin console</p>
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-7 shadow-sm sm:p-8">
