@@ -164,6 +164,8 @@ export const adminPendingPhotoItemSchema = z.object({
   isPrimary: z.boolean(),
   sortOrder: z.number(),
   createdAt: z.string(),
+  // The automatic nudity check found it borderline: look closely.
+  flagged: z.boolean(),
 });
 export type AdminPendingPhotoItem = z.infer<typeof adminPendingPhotoItemSchema>;
 

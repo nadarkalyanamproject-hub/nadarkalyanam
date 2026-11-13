@@ -79,6 +79,11 @@ export const envSchema = z.object({
   // dev stub — photos are approved on upload. Unset: 'pending' in
   // production, 'auto_approve' elsewhere.
   PHOTO_MODERATION: z.enum(['pending', 'auto_approve']).optional(),
+  // Automatic nudity check on every profile photo upload (built-in NSFWJS
+  // model; the photo never leaves the server). 'true': explicit and
+  // half-naked photos are refused and borderline ones are held for staff.
+  // Turn off only for tests or a host where the model cannot run.
+  PHOTO_SCREENING: z.enum(['true', 'false']).default('true'),
   // Maximum allowed size for uploaded photos in bytes (NFR-4.5).
   // Defaults to 5 MB (5 * 1024 * 1024 = 5,242,880 bytes).
   MAX_PHOTO_SIZE_BYTES: z.coerce.number().int().positive().default(5242880),

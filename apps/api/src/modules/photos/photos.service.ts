@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { AdminPendingPhotoItem, PhotoResponse } from '@nadar-kalyanam/schemas';
 import { APPROVED_PHOTO_WHERE, photoStatus } from '../../common/photo-visibility.js';
@@ -7,6 +7,7 @@ import { refreshCompletionScore } from '../../common/profile-completion.js';
 import type { Env } from '../config/env.schema.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StorageService } from '../storage/storage.service.js';
+import { PhotoScreeningService, type ScreeningScores } from './photo-screening.service.js';
 
 const CONTENT_TYPE_EXTENSIONS: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -14,12 +15,21 @@ const CONTENT_TYPE_EXTENSIONS: Record<string, string> = {
   'image/webp': 'webp',
 };
 
+export const PHOTO_BLOCKED_MESSAGE =
+  'This photo cannot be used on Nadar Kalyanam. Please upload a clear photo of yourself in decent, fully covering clothes.';
+
+const formatScores = (s: ScreeningScores) =>
+  `porn ${s.porn.toFixed(2)}, sexy ${s.sexy.toFixed(2)}, hentai ${s.hentai.toFixed(2)}`;
+
 @Injectable()
 export class PhotosService {
+  private readonly logger = new Logger(PhotosService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly configService: ConfigService<Env, true>,
+    private readonly screening: PhotoScreeningService,
   ) {}
 
   private async getOwnedProfile(userId: string) {
@@ -56,7 +66,16 @@ export class PhotosService {
     // Validate uploaded file content type (JPEG, PNG, WebP only) and size limit (NFR-4.5).
     // Rejects invalid/malicious files, deletes them from storage, and throws BadRequestException.
     const maxPhotoSizeBytes = this.configService.get('MAX_PHOTO_SIZE_BYTES', { infer: true });
-    await this.storage.validateUploadedImage(objectKey, { maxSizeBytes: maxPhotoSizeBytes });
+    const validated = await this.storage.validateUploadedImage(objectKey, { maxSizeBytes: maxPhotoSizeBytes });
+
+    // Automatic nudity check. Explicit and half-naked photos are deleted and
+    // refused here, so they never reach the admin queue or other members.
+    const screening = validated.bytes ? await this.screening.screen(validated.bytes) : null;
+    if (screening?.verdict === 'BLOCK') {
+      await this.storage.deleteObject(objectKey);
+      this.logger.warn(`Blocked a profile photo by the nudity check (user ${userId}, scores ${formatScores(screening.scores)})`);
+      throw new BadRequestException(PHOTO_BLOCKED_MESSAGE);
+    }
 
     const existingCount = await this.prisma.profilePhoto.count({
       where: { profileId: profile.id },
@@ -67,7 +86,12 @@ export class PhotosService {
     // until then. 'auto_approve' is the dev stub that approves on upload so
     // local profiles have something to show. PHOTO_MODERATION picks the
     // mode; unset, production holds and everything else auto-approves.
-    const photoAutoApproveDevStub = this.moderationMode() === 'auto_approve';
+    // Even in auto_approve, a photo is only approved on upload when the
+    // screening ran and found it clean (or screening is switched off):
+    // borderline photos, and photos the model failed on, wait for staff.
+    const screeningOff = !this.screening.enabled;
+    const photoAutoApproveDevStub =
+      this.moderationMode() === 'auto_approve' && (screeningOff || screening?.verdict === 'CLEAR');
 
     const photo = await this.prisma.profilePhoto.create({
       data: {
@@ -79,6 +103,8 @@ export class PhotosService {
         sortOrder: existingCount,
         isModerated: photoAutoApproveDevStub,
         isApproved: photoAutoApproveDevStub,
+        screeningVerdict: screening ? screening.verdict : null,
+        screeningScores: screening ? screening.scores : undefined,
       },
     });
     // Having a photo is one of the completion fields.
@@ -175,7 +201,9 @@ export class PhotosService {
       this.prisma.profilePhoto.count({ where }),
       this.prisma.profilePhoto.findMany({
         where,
-        orderBy: { createdAt: 'asc' },
+        // Photos the nudity check flagged as borderline first, then oldest
+        // first. Nulls (not screened) sort with the clean ones.
+        orderBy: [{ screeningVerdict: { sort: 'desc', nulls: 'last' } }, { createdAt: 'asc' }],
         skip: offset,
         take: limit,
         include: {
@@ -202,6 +230,7 @@ export class PhotosService {
         isPrimary: photo.isPrimary,
         sortOrder: photo.sortOrder,
         createdAt: photo.createdAt.toISOString(),
+        flagged: photo.screeningVerdict === 'REVIEW',
       })),
     );
 

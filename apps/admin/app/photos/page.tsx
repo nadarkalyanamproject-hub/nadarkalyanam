@@ -32,6 +32,8 @@ export default function PhotosPage() {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [rejectingPhoto, setRejectingPhoto] = useState<QueuedPhoto | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  // Flagged photos start blurred; staff reveal them one at a time.
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
 
   const canModerate = can('photos.moderate');
 
@@ -152,9 +154,27 @@ export default function PhotosPage() {
                     <img
                       src={photo.url}
                       alt={photo.memberName ?? 'Member photo'}
-                      className="h-full w-full object-cover"
+                      className={`h-full w-full object-cover ${photo.flagged && !revealed.has(photo.id) ? 'scale-110 blur-xl' : ''}`}
                       loading="lazy"
                     />
+                    {photo.flagged && !revealed.has(photo.id) && (
+                      <button
+                        type="button"
+                        onClick={() => setRevealed((prev) => new Set(prev).add(photo.id))}
+                        className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/25 px-4 text-center text-white"
+                      >
+                        <span className="text-[13px] font-semibold">May show nudity</span>
+                        <span className="text-[11px] text-white/80">Click to view</span>
+                      </button>
+                    )}
+                    {photo.flagged && (
+                      <span
+                        className="absolute top-2 right-2 rounded bg-bad px-2 py-0.5 text-[11px] font-semibold text-white shadow"
+                        title="The automatic check found this photo borderline. Look closely before approving."
+                      >
+                        Flagged
+                      </span>
+                    )}
                     {photo.isPrimary && (
                       <span className="absolute top-2 left-2 rounded bg-amber-500/90 px-2 py-0.5 text-[11px] font-semibold text-white shadow">
                         Primary

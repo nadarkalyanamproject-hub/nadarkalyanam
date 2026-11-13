@@ -1,7 +1,8 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { requestUploadUrlSchema } from '@nadar-kalyanam/schemas';
 import { describe, expect, it, vi } from 'vitest';
-import { PhotosService } from './photos.service.js';
+import { PHOTO_BLOCKED_MESSAGE, PhotosService } from './photos.service.js';
+import type { ScreeningScores, ScreeningVerdict } from './photo-screening.service.js';
 
 const PROFILE_ID = 'profile-1';
 const USER_ID = 'user-1';
@@ -13,7 +14,9 @@ interface TxMock {
   };
 }
 
-function buildService(nodeEnv: string = 'test', photoModeration?: 'pending' | 'auto_approve') {
+type ScreenResult = { verdict: ScreeningVerdict; scores: ScreeningScores } | null;
+
+function buildService(nodeEnv: string = 'test', photoModeration?: 'pending' | 'auto_approve', screen?: { enabled: boolean; result: ScreenResult }) {
   const tx: TxMock = {
     profilePhoto: {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -41,13 +44,16 @@ function buildService(nodeEnv: string = 'test', photoModeration?: 'pending' | 'a
     createUploadUrl: vi.fn().mockResolvedValue('https://minio.example/presigned-put-url'),
     deleteObject: vi.fn().mockResolvedValue(undefined),
     getObjectUrl: vi.fn((objectKey: string) => Promise.resolve(`https://minio.example/bucket/${objectKey}`)),
-    validateUploadedImage: vi.fn().mockResolvedValue({ mime: 'image/jpeg', sizeBytes: 1024 }),
+    validateUploadedImage: vi.fn().mockResolvedValue({ mime: 'image/jpeg', sizeBytes: 1024, bytes: new Uint8Array([1, 2, 3]) }),
   };
   const env: Record<string, unknown> = { NODE_ENV: nodeEnv, PHOTO_MODERATION: photoModeration };
   const configService = { get: vi.fn((key: string) => env[key]) };
 
-  const service = new PhotosService(prisma as never, storage as never, configService as never);
-  return { service, prisma, storage, tx, configService };
+  // Screening off by default, so the older tests keep their meaning.
+  const screening = { enabled: screen?.enabled ?? false, screen: vi.fn().mockResolvedValue(screen?.result ?? null) };
+
+  const service = new PhotosService(prisma as never, storage as never, configService as never, screening as never);
+  return { service, prisma, storage, tx, configService, screening };
 }
 
 describe('requestUploadUrlSchema', () => {
@@ -106,6 +112,7 @@ describe('PhotosService.confirmPhoto', () => {
         sortOrder: 0,
         isModerated: true,
         isApproved: true,
+        screeningVerdict: null,
       },
     });
     expect(result).toEqual({
@@ -448,6 +455,7 @@ describe('PhotosService.listPendingPhotos', () => {
         isPrimary: true,
         sortOrder: 0,
         createdAt,
+        screeningVerdict: 'REVIEW',
         profile: {
           id: PROFILE_ID,
           userId: USER_ID,
@@ -462,7 +470,7 @@ describe('PhotosService.listPendingPhotos', () => {
 
     expect(prisma.profilePhoto.findMany).toHaveBeenCalledWith({
       where: { isModerated: false, profile: { user: { status: { not: 'DELETED' } } } },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ screeningVerdict: { sort: 'desc', nulls: 'last' } }, { createdAt: 'asc' }],
       skip: 0,
       take: 10,
       include: {
@@ -487,8 +495,77 @@ describe('PhotosService.listPendingPhotos', () => {
         isPrimary: true,
         sortOrder: 0,
         createdAt: createdAt.toISOString(),
+        flagged: true,
       },
     ]);
     expect(result.total).toBe(1);
+  });
+});
+
+const scores = (over: Partial<ScreeningScores>): ScreeningScores => ({ neutral: 0, drawing: 0, sexy: 0, porn: 0, hentai: 0, ...over });
+
+describe('PhotosService.confirmPhoto with the nudity check', () => {
+  const objectKey = `profiles/${PROFILE_ID}/photo-1.jpg`;
+  const echoCreate = (prisma: ReturnType<typeof buildService>['prisma']) =>
+    prisma.profilePhoto.create.mockImplementationOnce(({ data }: { data: Record<string, unknown> }) =>
+      Promise.resolve({ id: 'photo-1', rejectionReason: null, ...data }),
+    );
+
+  it('refuses and deletes a blocked photo, and never creates a row', async () => {
+    const { service, prisma, storage, screening } = buildService('production', 'pending', {
+      enabled: true,
+      result: { verdict: 'BLOCK', scores: scores({ sexy: 0.92 }) },
+    });
+
+    await expect(service.confirmPhoto(USER_ID, objectKey)).rejects.toThrow(PHOTO_BLOCKED_MESSAGE);
+    expect(screening.screen).toHaveBeenCalledWith(new Uint8Array([1, 2, 3]));
+    expect(storage.deleteObject).toHaveBeenCalledWith(objectKey);
+    expect(prisma.profilePhoto.create).not.toHaveBeenCalled();
+  });
+
+  it('holds a borderline (REVIEW) photo for staff even when auto-approve is on', async () => {
+    const s = scores({ sexy: 0.4, neutral: 0.6 });
+    const { service, prisma } = buildService('development', 'auto_approve', { enabled: true, result: { verdict: 'REVIEW', scores: s } });
+    echoCreate(prisma);
+
+    const result = await service.confirmPhoto(USER_ID, objectKey);
+
+    expect(prisma.profilePhoto.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ isModerated: false, isApproved: false, screeningVerdict: 'REVIEW', screeningScores: s }),
+    });
+    expect(result.status).toBe('PENDING');
+  });
+
+  it('auto-approves a CLEAR photo in auto_approve mode and records the scores', async () => {
+    const s = scores({ neutral: 0.97 });
+    const { service, prisma } = buildService('development', 'auto_approve', { enabled: true, result: { verdict: 'CLEAR', scores: s } });
+    echoCreate(prisma);
+
+    const result = await service.confirmPhoto(USER_ID, objectKey);
+
+    expect(prisma.profilePhoto.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ isModerated: true, isApproved: true, screeningVerdict: 'CLEAR', screeningScores: s }),
+    });
+    expect(result.status).toBe('APPROVED');
+  });
+
+  it('never auto-approves when screening is on but could not run', async () => {
+    const { service, prisma } = buildService('development', 'auto_approve', { enabled: true, result: null });
+    echoCreate(prisma);
+
+    const result = await service.confirmPhoto(USER_ID, objectKey);
+
+    expect(prisma.profilePhoto.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ isModerated: false, isApproved: false, screeningVerdict: null }),
+    });
+    expect(result.status).toBe('PENDING');
+  });
+
+  it('keeps a CLEAR photo pending for staff in production (pending mode)', async () => {
+    const { service, prisma } = buildService('production', undefined, { enabled: true, result: { verdict: 'CLEAR', scores: scores({ neutral: 0.99 }) } });
+    echoCreate(prisma);
+
+    const result = await service.confirmPhoto(USER_ID, objectKey);
+    expect(result.status).toBe('PENDING');
   });
 });

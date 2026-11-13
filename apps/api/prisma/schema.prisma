@@ -173,6 +173,12 @@ model ProfilePhoto {
   isApproved      Boolean  @default(false)
   // Shown to the owner when an admin rejects the photo.
   rejectionReason String?
+  // Automatic nudity check at upload. REVIEW = borderline, held for staff and
+  // shown first in the photo queue. Null = not screened (feature off, model
+  // failed, or uploaded before screening existed). Blocked photos are never
+  // stored. screeningScores keeps the model's class scores for staff.
+  screeningVerdict PhotoScreeningVerdict?
+  screeningScores  Json?
   createdAt       DateTime @default(now())
 
   @@index([profileId])
@@ -771,4 +777,10 @@ model HoroscopeMatch {
 
   @@unique([userId, profileId])
   @@map("horoscope_matches")
+}
+
+// Outcome of the automatic photo check (see ProfilePhoto.screeningVerdict).
+enum PhotoScreeningVerdict {
+  CLEAR
+  REVIEW
 }

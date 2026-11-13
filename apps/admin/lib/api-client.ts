@@ -462,6 +462,8 @@ export interface QueuedPhoto {
   isPrimary: boolean;
   sortOrder: number;
   createdAt: string;
+  // The automatic nudity check found it borderline. Listed first.
+  flagged: boolean;
 }
 
 export function listPendingPhotos(

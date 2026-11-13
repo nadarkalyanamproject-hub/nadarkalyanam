@@ -27,6 +27,9 @@ export interface ImageValidationOptions {
 export interface ValidatedImage {
   mime: string;
   sizeBytes: number;
+  // The file itself, so callers (photo screening) need not download it again.
+  // Absent for external URLs, which are never fetched.
+  bytes?: Uint8Array;
 }
 
 async function bodyToBytes(body: unknown): Promise<Uint8Array> {
@@ -157,6 +160,7 @@ export class StorageService {
     return {
       mime: detected.mime,
       sizeBytes: contentLength || bytes.length,
+      bytes,
     };
   }
 }

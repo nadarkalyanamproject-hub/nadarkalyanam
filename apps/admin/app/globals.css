@@ -52,6 +52,7 @@
   --animate-fade-in: fade-in 180ms var(--ease-out-soft) both;
   --animate-pop-in: pop-in 200ms var(--ease-out-soft) both;
   --animate-menu-in: menu-in 160ms var(--ease-out-soft) both;
+  --animate-drawer-in: drawer-in 240ms var(--ease-out-soft) both;
 
   @keyframes fade-in {
     from {
@@ -78,6 +79,14 @@
     }
     to {
       opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes drawer-in {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
       transform: none;
     }
   }
